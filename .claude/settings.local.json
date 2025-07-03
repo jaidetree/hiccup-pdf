@@ -5,7 +5,8 @@
       "Bash(npx nbb -e \"(require ''[hiccup-pdf.core :refer [hiccup->pdf-ops]]) (hiccup->pdf-ops [:rect {:x 10 :y 20}])\")",
       "Bash(npx nbb -e \"(require ''[cljs.test :refer [run-tests]] ''[hiccup-pdf.core-test]) (run-tests ''hiccup-pdf.core-test)\")",
       "Bash(npx nbb test:*)",
-      "Bash(npx nbb:*)"
+      "Bash(npx nbb:*)",
+      "Bash(npm test)"
     ],
     "deny": []
   }

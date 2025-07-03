@@ -21,7 +21,7 @@ The project should be named "hiccup-pdf" and set up for ClojureScript developmen
 
 **Status**: Created nbb.edn with paths configuration, src/ and test/ directories, README.md, and .gitignore file. Project structure is ready for ClojureScript development with node-babashka.
 
-### Step 2: Core Namespace & Function Skeleton
+### Step 2: Core Namespace & Function Skeleton ✅ COMPLETED
 **Goal**: Create the main namespace and function signature
 
 ```
@@ -33,6 +33,8 @@ Create the core namespace `hiccup-pdf.core` with:
 
 Add a simple smoke test that verifies the function exists and can be called without errors. The test should pass with the placeholder implementation.
 ```
+
+**Status**: Created hiccup-pdf.core namespace with main function, comprehensive docstring, placeholder implementation, and smoke tests. Updated nbb.edn to include test path. All tests passing.
 
 ### Step 3: Basic Test Infrastructure
 **Goal**: Set up testing framework and basic test structure
