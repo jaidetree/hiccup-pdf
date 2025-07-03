@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+
+# Build artifacts
+.cljs_node_repl/
+.nrepl-port
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Temporary files
+tmp/
+temp/
