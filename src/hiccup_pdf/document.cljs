@@ -1,7 +1,6 @@
 (ns hiccup-pdf.document
   "PDF document generation functionality for complete PDF files with pages."
-  (:require [hiccup-pdf.core :as core]
-            [hiccup-pdf.validation :as v]))
+  (:require [hiccup-pdf.validation :as v]))
 
 (defn hiccup-document->pdf
   "Implementation function for generating complete PDF documents from hiccup.
@@ -27,10 +26,22 @@
   (when (empty? hiccup-document)
     (throw (js/Error. "Document vector cannot be empty")))
   
-  (let [[tag attributes & _pages] hiccup-document]
+  (let [validated-structure (v/validate-hiccup-structure hiccup-document)
+        [tag attributes & _pages] validated-structure]
+    
+    ;; Validate element type - must be :document
     (when-not (= tag :document)
       (throw (js/Error. (str "Root element must be :document, got: " tag))))
     
-    ;; For now, return a placeholder to establish the function structure
-    ;; This will be implemented in subsequent steps
-    (str "PDF document placeholder for: " (:title attributes "Untitled Document"))))
+    ;; Validate element type with general validator
+    (v/validate-element-type tag)
+    
+    ;; Validate and apply document attribute defaults
+    (let [validated-attributes (v/validate-document-attributes attributes)]
+      
+      ;; For now, return a placeholder with validated attributes
+      ;; This will be implemented in subsequent steps  
+      (str "PDF document placeholder for: " 
+           (:title validated-attributes "Untitled Document")
+           " (width: " (:width validated-attributes) 
+           ", height: " (:height validated-attributes) ")"))))

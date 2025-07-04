@@ -75,7 +75,7 @@
   Throws:
     Validation error if element type is not supported"
   [element-type]
-  (let [supported-types #{:rect :circle :line :text :path :g}
+  (let [supported-types #{:rect :circle :line :text :path :g :document :page}
         schema (v/enum supported-types)]
     (v/parse schema element-type)))
 
@@ -318,3 +318,47 @@
     (when (:transforms attributes)
       (validate-transforms (:transforms attributes)))
     attributes))
+
+(defn validate-document-attributes
+  "Validates that attributes contains valid document attributes with defaults.
+  
+  Args:
+    attributes: The attributes map to validate
+    
+  Returns:
+    The validated attributes map with defaults applied
+    
+  Throws:
+    Validation error if attributes are invalid"
+  [attributes]
+  (let [;; Define default values
+        defaults {:width 612              ; Letter width default
+                  :height 792             ; Letter height default
+                  :margins [0 0 0 0]      ; No margins default
+                  :creator "hiccup-pdf"   ; Library identifier
+                  :producer "hiccup-pdf"} ; Producer identifier
+        
+        ;; Validation schemas
+        string-schema (v/chain (v/string) (v/assert #(not (str/blank? %))))
+        positive-number-schema (v/chain (v/number) (v/assert #(pos? %)))
+        margins-schema (v/chain 
+                         (v/assert vector?)
+                         (v/assert #(= 4 (count %)))
+                         (v/assert #(every? number? %)))
+        
+        optional-schema (v/record {:title (v/nilable string-schema)
+                                   :author (v/nilable string-schema)
+                                   :subject (v/nilable string-schema)
+                                   :keywords (v/nilable string-schema)
+                                   :creator (v/nilable string-schema)
+                                   :producer (v/nilable string-schema)
+                                   :width (v/nilable positive-number-schema)
+                                   :height (v/nilable positive-number-schema)
+                                   :margins (v/nilable margins-schema)})
+        
+        ;; Merge with defaults
+        merged-attributes (merge defaults attributes)]
+    
+    ;; Validate the merged attributes
+    (v/parse optional-schema merged-attributes)
+    merged-attributes))

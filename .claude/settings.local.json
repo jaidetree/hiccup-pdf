@@ -10,7 +10,8 @@
       "Bash(nbb:*)",
       "Bash(clj-kondo:*)",
       "Bash(sed:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

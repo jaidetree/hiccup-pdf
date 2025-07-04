@@ -1,7 +1,8 @@
 (ns hiccup-pdf.document-test
   (:require [cljs.test :refer [deftest is testing]]
             [hiccup-pdf.core :refer [hiccup->pdf-document]]
-            [hiccup-pdf.document :refer [hiccup-document->pdf]]))
+            [hiccup-pdf.document :refer [hiccup-document->pdf]]
+            [hiccup-pdf.validation :refer [validate-document-attributes validate-element-type]]))
 
 (deftest document-function-signature-test
   (testing "Document function exists and can be called"
@@ -91,3 +92,63 @@
           "Implementation should return string")
       (is (= public-result impl-result)
           "Public API and implementation should return same result"))))
+
+(deftest document-element-type-validation-test
+  (testing "Document element type is recognized as valid"
+    
+    ;; Test that :document is now a valid element type
+    (is (= :document (validate-element-type :document))
+        "Should accept :document as valid element type")
+    
+    ;; Test that :page is now a valid element type  
+    (is (= :page (validate-element-type :page))
+        "Should accept :page as valid element type")
+    
+    ;; Ensure existing types still work
+    (is (= :rect (validate-element-type :rect))
+        "Should still accept existing element types")))
+
+(deftest document-attributes-validation-test
+  (testing "Document attributes validation with defaults"
+    ;; Test empty attributes get defaults
+    (let [result (validate-document-attributes {})]
+      (is (= 612 (:width result)) "Should default width to 612")
+      (is (= 792 (:height result)) "Should default height to 792")
+      (is (= [0 0 0 0] (:margins result)) "Should default margins to [0 0 0 0]")
+      (is (= "hiccup-pdf" (:creator result)) "Should default creator to hiccup-pdf")
+      (is (= "hiccup-pdf" (:producer result)) "Should default producer to hiccup-pdf"))
+    
+    ;; Test custom attributes override defaults
+    (let [result (validate-document-attributes {:title "My Document" :width 595})]
+      (is (= "My Document" (:title result)) "Should preserve custom title")
+      (is (= 595 (:width result)) "Should override default width")
+      (is (= "hiccup-pdf" (:creator result)) "Should still use default creator"))))
+
+(deftest document-attributes-validation-errors-test
+  (testing "Document attributes validation catches invalid values"
+    ;; Test invalid width/height
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (validate-document-attributes {:width -100}))
+        "Should reject negative width")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (validate-document-attributes {:width "invalid"}))
+        "Should reject non-numeric width")
+    
+    ;; Test invalid margins
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (validate-document-attributes {:margins [10 20 30]}))
+        "Should reject margins with wrong number of elements")))
+
+(deftest document-integration-with-validation-test
+  (testing "Document function integrates with validation"
+    ;; Test that document function uses validation
+    (let [result (hiccup->pdf-document [:document {:title "Validated Doc"}])]
+      (is (string? result) "Should return string")
+      (is (re-find #"Validated Doc" result) "Should include validated title")
+      (is (re-find #"width: 612" result) "Should include default width"))
+    
+    ;; Test validation errors propagate
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-document [:document {:width -100}]))
+        "Should propagate validation errors")))

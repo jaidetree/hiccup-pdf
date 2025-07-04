@@ -358,19 +358,23 @@ This step ties everything together and ensures completeness.
 
 ## Phase 9: Document Structure Foundation
 
-### Step 21: Document Function and Namespace Setup
+### Step 21: Document Function and Namespace Setup ✅ COMPLETED
 **Goal**: Create public document API and implementation namespace
 
 ```
 Add the main `hiccup->pdf-document` function to the core namespace alongside the existing `hiccup->pdf-ops` function. Create a new namespace `hiccup-pdf.document` for PDF document generation implementation details. The public API function in core should accept a hiccup document vector and delegate to the document namespace for processing. Set up proper requires between namespaces. Add basic validation that the input is a hiccup vector with `:document` as the root element. Include comprehensive unit tests for the function signature, delegation, and basic validation. This establishes the public API in core while keeping implementation details separate.
 ```
 
-### Step 22: Document Element Validation
+**Status**: Implemented public document API and implementation namespace with `hiccup->pdf-document` function in core namespace providing comprehensive docstring and delegation to `hiccup-pdf.document` namespace. Created `hiccup-document->pdf` implementation function with basic validation ensuring input is hiccup vector with `:document` root element. Set up proper namespace requires and separation of concerns. Added comprehensive unit tests covering function signatures, basic validation (invalid input types, empty vectors, wrong root elements), and delegation behavior. All tests passing (45 tests, 417 assertions) with placeholder implementation returning descriptive string. Establishes clean foundation for document functionality while maintaining API separation.
+
+### Step 22: Document Element Validation ✅ COMPLETED
 **Goal**: Implement document-level attribute validation
 
 ```
 Extend the validation namespace to support `:document` element validation. Implement `validate-document-attributes` function with optional attributes: `:title`, `:author`, `:subject`, `:keywords`, `:creator`, `:producer`, `:width`, `:height`, and `:margins`. Provide defaults: width 612, height 792, margins [0 0 0 0], creator/producer "hiccup-pdf". Validate width/height as positive numbers, margins as 4-element vector of numbers, metadata fields as non-empty strings when provided. Update the main element validator to recognize `:document` as a valid element type. Add comprehensive tests covering all attributes, defaults, validation errors, and integration with existing validation patterns.
 ```
+
+**Status**: Extended validation namespace to support `:document` element validation with comprehensive `validate-document-attributes` function supporting optional attributes (title, author, subject, keywords, creator, producer, width, height, margins) with proper defaults (width 612, height 792, margins [0 0 0 0], creator/producer "hiccup-pdf"). Implemented positive number validation for width/height, 4-element vector validation for margins, and non-empty string validation for metadata fields. Updated main element validator to recognize `:document` as valid element type. Added comprehensive test coverage for all attributes, defaults, validation errors, and integration with existing validation patterns. Enhanced document implementation to provide explicit error messages for root element validation. All tests passing (49 tests, 435 assertions).
 
 ### Step 23: Page Element Validation with Inheritance
 **Goal**: Implement page validation with document inheritance
