@@ -208,3 +208,21 @@
     (v/parse required-schema attributes)
     (v/parse optional-schema attributes)
     attributes))
+
+(defn validate-group-attributes
+  "Validates that attributes contains valid group attributes.
+  
+  Args:
+    attributes: The attributes map to validate
+    
+  Returns:
+    The validated attributes map if valid
+    
+  Throws:
+    Validation error if attributes are invalid"
+  [attributes]
+  (let [;; Group elements can have optional attributes but no required ones for basic groups
+        ;; Future transform attributes will be added in later steps
+        schema (v/record {})]
+    (v/parse schema attributes)
+    attributes))

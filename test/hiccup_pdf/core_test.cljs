@@ -31,8 +31,8 @@
     (is (string? (hiccup->pdf-ops [:path {:d "M10,10 L20,20"}]))
         "Path elements should return a string")
     
-    (is (thrown? js/Error (hiccup->pdf-ops [:g {} [:rect {:x 0 :y 0 :width 50 :height 50}]]))
-        "Group elements should throw error (not implemented)")))
+    (is (string? (hiccup->pdf-ops [:g {} [:rect {:x 0 :y 0 :width 50 :height 50}]]))
+        "Group elements should return a string")))
 
 (deftest function-signature-tests
   (testing "Function signature variations"
@@ -391,3 +391,77 @@
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Line 1\nLine 2"])]
       (is (re-find #"\(Line 1\nLine 2\) Tj\n" result)
           "Should handle newline characters"))))
+
+(deftest group-element-test
+  (testing "Group element transformation"
+    (let [result (hiccup->pdf-ops [:g {} [:rect {:x 10 :y 20 :width 100 :height 50}]])]
+      (is (string? result)
+          "Should generate string output for basic group")
+      (is (re-find #"q\n" result)
+          "Should start with graphics state save operator")
+      (is (re-find #"10 20 100 50 re\n" result)
+          "Should contain child element operations")
+      (is (re-find #"Q$" result)
+          "Should end with graphics state restore operator"))
+    
+    (let [result (hiccup->pdf-ops [:g {} [:circle {:cx 50 :cy 50 :r 25}]])]
+      (is (string? result)
+          "Should generate string output for group with circle")
+      (is (re-find #"q\n" result)
+          "Should start with save operator")
+      (is (re-find #"Q$" result)
+          "Should end with restore operator")))
+  
+  (testing "Group element validation errors"
+    (is (thrown? js/Error (hiccup->pdf-ops [:g "invalid-attributes"]))
+        "Should throw error for non-map attributes"))
+  
+  (testing "Empty group"
+    (let [result (hiccup->pdf-ops [:g {}])]
+      (is (string? result)
+          "Should handle empty group")
+      (is (= "q\nQ" result)
+          "Should contain only save and restore operators"))))
+
+(deftest nested-group-test
+  (testing "Nested groups"
+    (let [result (hiccup->pdf-ops [:g {} 
+                                   [:rect {:x 10 :y 20 :width 100 :height 50}]
+                                   [:g {} 
+                                    [:circle {:cx 50 :cy 50 :r 25}]]])]
+      (is (string? result)
+          "Should generate string output for nested groups")
+      (is (re-find #"q\n" result)
+          "Should start with outer group save")
+      (is (re-find #"10 20 100 50 re\n" result)
+          "Should contain rectangle from outer group")
+      (is (re-find #"Q$" result)
+          "Should end with outer group restore"))
+    
+    (let [result (hiccup->pdf-ops [:g {}
+                                   [:g {} [:rect {:x 0 :y 0 :width 10 :height 10}]]
+                                   [:g {} [:rect {:x 20 :y 20 :width 30 :height 30}]]])]
+      (is (string? result)
+          "Should handle multiple nested groups")
+      (is (re-find #"0 0 10 10 re\n" result)
+          "Should contain first nested rectangle")
+      (is (re-find #"20 20 30 30 re\n" result)
+          "Should contain second nested rectangle")))
+  
+  (testing "Multiple elements in group"
+    (let [result (hiccup->pdf-ops [:g {}
+                                   [:rect {:x 10 :y 20 :width 100 :height 50}]
+                                   [:circle {:cx 50 :cy 50 :r 25}]
+                                   [:text {:x 10 :y 10 :font "Arial" :size 12} "Test"]])]
+      (is (string? result)
+          "Should handle multiple elements in one group")
+      (is (re-find #"q\n" result)
+          "Should start with save operator")
+      (is (re-find #"re\n" result)
+          "Should contain rectangle")
+      (is (re-find #"c\n" result)
+          "Should contain circle curves")
+      (is (re-find #"BT\n" result)
+          "Should contain text block")
+      (is (re-find #"Q$" result)
+          "Should end with restore operator"))))

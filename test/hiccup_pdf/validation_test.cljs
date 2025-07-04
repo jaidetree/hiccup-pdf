@@ -8,6 +8,7 @@
                                            validate-circle-attributes
                                            validate-path-attributes
                                            validate-text-attributes
+                                           validate-group-attributes
                                            validate-color]]))
 
 (deftest validate-hiccup-structure-test
@@ -275,3 +276,18 @@
     
     (is (thrown? js/Error (validate-text-attributes {:x 10 :y 20 :font "Arial" :size 12 :fill "invalid"}))
         "Should throw error for invalid fill color")))
+
+(deftest validate-group-attributes-test
+  (testing "Valid group attributes"
+    (is (= {}
+           (validate-group-attributes {}))
+        "Should validate empty group attributes")
+    
+    (is (= {}
+           (validate-group-attributes {}))
+        "Should validate basic empty group"))
+  
+  (testing "Group attributes validation"
+    (is (= {}
+           (validate-group-attributes {}))
+        "Should accept empty attributes for basic groups")))

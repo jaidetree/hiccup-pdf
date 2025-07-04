@@ -3,6 +3,8 @@
   (:require [hiccup-pdf.validation :as v]
             [clojure.string :as str]))
 
+(declare element->pdf-ops)
+
 (defn- color->pdf-color
   "Converts a color string to PDF color values.
   
@@ -195,6 +197,25 @@
         text-op (str "(" escaped-content ") Tj\n")]
     (str "BT\n" fill-color-op font-op position-op text-op "ET")))
 
+(defn- group->pdf-ops
+  "Converts a group hiccup vector to PDF operators.
+  
+  Args:
+    attributes: Map containing group attributes
+    content: Vector of child hiccup elements
+    
+  Returns:
+    String of PDF operators for group with save/restore state"
+  [attributes content]
+  (let [_ (v/validate-group-attributes attributes)
+        ;; Save graphics state with q operator
+        save-state "q\n"
+        ;; Process all child elements
+        child-ops (apply str (map element->pdf-ops content))
+        ;; Restore graphics state with Q operator
+        restore-state "Q"]
+    (str save-state child-ops restore-state)))
+
 (defn- element->pdf-ops
   "Converts a hiccup element to PDF operators.
   
@@ -213,6 +234,7 @@
       :circle (circle->pdf-ops attributes)
       :path (path->pdf-ops attributes)
       :text (text->pdf-ops attributes (first content))
+      :g (group->pdf-ops attributes content)
       (throw (js/Error. (str "Element type " tag " not yet implemented"))))))
 
 (defn hiccup->pdf-ops
