@@ -763,3 +763,177 @@
           "Should contain text")
       (is (re-find #"m\n" result)
           "Should contain path"))))
+
+(deftest comprehensive-error-handling-test
+  (testing "Rectangle validation errors"
+    ;; Test missing required attributes
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:rect {}]))
+        "Should throw validation error for missing rect attributes")
+    
+    (is (thrown-with-msg? js/Error #"Expected number"
+                          (hiccup->pdf-ops [:rect {:x 10}]))
+        "Should throw error for incomplete rect attributes")
+    
+    ;; Test invalid attribute types
+    (is (thrown-with-msg? js/Error #"Expected number.*invalid"
+                          (hiccup->pdf-ops [:rect {:x "invalid" :y 10 :width 20 :height 30}]))
+        "Should throw error for non-numeric rect coordinate")
+    
+    (is (thrown-with-msg? js/Error #"Assert failed.*invalid-color"
+                          (hiccup->pdf-ops [:rect {:x 10 :y 10 :width 20 :height 30 :fill "invalid-color"}]))
+        "Should throw error for invalid rect fill color"))
+  
+  (testing "Circle validation errors"
+    ;; Test missing required attributes
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:circle {}]))
+        "Should throw error for missing circle attributes")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:circle {:cx 10 :cy 10}]))
+        "Should throw error for missing circle radius")
+    
+    ;; Test invalid attribute values
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:circle {:cx 10 :cy 10 :r -5}]))
+        "Should throw error for negative circle radius")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:circle {:cx "invalid" :cy 10 :r 5}]))
+        "Should throw error for non-numeric circle coordinate"))
+  
+  (testing "Line validation errors"
+    ;; Test missing required attributes
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:line {}]))
+        "Should throw error for missing line attributes")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:line {:x1 10 :y1 10}]))
+        "Should throw error for incomplete line coordinates")
+    
+    ;; Test invalid attribute types
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:line {:x1 "invalid" :y1 10 :x2 20 :y2 30}]))
+        "Should throw error for non-numeric line coordinate"))
+  
+  (testing "Text validation errors"
+    ;; Test missing required attributes
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:text {} "Hello"]))
+        "Should throw error for missing text attributes")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:text {:x 10 :y 10} "Hello"]))
+        "Should throw error for missing text font/size")
+    
+    ;; Test invalid attribute values
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:text {:x 10 :y 10 :font "" :size 12} "Hello"]))
+        "Should throw error for empty text font")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:text {:x 10 :y 10 :font "Arial" :size 0} "Hello"]))
+        "Should throw error for zero text size"))
+  
+  (testing "Path validation errors"
+    ;; Test missing required attributes
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:path {}]))
+        "Should throw error for missing path data")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:path {:d ""}]))
+        "Should throw error for empty path data")
+    
+    ;; Test invalid attribute types
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:path {:d 123}]))
+        "Should throw error for non-string path data")))
+
+(deftest transform-error-handling-test
+  (testing "Transform validation errors"
+    ;; Test invalid transform structure
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:g {:transforms ["invalid"]} 
+                                           [:rect {:x 0 :y 0 :width 10 :height 10}]]))
+        "Should throw error for invalid transform structure")
+    
+    ;; Test unsupported transform type
+    (is (thrown-with-msg? js/Error #"Unsupported transform type.*invalid"
+                          (hiccup->pdf-ops [:g {:transforms [[:invalid [10 20]]]} 
+                                           [:rect {:x 0 :y 0 :width 10 :height 10}]]))
+        "Should throw error for unsupported transform type")
+    
+    ;; Test invalid translate arguments
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:g {:transforms [[:translate [10]]]} 
+                                           [:rect {:x 0 :y 0 :width 10 :height 10}]]))
+        "Should throw error for incomplete translate arguments")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:g {:transforms [[:translate ["invalid" 20]]]} 
+                                           [:rect {:x 0 :y 0 :width 10 :height 10}]]))
+        "Should throw error for non-numeric translate arguments")
+    
+    ;; Test invalid rotate arguments
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:g {:transforms [[:rotate "invalid"]]} 
+                                           [:rect {:x 0 :y 0 :width 10 :height 10}]]))
+        "Should throw error for non-numeric rotate argument")
+    
+    ;; Test invalid scale arguments
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:g {:transforms [[:scale [2]]]} 
+                                           [:rect {:x 0 :y 0 :width 10 :height 10}]]))
+        "Should throw error for incomplete scale arguments"))
+  
+  (testing "Group validation errors"
+    ;; Test invalid group attributes
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:g {:transforms "invalid"} 
+                                           [:rect {:x 0 :y 0 :width 10 :height 10}]]))
+        "Should throw error for invalid group transforms attribute")))
+
+(deftest hiccup-structure-error-handling-test
+  (testing "Basic hiccup structure validation errors"
+    ;; Test non-vector input
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops "not-a-vector"))
+        "Should throw error for non-vector hiccup")
+    
+    ;; Test empty vector
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops []))
+        "Should throw error for empty hiccup vector")
+    
+    ;; Test missing attributes map
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:rect]))
+        "Should throw error for missing attributes map")
+    
+    ;; Test non-keyword element type
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops ["rect" {:x 10 :y 10 :width 20 :height 30}]))
+        "Should throw error for non-keyword element type")
+    
+    ;; Test non-map attributes
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:rect "not-a-map"]))
+        "Should throw error for non-map attributes"))
+  
+  (testing "Element type validation errors"
+    ;; Test unsupported element type
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:unsupported {:x 10 :y 10}]))
+        "Should throw error for unsupported element type"))
+  
+  (testing "Incremental processing error verification"
+    ;; Test that errors are thrown immediately, not after processing other elements
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:g {}
+                                           [:rect {:x 10 :y 10 :width 20 :height 30}] ; Valid
+                                           [:rect {:invalid "attributes"}]             ; Invalid
+                                           [:rect {:x 20 :y 20 :width 30 :height 40}]])) ; Would be valid
+        "Should throw error immediately when invalid element is encountered")))

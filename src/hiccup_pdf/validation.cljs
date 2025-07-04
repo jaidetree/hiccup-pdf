@@ -3,6 +3,47 @@
   (:require [dev.jaide.valhalla.core :as v]
             [clojure.string :as str]))
 
+(defn validation-error
+  "Creates a descriptive validation error with context.
+  
+  Args:
+    element-type: The type of element being validated (e.g., :rect, :circle)
+    attribute: The attribute name that failed validation (optional)
+    message: The specific error message
+    value: The invalid value (optional)
+    
+  Returns:
+    Error object with detailed context"
+  ([element-type message]
+   (validation-error element-type nil message nil))
+  ([element-type attribute message]
+   (validation-error element-type attribute message nil))
+  ([element-type attribute message value]
+   (let [context (if attribute
+                   (str "in " (name element-type) " element, attribute '" (name attribute) "'")
+                   (str "in " (name element-type) " element"))
+         full-message (if value
+                        (str message " " context ". Got: " (pr-str value))
+                        (str message " " context))]
+     (js/Error. full-message))))
+
+(defn wrap-validation
+  "Wraps a validation function to provide better error context.
+  
+  Args:
+    element-type: The type of element being validated
+    validator-fn: The validation function to wrap
+    
+  Returns:
+    Enhanced validator function with error context"
+  [element-type validator-fn]
+  (fn [data]
+    (try
+      (validator-fn data)
+      (catch js/Error e
+        (let [message (str "Validation failed " (.-message e))]
+          (throw (validation-error element-type message)))))))
+
 (defn validate-hiccup-structure
   "Validates that the input has basic hiccup structure.
   

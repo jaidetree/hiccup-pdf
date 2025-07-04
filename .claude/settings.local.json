@@ -9,7 +9,8 @@
       "Bash(npm test)",
       "Bash(nbb:*)",
       "Bash(clj-kondo:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
