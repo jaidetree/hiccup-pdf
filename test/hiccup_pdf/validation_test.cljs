@@ -219,6 +219,12 @@
     (is (thrown? js/Error (validate-path-attributes {:d ""}))
         "Should throw error for empty d attribute")
     
+    (is (thrown? js/Error (validate-path-attributes {:d "   "}))
+        "Should throw error for whitespace-only d attribute")
+    
+    (is (thrown? js/Error (validate-path-attributes {:d "\t\n"}))
+        "Should throw error for whitespace characters in d attribute")
+    
     (is (thrown? js/Error (validate-path-attributes {:d 123}))
         "Should throw error for non-string d attribute")
     

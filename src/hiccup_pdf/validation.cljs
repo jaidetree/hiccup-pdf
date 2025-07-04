@@ -1,6 +1,7 @@
 (ns hiccup-pdf.validation
   "Validation namespace for hiccup-pdf library using valhalla."
-  (:require [dev.jaide.valhalla.core :as v]))
+  (:require [dev.jaide.valhalla.core :as v]
+            [clojure.string :as str]))
 
 (defn validate-hiccup-structure
   "Validates that the input has basic hiccup structure.
@@ -167,7 +168,7 @@
   [attributes]
   (let [required-schema (v/record {:d (v/chain 
                                         (v/string)
-                                        (v/assert #(pos? (count %))))})
+                                        (v/assert #(not (str/blank? %))))})
         valid-color-names #{"red" "green" "blue" "black" "white" "yellow" "cyan" "magenta"}
         color-validator (v/chain
                           (v/string)
