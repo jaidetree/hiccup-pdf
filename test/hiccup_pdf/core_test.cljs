@@ -24,8 +24,8 @@
     (is (string? (hiccup->pdf-ops [:line {:x1 0 :y1 0 :x2 100 :y2 100}]))
         "Line elements should return a string")
     
-    (is (thrown? js/Error (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Hello"]))
-        "Text elements should throw error (not implemented)")
+    (is (string? (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Hello"]))
+        "Text elements should return a string")
     
     (is (string? (hiccup->pdf-ops [:path {:d "M10,10 L20,20"}]))
         "Path elements should return a string")
@@ -269,3 +269,69 @@
           "Should contain second line")
       (is (re-find #"h\n" result)
           "Should close path"))))
+
+(deftest text-element-test
+  (testing "Text element transformation"
+    (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Hello"])]
+      (is (string? result)
+          "Should generate string output for text")
+      (is (re-find #"BT\n" result)
+          "Should start with begin text operator")
+      (is (re-find #"0 0 0 rg\n" result)
+          "Should contain default black color")
+      (is (re-find #"/Arial 12 Tf\n" result)
+          "Should contain font specification")
+      (is (re-find #"10 20 Td\n" result)
+          "Should contain text positioning")
+      (is (re-find #"\(Hello\) Tj\n" result)
+          "Should contain text content")
+      (is (re-find #"ET$" result)
+          "Should end with end text operator"))
+    
+    (let [result (hiccup->pdf-ops [:text {:x 0 :y 0 :font "Times" :size 8} "Test"])]
+      (is (string? result)
+          "Should generate string output for minimal text")
+      (is (re-find #"/Times 8 Tf\n" result)
+          "Should contain correct font and size")
+      (is (re-find #"0 0 Td\n" result)
+          "Should contain correct position")
+      (is (re-find #"\(Test\) Tj\n" result)
+          "Should contain correct text")))
+  
+  (testing "Text element validation errors"
+    (is (thrown? js/Error (hiccup->pdf-ops [:text {:x 10 :y 20} "Hello"]))
+        "Should throw error for missing font and size")
+    
+    (is (thrown? js/Error (hiccup->pdf-ops [:text {:x "10" :y 20 :font "Arial" :size 12} "Hello"]))
+        "Should throw error for non-numeric coordinates")
+    
+    (is (thrown? js/Error (hiccup->pdf-ops [:text {:x 10 :y 20 :font "" :size 12} "Hello"]))
+        "Should throw error for empty font name")
+    
+    (is (thrown? js/Error (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 0} "Hello"]))
+        "Should throw error for zero font size")))
+
+(deftest text-styling-test
+  (testing "Text with fill styling"
+    (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12 :fill "red"} "Hello"])]
+      (is (re-find #"1 0 0 rg\n" result)
+          "Should contain red color operator")
+      (is (re-find #"BT\n" result)
+          "Should contain text block operators"))
+    
+    (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12 :fill "#ff0000"} "Hello"])]
+      (is (re-find #"1 0 0 rg\n" result)
+          "Should handle hex color fill")))
+  
+  (testing "Text content variations"
+    (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12}])]
+      (is (re-find #"\(\) Tj\n" result)
+          "Should handle missing text content"))
+    
+    (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} ""])]
+      (is (re-find #"\(\) Tj\n" result)
+          "Should handle empty text content"))
+    
+    (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Multi word text"])]
+      (is (re-find #"\(Multi word text\) Tj\n" result)
+          "Should handle multi-word text"))))

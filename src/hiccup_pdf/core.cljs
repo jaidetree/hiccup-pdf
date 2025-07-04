@@ -169,6 +169,26 @@
                   :else "f")] ; Default to fill if no styling specified
     (str stroke-width-op fill-color-op stroke-color-op path-data draw-op)))
 
+(defn- text->pdf-ops
+  "Converts a text hiccup vector to PDF operators.
+  
+  Args:
+    attributes: Map containing :x, :y, :font, :size and optional styling
+    content: The text content string
+    
+  Returns:
+    String of PDF operators for text drawing"
+  [attributes content]
+  (let [validated-attrs (v/validate-text-attributes attributes)
+        {:keys [x y font size fill]} validated-attrs
+        text-content (or content "")
+        ;; PDF text requires BT/ET blocks
+        fill-color-op (if fill (str (color->pdf-color fill) " rg\n") "0 0 0 rg\n") ; Default to black
+        font-op (str "/" font " " size " Tf\n")
+        position-op (str x " " y " Td\n")
+        text-op (str "(" text-content ") Tj\n")]
+    (str "BT\n" fill-color-op font-op position-op text-op "ET")))
+
 (defn- element->pdf-ops
   "Converts a hiccup element to PDF operators.
   
@@ -179,13 +199,14 @@
     String of PDF operators"
   [element]
   (let [validated-element (v/validate-hiccup-structure element)
-        [tag attributes & _content] validated-element
+        [tag attributes & content] validated-element
         validated-tag (v/validate-element-type tag)]
     (case validated-tag
       :rect (rect->pdf-ops attributes)
       :line (line->pdf-ops attributes)
       :circle (circle->pdf-ops attributes)
       :path (path->pdf-ops attributes)
+      :text (text->pdf-ops attributes (first content))
       (throw (js/Error. (str "Element type " tag " not yet implemented"))))))
 
 (defn hiccup->pdf-ops

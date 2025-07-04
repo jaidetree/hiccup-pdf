@@ -7,6 +7,7 @@
                                            validate-line-attributes
                                            validate-circle-attributes
                                            validate-path-attributes
+                                           validate-text-attributes
                                            validate-color]]))
 
 (deftest validate-hiccup-structure-test
@@ -229,4 +230,48 @@
         "Should throw error for non-string d attribute")
     
     (is (thrown? js/Error (validate-path-attributes {:d "M10,10 L20,20" :fill "invalid"}))
+        "Should throw error for invalid fill color")))
+
+(deftest validate-text-attributes-test
+  (testing "Valid text attributes"
+    (is (= {:x 10 :y 20 :font "Arial" :size 12}
+           (validate-text-attributes {:x 10 :y 20 :font "Arial" :size 12}))
+        "Should validate basic text attributes")
+    
+    (is (= {:x 0 :y 0 :font "Times" :size 8}
+           (validate-text-attributes {:x 0 :y 0 :font "Times" :size 8}))
+        "Should validate minimal text attributes"))
+  
+  (testing "Text attributes with styling"
+    (is (= {:x 10 :y 20 :font "Arial" :size 12 :fill "red"}
+           (validate-text-attributes {:x 10 :y 20 :font "Arial" :size 12 :fill "red"}))
+        "Should validate text with fill")
+    
+    (is (= {:x 10 :y 20 :font "Arial" :size 12 :fill "#ff0000"}
+           (validate-text-attributes {:x 10 :y 20 :font "Arial" :size 12 :fill "#ff0000"}))
+        "Should validate text with hex color fill"))
+  
+  (testing "Invalid text attributes"
+    (is (thrown? js/Error (validate-text-attributes {}))
+        "Should throw error for missing attributes")
+    
+    (is (thrown? js/Error (validate-text-attributes {:x 10 :y 20 :font "Arial"}))
+        "Should throw error for missing size")
+    
+    (is (thrown? js/Error (validate-text-attributes {:x 10 :y 20 :size 12}))
+        "Should throw error for missing font")
+    
+    (is (thrown? js/Error (validate-text-attributes {:x "10" :y 20 :font "Arial" :size 12}))
+        "Should throw error for non-numeric x")
+    
+    (is (thrown? js/Error (validate-text-attributes {:x 10 :y 20 :font "" :size 12}))
+        "Should throw error for empty font name")
+    
+    (is (thrown? js/Error (validate-text-attributes {:x 10 :y 20 :font "Arial" :size 0}))
+        "Should throw error for zero size")
+    
+    (is (thrown? js/Error (validate-text-attributes {:x 10 :y 20 :font "Arial" :size -5}))
+        "Should throw error for negative size")
+    
+    (is (thrown? js/Error (validate-text-attributes {:x 10 :y 20 :font "Arial" :size 12 :fill "invalid"}))
         "Should throw error for invalid fill color")))
