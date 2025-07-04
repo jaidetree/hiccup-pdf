@@ -359,11 +359,11 @@
           "Should escape parentheses in text"))
     
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Text with \\ backslash"])]
-      (is (and (str/includes? result "BT") (str/includes? result "ET") (str/includes? result "Text with") (str/includes? result "backslash"))
+      (is (str/includes? result "(Text with \\\\\\\\ backslash) Tj")
           "Should escape backslashes in text"))
     
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Complex (text) with \\ special chars"])]
-      (is (and (str/includes? result "BT") (str/includes? result "ET") (str/includes? result "Complex") (str/includes? result "special chars"))
+      (is (str/includes? result "(Complex \\\\(text\\\\) with \\\\\\\\ special chars) Tj")
           "Should escape multiple special characters")))
   
   (testing "Text with various fonts and emoji"

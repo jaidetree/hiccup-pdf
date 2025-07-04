@@ -1,6 +1,7 @@
 (ns hiccup-pdf.core
   "Core namespace for transforming hiccup vectors into PDF operators."
-  (:require [hiccup-pdf.validation :as v]))
+  (:require [hiccup-pdf.validation :as v]
+            [clojure.string :as str]))
 
 (defn- color->pdf-color
   "Converts a color string to PDF color values.
@@ -186,7 +187,12 @@
         fill-color-op (if fill (str (color->pdf-color fill) " rg\n") "0 0 0 rg\n") ; Default to black
         font-op (str "/" font " " size " Tf\n")
         position-op (str x " " y " Td\n")
-        text-op (str "(" text-content ") Tj\n")]
+        ;; Escape special characters for PDF text strings
+        escaped-content (-> text-content
+                            (str/replace "\\" "\\\\") ; Escape backslashes
+                            (str/replace "(" "\\(")   ; Escape opening parens
+                            (str/replace ")" "\\)"))  ; Escape closing parens
+        text-op (str "(" escaped-content ") Tj\n")]
     (str "BT\n" fill-color-op font-op position-op text-op "ET")))
 
 (defn- element->pdf-ops

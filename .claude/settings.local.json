@@ -8,7 +8,8 @@
       "Bash(npx nbb:*)",
       "Bash(npm test)",
       "Bash(nbb:*)",
-      "Bash(clj-kondo:*)"
+      "Bash(clj-kondo:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }
