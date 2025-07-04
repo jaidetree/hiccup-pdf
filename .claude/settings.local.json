@@ -11,7 +11,10 @@
       "Bash(clj-kondo:*)",
       "Bash(sed:*)",
       "Bash(grep:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(./scripts/pdf2svg:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

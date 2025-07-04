@@ -103,8 +103,10 @@
         element
         (let [transformed-attributes
               (case tag
-                :rect (if (:y attributes)
-                        (assoc attributes :y (web-to-pdf-y (:y attributes) page-height margins))
+                :rect (if (and (:y attributes) (:height attributes))
+                        ;; For rectangles, y is top-left in web coords, but bottom-left in PDF
+                        ;; PDF y = page-height - web-y - height
+                        (assoc attributes :y (- (web-to-pdf-y (:y attributes) page-height margins) (:height attributes)))
                         attributes)
                 :circle (if (:cy attributes)
                           (assoc attributes :cy (web-to-pdf-y (:cy attributes) page-height margins))
