@@ -562,3 +562,204 @@
           "Should contain circle curves")
       (is (re-find #"BT\n" result)
           "Should contain text block"))))
+
+(deftest complex-nested-groups-test
+  (testing "Deeply nested groups with transforms"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [100 100]]]}
+                                   [:g {:transforms [[:rotate 45]]}
+                                    [:g {:transforms [[:scale [0.5 0.5]]]}
+                                     [:rect {:x 0 :y 0 :width 20 :height 20}]]]])]
+      (is (string? result)
+          "Should handle deeply nested groups")
+      ;; Should have 3 q/Q pairs for 3 nested groups
+      (is (= 3 (count (re-seq #"q\n" result)))
+          "Should have 3 save operators for 3 nested groups")
+      (is (= 3 (count (re-seq #"Q" result)))
+          "Should have 3 restore operators for 3 nested groups")
+      (is (re-find #"1 0 0 1 100 100 cm\n" result)
+          "Should contain outer translate transform")
+      (is (re-find #"0.5 0 0 0.5 0 0 cm\n" result)
+          "Should contain inner scale transform")
+      (is (re-find #"0 0 20 20 re\n" result)
+          "Should contain rectangle")))
+  
+  (testing "Complex transform composition in nested groups"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [10 20]] [:scale [2 2]]]}
+                                   [:rect {:x 5 :y 5 :width 10 :height 10}]
+                                   [:g {:transforms [[:rotate 90] [:translate [5 0]]]}
+                                    [:circle {:cx 0 :cy 0 :r 3}]
+                                    [:g {:transforms [[:scale [3 1]]]}
+                                     [:text {:x 0 :y 0 :font "Arial" :size 10} "Test"]]]])]
+      (is (string? result)
+          "Should handle complex nested transforms")
+      (is (re-find #"BT\n" result)
+          "Should contain text within deeply nested group")
+      (is (re-find #"re\n" result)
+          "Should contain rectangle in outer group")
+      (is (re-find #"c\n" result)
+          "Should contain circle in middle group")))
+  
+  (testing "Transform isolation between sibling groups"
+    (let [result (hiccup->pdf-ops [:g {}
+                                   [:g {:transforms [[:scale [2 2]]]}
+                                    [:rect {:x 0 :y 0 :width 5 :height 5}]]
+                                   [:g {:transforms [[:translate [10 10]]]}
+                                    [:rect {:x 0 :y 0 :width 5 :height 5}]]])]
+      (is (string? result)
+          "Should handle sibling groups with different transforms")
+      (is (re-find #"2 0 0 2 0 0 cm\n" result)
+          "Should contain scale transform for first group")
+      (is (re-find #"1 0 0 1 10 10 cm\n" result)
+          "Should contain translate transform for second group")
+      ;; Both rectangles should appear with same coordinates but different transforms
+      (is (= 2 (count (re-seq #"0 0 5 5 re\n" result)))
+          "Should contain two rectangles with same coordinates"))))
+
+(deftest coordinate-system-tests
+  (testing "Coordinate system transformations"
+    ;; Test that transforms work as expected mathematically
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [10 20]]]}
+                                   [:rect {:x 5 :y 5 :width 10 :height 10}]])]
+      (is (re-find #"1 0 0 1 10 20 cm\n" result)
+          "Translate should move coordinate system origin")
+      (is (re-find #"5 5 10 10 re\n" result)
+          "Rectangle coordinates should remain unchanged in local space")))
+  
+  (testing "Multiple transform applications"
+    ;; Test that multiple transforms compose correctly
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [5 5]] [:scale [2 2]] [:translate [10 10]]]}
+                                   [:rect {:x 0 :y 0 :width 1 :height 1}]])]
+      (is (string? result)
+          "Should handle multiple sequential transforms")
+      ;; Final matrix should be: translate(5,5) * scale(2,2) * translate(10,10)
+      ;; = [1 0 0 1 5 5] * [2 0 0 2 0 0] * [1 0 0 1 10 10] = [2 0 0 2 20 20]
+      (is (re-find #"2 0 0 2 20 20 cm\n" result)
+          "Should compose multiple transforms correctly")))
+  
+  (testing "Identity transforms"
+    ;; Test edge cases with identity-like transforms
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [0 0]] [:scale [1 1]] [:rotate 0]]}
+                                   [:rect {:x 10 :y 20 :width 30 :height 40}]])]
+      (is (string? result)
+          "Should handle identity transforms")
+      ;; Identity matrix: [1 0 0 1 0 0]
+      (is (re-find #"1 0 0 1 0 0 cm\n" result)
+          "Should result in identity matrix for identity transforms"))))
+
+(deftest pdf-operator-ordering-test
+  (testing "PDF operator ordering in groups"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [10 10]]]}
+                                   [:rect {:x 0 :y 0 :width 5 :height 5 :fill "red"}]
+                                   [:text {:x 0 :y 0 :font "Arial" :size 12} "Test"]])]
+      (is (string? result)
+          "Should generate valid PDF operators")
+      ;; Check that operators appear in correct order
+      (let [parts (str/split result #"\n")]
+        (is (= "q" (first parts))
+            "Should start with graphics state save")
+        (is (some #(str/includes? % "cm") parts)
+            "Should contain transformation matrix")
+        (is (some #(str/includes? % "re") parts)
+            "Should contain rectangle operator")
+        (is (some #(str/includes? % "BT") parts)
+            "Should contain text begin operator")
+        (is (str/ends-with? (str/join "" (remove str/blank? parts)) "Q")
+            "Should end with graphics state restore"))))
+  
+  (testing "Nested group operator ordering"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:scale [2 2]]]}
+                                   [:g {:transforms [[:translate [5 5]]]}
+                                    [:rect {:x 0 :y 0 :width 10 :height 10}]]])]
+      ;; Should have pattern: q cm q cm rect Q Q
+      (is (re-find #"q\n.*cm\n.*q\n.*cm\n.*re\n.*Q.*Q" result)
+          "Should have correct nesting pattern for nested groups")))
+  
+  (testing "Graphics state isolation verification"
+    ;; Test that transforms don't leak between groups
+    (let [result (hiccup->pdf-ops [:g {}
+                                   [:g {:transforms [[:scale [10 10]]]}
+                                    [:rect {:x 1 :y 1 :width 1 :height 1}]]
+                                   [:rect {:x 2 :y 2 :width 2 :height 2}]])]
+      (is (string? result)
+          "Should isolate transforms between groups")
+      (is (re-find #"1 1 1 1 re\n" result)
+          "Should contain first rectangle")
+      (is (re-find #"2 2 2 2 re\n" result)
+          "Should contain second rectangle with original coordinates"))))
+
+(deftest integration-complex-scenarios-test
+  (testing "Complex document with mixed elements and transforms"
+    ;; Simulate a complex PDF document structure
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [50 50]]]}
+                                   ;; Header section
+                                   [:text {:x 0 :y 0 :font "Arial" :size 16 :fill "blue"} "Document Title"]
+                                   
+                                   ;; Transformed content section
+                                   [:g {:transforms [[:scale [0.8 0.8]] [:translate [0 30]]]}
+                                    [:rect {:x 0 :y 0 :width 200 :height 1 :fill "black"}] ; Line
+                                    [:text {:x 0 :y 15 :font "Arial" :size 12} "Content Section"]]
+                                   
+                                   ;; Graphics section with nested transforms
+                                   [:g {:transforms [[:translate [0 100]]]}
+                                    [:g {:transforms [[:rotate 45]]}
+                                     [:rect {:x 0 :y 0 :width 20 :height 20 :fill "red"}]]
+                                    [:g {:transforms [[:translate [50 0]] [:scale [1.5 1.5]]]}
+                                     [:circle {:cx 0 :cy 0 :r 10 :fill "green"}]]]])]
+      (is (string? result)
+          "Should handle complex document structure")
+      (is (re-find #"BT\n" result)
+          "Should contain text elements")
+      (is (re-find #"re\n" result)
+          "Should contain rectangle elements")
+      (is (re-find #"c\n" result)
+          "Should contain circle elements")
+      ;; Verify multiple transform levels
+      (is (>= (count (re-seq #"q\n" result)) 4)
+          "Should have multiple graphics state saves")
+      (is (>= (count (re-seq #"Q" result)) 4)
+          "Should have matching graphics state restores")))
+  
+  (testing "Edge case: deeply nested empty groups"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [10 10]]]}
+                                   [:g {}
+                                    [:g {:transforms [[:scale [2 2]]]}
+                                     [:g {}
+                                      [:g {:transforms [[:rotate 90]]}]]]]])]
+      (is (string? result)
+          "Should handle deeply nested empty groups")
+      (is (= 5 (count (re-seq #"q\n" result)))
+          "Should have save operators for all groups")
+      (is (= 5 (count (re-seq #"Q" result)))
+          "Should have restore operators for all groups")))
+  
+  (testing "Performance test: many sibling groups"
+    (let [many-groups (vec (concat [:g {}]
+                                   (for [i (range 10)]
+                                     [:g {:transforms [[:translate [i i]]]}
+                                      [:rect {:x 0 :y 0 :width 1 :height 1}]])))
+          result (hiccup->pdf-ops many-groups)]
+      (is (string? result)
+          "Should handle many sibling groups")
+      (is (= 11 (count (re-seq #"q\n" result)))
+          "Should have save operators for all groups")
+      (is (= 10 (count (re-seq #"re\n" result)))
+          "Should have rectangles for all child groups")))
+  
+  (testing "Mixed group and non-group elements"
+    (let [result (hiccup->pdf-ops [:g {}
+                                   [:rect {:x 0 :y 0 :width 10 :height 10}]
+                                   [:g {:transforms [[:translate [20 20]]]}
+                                    [:circle {:cx 0 :cy 0 :r 5}]]
+                                   [:text {:x 5 :y 5 :font "Arial" :size 10} "Mixed"]
+                                   [:g {:transforms [[:scale [2 2]]]}
+                                    [:path {:d "M0,0 L5,5"}]]])]
+      (is (string? result)
+          "Should handle mixed element types")
+      (is (re-find #"re\n" result)
+          "Should contain rectangle")
+      (is (re-find #"c\n" result)
+          "Should contain circle")
+      (is (re-find #"BT\n" result)
+          "Should contain text")
+      (is (re-find #"m\n" result)
+          "Should contain path"))))
