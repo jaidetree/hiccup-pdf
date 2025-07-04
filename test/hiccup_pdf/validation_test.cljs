@@ -9,6 +9,8 @@
                                            validate-path-attributes
                                            validate-text-attributes
                                            validate-group-attributes
+                                           validate-transform
+                                           validate-transforms
                                            validate-color]]))
 
 (deftest validate-hiccup-structure-test
@@ -277,17 +279,71 @@
     (is (thrown? js/Error (validate-text-attributes {:x 10 :y 20 :font "Arial" :size 12 :fill "invalid"}))
         "Should throw error for invalid fill color")))
 
+(deftest validate-transform-test
+  (testing "Valid transform operations"
+    (is (= [:translate [10 20]]
+           (validate-transform [:translate [10 20]]))
+        "Should validate translate transform")
+    
+    (is (= [:rotate 45]
+           (validate-transform [:rotate 45]))
+        "Should validate rotate transform")
+    
+    (is (= [:scale [2 3]]
+           (validate-transform [:scale [2 3]]))
+        "Should validate scale transform"))
+  
+  (testing "Invalid transform operations"
+    (is (thrown? js/Error (validate-transform [:translate [10]]))
+        "Should throw error for incomplete translate args")
+    
+    (is (thrown? js/Error (validate-transform [:rotate [45]]))
+        "Should throw error for vector rotate args")
+    
+    (is (thrown? js/Error (validate-transform [:scale [2]]))
+        "Should throw error for incomplete scale args")
+    
+    (is (thrown? js/Error (validate-transform [:invalid [10 20]]))
+        "Should throw error for unsupported transform type")))
+
+(deftest validate-transforms-test
+  (testing "Valid transform vectors"
+    (is (= [[:translate [10 20]]]
+           (validate-transforms [[:translate [10 20]]]))
+        "Should validate single transform")
+    
+    (is (= [[:translate [10 20]] [:rotate 45]]
+           (validate-transforms [[:translate [10 20]] [:rotate 45]]))
+        "Should validate multiple transforms")
+    
+    (is (= []
+           (validate-transforms []))
+        "Should validate empty transforms vector"))
+  
+  (testing "Invalid transform vectors"
+    (is (thrown? js/Error (validate-transforms "not-a-vector"))
+        "Should throw error for non-vector")
+    
+    (is (thrown? js/Error (validate-transforms [[:invalid [10 20]]]))
+        "Should throw error for invalid transform type")))
+
 (deftest validate-group-attributes-test
   (testing "Valid group attributes"
     (is (= {}
            (validate-group-attributes {}))
         "Should validate empty group attributes")
     
-    (is (= {}
-           (validate-group-attributes {}))
-        "Should validate basic empty group"))
+    (is (= {:transforms [[:translate [10 20]]]}
+           (validate-group-attributes {:transforms [[:translate [10 20]]]}))
+        "Should validate group with transforms")
+    
+    (is (= {:transforms [[:translate [10 20]] [:rotate 45] [:scale [2 3]]]}
+           (validate-group-attributes {:transforms [[:translate [10 20]] [:rotate 45] [:scale [2 3]]]}))
+        "Should validate group with multiple transforms"))
   
-  (testing "Group attributes validation"
-    (is (= {}
-           (validate-group-attributes {}))
-        "Should accept empty attributes for basic groups")))
+  (testing "Invalid group attributes"
+    (is (thrown? js/Error (validate-group-attributes {:transforms "not-a-vector"}))
+        "Should throw error for non-vector transforms")
+    
+    (is (thrown? js/Error (validate-group-attributes {:transforms [[:invalid [10 20]]]}))
+        "Should throw error for invalid transform type")))

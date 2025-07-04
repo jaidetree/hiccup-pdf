@@ -465,3 +465,100 @@
           "Should contain text block")
       (is (re-find #"Q$" result)
           "Should end with restore operator"))))
+
+(deftest group-transforms-test
+  (testing "Group with translate transform"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [10 20]]]} 
+                                   [:rect {:x 0 :y 0 :width 50 :height 30}]])]
+      (is (string? result)
+          "Should generate string output for translated group")
+      (is (re-find #"q\n" result)
+          "Should start with save operator")
+      (is (re-find #"1 0 0 1 10 20 cm\n" result)
+          "Should contain translate matrix")
+      (is (re-find #"0 0 50 30 re\n" result)
+          "Should contain child element")
+      (is (re-find #"Q$" result)
+          "Should end with restore operator")))
+  
+  (testing "Group with rotate transform"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:rotate 90]]} 
+                                   [:rect {:x 0 :y 0 :width 50 :height 30}]])]
+      (is (string? result)
+          "Should generate string output for rotated group")
+      (is (re-find #"q\n" result)
+          "Should start with save operator")
+      ;; 90 degrees = cos(90)≈0, sin(90)=1, so matrix should be approximately [0 1 -1 0 0 0]
+      (is (and (re-find #"1 -1" result) (re-find #"cm\n" result))
+          "Should contain 90-degree rotation matrix")
+      (is (re-find #"Q$" result)
+          "Should end with restore operator")))
+  
+  (testing "Group with scale transform"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:scale [2 3]]]} 
+                                   [:rect {:x 0 :y 0 :width 50 :height 30}]])]
+      (is (string? result)
+          "Should generate string output for scaled group")
+      (is (re-find #"q\n" result)
+          "Should start with save operator")
+      (is (re-find #"2 0 0 3 0 0 cm\n" result)
+          "Should contain scale matrix")
+      (is (re-find #"Q$" result)
+          "Should end with restore operator")))
+  
+  (testing "Group with multiple transforms"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [10 20]] [:scale [2 2]]]} 
+                                   [:rect {:x 0 :y 0 :width 50 :height 30}]])]
+      (is (string? result)
+          "Should generate string output for group with multiple transforms")
+      (is (re-find #"q\n" result)
+          "Should start with save operator")
+      ;; Combined matrix: translate(10,20) * scale(2,2) = [2 0 0 2 20 40]
+      (is (re-find #"2 0 0 2 20 40 cm\n" result)
+          "Should contain combined transformation matrix")
+      (is (re-find #"Q$" result)
+          "Should end with restore operator"))))
+
+(deftest nested-group-transforms-test
+  (testing "Nested groups with transforms"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:translate [10 10]]]}
+                                   [:rect {:x 0 :y 0 :width 20 :height 20}]
+                                   [:g {:transforms [[:scale [2 2]]]}
+                                    [:rect {:x 5 :y 5 :width 10 :height 10}]]])]
+      (is (string? result)
+          "Should generate string output for nested transformed groups")
+      (is (re-find #"q\n" result)
+          "Should start with outer save operator")
+      (is (re-find #"1 0 0 1 10 10 cm\n" result)
+          "Should contain outer translate matrix")
+      (is (re-find #"0 0 20 20 re\n" result)
+          "Should contain outer rectangle")
+      (is (re-find #"2 0 0 2 0 0 cm\n" result)
+          "Should contain inner scale matrix")
+      (is (re-find #"5 5 10 10 re\n" result)
+          "Should contain inner rectangle")
+      (is (re-find #"Q$" result)
+          "Should end with outer restore operator")))
+  
+  (testing "Transform composition order"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:scale [2 2]] [:translate [5 5]]]}
+                                   [:rect {:x 0 :y 0 :width 10 :height 10}]])]
+      (is (string? result)
+          "Should generate string output for composed transforms")
+      ;; scale(2,2) * translate(5,5) = [2 0 0 2 5 5] (scale applied first, then translate)
+      (is (re-find #"2 0 0 2 5 5 cm\n" result)
+          "Should contain correctly composed transformation matrix")))
+  
+  (testing "Transform with different elements"
+    (let [result (hiccup->pdf-ops [:g {:transforms [[:rotate 45]]}
+                                   [:rect {:x 0 :y 0 :width 10 :height 10}]
+                                   [:circle {:cx 0 :cy 0 :r 5}]
+                                   [:text {:x 0 :y 0 :font "Arial" :size 12} "Test"]])]
+      (is (string? result)
+          "Should handle transforms with mixed element types")
+      (is (re-find #"re\n" result)
+          "Should contain rectangle")
+      (is (re-find #"c\n" result)
+          "Should contain circle curves")
+      (is (re-find #"BT\n" result)
+          "Should contain text block"))))

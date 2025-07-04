@@ -209,6 +209,54 @@
     (v/parse optional-schema attributes)
     attributes))
 
+(defn validate-transform
+  "Validates a single transform operation.
+  
+  Args:
+    transform: Vector containing transform operation [type args]
+    
+  Returns:
+    The validated transform if valid
+    
+  Throws:
+    Validation error if transform is invalid"
+  [transform]
+  (let [schema (v/chain
+                 (v/assert vector?)
+                 (v/assert #(= 2 (count %)))
+                 (v/assert #(keyword? (first %))))]
+    (v/parse schema transform)
+    (let [[type args] transform]
+      (case type
+        :translate (do
+                     (v/parse (v/chain (v/assert vector?) (v/assert #(= 2 (count %))) 
+                                       (v/assert #(every? number? %))) args)
+                     transform)
+        :rotate (do
+                  (v/parse (v/number) args)
+                  transform)
+        :scale (do
+                 (v/parse (v/chain (v/assert vector?) (v/assert #(= 2 (count %)))
+                                   (v/assert #(every? number? %))) args)
+                 transform)
+        (throw (js/Error. (str "Unsupported transform type: " type)))))))
+
+(defn validate-transforms
+  "Validates a vector of transform operations.
+  
+  Args:
+    transforms: Vector of transform operations
+    
+  Returns:
+    The validated transforms vector if valid
+    
+  Throws:
+    Validation error if transforms are invalid"
+  [transforms]
+  (let [schema (v/chain (v/assert vector?))]
+    (v/parse schema transforms)
+    (mapv validate-transform transforms)))
+
 (defn validate-group-attributes
   "Validates that attributes contains valid group attributes.
   
@@ -221,8 +269,11 @@
   Throws:
     Validation error if attributes are invalid"
   [attributes]
-  (let [;; Group elements can have optional attributes but no required ones for basic groups
-        ;; Future transform attributes will be added in later steps
-        schema (v/record {})]
+  (let [;; Group elements can have optional transform attributes
+        schema (v/record {:transforms (v/nilable (v/chain (v/assert vector?) 
+                                                           (v/assert #(every? vector? %))))})]
     (v/parse schema attributes)
+    ;; Validate transforms if present
+    (when (:transforms attributes)
+      (validate-transforms (:transforms attributes)))
     attributes))

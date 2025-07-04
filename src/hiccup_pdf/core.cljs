@@ -197,6 +197,71 @@
         text-op (str "(" escaped-content ") Tj\n")]
     (str "BT\n" fill-color-op font-op position-op text-op "ET")))
 
+(defn- transform->matrix
+  "Converts a single transform operation to a PDF transformation matrix.
+  
+  Args:
+    transform: Vector containing transform operation [type args]
+    
+  Returns:
+    Vector of 6 numbers representing PDF transformation matrix [a b c d e f]"
+  [transform]
+  (let [[type args] transform]
+    (case type
+      :translate (let [[tx ty] args]
+                   [1 0 0 1 tx ty])
+      :rotate (let [degrees args
+                    radians (* degrees (/ js/Math.PI 180))
+                    cos-r (js/Math.cos radians)
+                    sin-r (js/Math.sin radians)]
+                [cos-r sin-r (- sin-r) cos-r 0 0])
+      :scale (let [[sx sy] args]
+               [sx 0 0 sy 0 0]))))
+
+(defn- multiply-matrices
+  "Multiplies two PDF transformation matrices.
+  
+  Args:
+    m1: First matrix [a1 b1 c1 d1 e1 f1]
+    m2: Second matrix [a2 b2 c2 d2 e2 f2]
+    
+  Returns:
+    Result matrix [a b c d e f]"
+  [m1 m2]
+  (let [[a1 b1 c1 d1 e1 f1] m1
+        [a2 b2 c2 d2 e2 f2] m2]
+    [(+ (* a1 a2) (* b1 c2))
+     (+ (* a1 b2) (* b1 d2))
+     (+ (* c1 a2) (* d1 c2))
+     (+ (* c1 b2) (* d1 d2))
+     (+ (* e1 a2) (* f1 c2) e2)
+     (+ (* e1 b2) (* f1 d2) f2)]))
+
+(defn- transforms->matrix
+  "Converts a vector of transform operations to a single PDF transformation matrix.
+  
+  Args:
+    transforms: Vector of transform operations
+    
+  Returns:
+    Vector of 6 numbers representing combined PDF transformation matrix"
+  [transforms]
+  (if (empty? transforms)
+    [1 0 0 1 0 0] ; Identity matrix
+    (reduce multiply-matrices (map transform->matrix transforms))))
+
+(defn- matrix->pdf-op
+  "Converts a transformation matrix to PDF cm operator.
+  
+  Args:
+    matrix: Vector of 6 numbers [a b c d e f]
+    
+  Returns:
+    String containing PDF cm operator"
+  [matrix]
+  (let [[a b c d e f] matrix]
+    (str a " " b " " c " " d " " e " " f " cm\n")))
+
 (defn- group->pdf-ops
   "Converts a group hiccup vector to PDF operators.
   
@@ -210,11 +275,15 @@
   (let [_ (v/validate-group-attributes attributes)
         ;; Save graphics state with q operator
         save-state "q\n"
+        ;; Apply transforms if present
+        transform-op (if-let [transforms (:transforms attributes)]
+                       (matrix->pdf-op (transforms->matrix transforms))
+                       "")
         ;; Process all child elements
         child-ops (apply str (map element->pdf-ops content))
         ;; Restore graphics state with Q operator
         restore-state "Q"]
-    (str save-state child-ops restore-state)))
+    (str save-state transform-op child-ops restore-state)))
 
 (defn- element->pdf-ops
   "Converts a hiccup element to PDF operators.
