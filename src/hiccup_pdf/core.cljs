@@ -310,18 +310,80 @@
   "Transforms hiccup vectors into PDF vector primitives represented as raw PDF operators.
   
   Takes a hiccup vector representing PDF primitives and returns a string of PDF operators
-  ready for insertion into PDF content streams.
+  ready for insertion into PDF content streams. Supports all major PDF drawing primitives
+  including rectangles, circles, lines, text, paths, and grouped elements with transforms.
+  
+  ## Supported Elements
+  
+  ### Rectangle (:rect)
+  Required: :x, :y, :width, :height
+  Optional: :fill, :stroke, :stroke-width
+  
+  ### Circle (:circle) 
+  Required: :cx, :cy, :r
+  Optional: :fill, :stroke, :stroke-width
+  
+  ### Line (:line)
+  Required: :x1, :y1, :x2, :y2
+  Optional: :stroke, :stroke-width
+  
+  ### Text (:text)
+  Required: :x, :y, :font, :size
+  Optional: :fill
+  Content: String as third element
+  
+  ### Path (:path)
+  Required: :d (SVG-style path data)
+  Optional: :fill, :stroke, :stroke-width
+  
+  ### Group (:g)
+  Optional: :transforms (vector of transform operations)
+  Content: Child elements
+  
+  ## Colors
+  
+  Supports named colors: \"red\", \"green\", \"blue\", \"black\", \"white\", \"yellow\", \"cyan\", \"magenta\"
+  Supports hex colors: \"#ff0000\", \"#00ff00\", etc.
+  
+  ## Transforms
+  
+  Groups support transform operations:
+  - [:translate [x y]] - Move elements
+  - [:rotate degrees] - Rotate elements  
+  - [:scale [sx sy]] - Scale elements
   
   Args:
-    hiccup-vector: A hiccup vector representing PDF primitives (e.g., [:rect {:x 10 :y 20}])
+    hiccup-vector: A hiccup vector representing PDF primitives
     options: Optional hash-map parameter (reserved for future use)
   
   Returns:
     String of PDF operators ready for PDF content streams
   
-  Example:
+  Examples:
+    ;; Basic rectangle
     (hiccup->pdf-ops [:rect {:x 10 :y 20 :width 100 :height 50 :fill \"red\"}])
-    ;; => \"10 20 100 50 re\\nf\""
+    ;; => \"1 0 0 rg\\n10 20 100 50 re\\nf\"
+    
+    ;; Circle with stroke
+    (hiccup->pdf-ops [:circle {:cx 50 :cy 50 :r 25 :stroke \"blue\" :stroke-width 2}])
+    ;; => \"2 w\\n0 0 1 RG\\n50 75 m\\n...\\nS\"
+    
+    ;; Text with styling
+    (hiccup->pdf-ops [:text {:x 100 :y 200 :font \"Arial\" :size 14 :fill \"green\"} \"Hello PDF!\"])
+    ;; => \"BT\\n0 1 0 rg\\n/Arial 14 Tf\\n100 200 Td\\n(Hello PDF!) Tj\\nET\"
+    
+    ;; Complex group with transforms
+    (hiccup->pdf-ops [:g {:transforms [[:translate [50 50]] [:rotate 45]]}
+                      [:rect {:x 0 :y 0 :width 30 :height 30 :fill \"red\"}]
+                      [:circle {:cx 0 :cy 0 :r 15 :fill \"blue\"}]])
+    ;; => \"q\\n1 0 0 1 50 50 cm\\n0.707... 0.707... -0.707... 0.707... 0 0 cm\\n...\\nQ\"
+    
+    ;; SVG-style path
+    (hiccup->pdf-ops [:path {:d \"M10,10 L50,50 C60,60 70,40 80,50 Z\" :fill \"yellow\"}])
+    ;; => \"1 1 0 rg\\n10 10 m\\n50 50 l\\n60 60 70 40 80 50 c\\nh\\nf\"
+  
+  Throws:
+    ValidationError if hiccup structure or element attributes are invalid"
   ([hiccup-vector]
    (hiccup->pdf-ops hiccup-vector nil))
   ([hiccup-vector _options]
