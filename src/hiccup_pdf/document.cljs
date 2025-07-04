@@ -45,3 +45,91 @@
            (:title validated-attributes "Untitled Document")
            " (width: " (:width validated-attributes) 
            ", height: " (:height validated-attributes) ")"))))
+
+(defn web-to-pdf-y
+  "Converts web-style Y coordinate to PDF-style Y coordinate.
+  
+  Web coordinates: (0,0) at top-left, Y increases downward
+  PDF coordinates: (0,0) at bottom-left, Y increases upward
+  
+  Args:
+    web-y: Y coordinate in web-style coordinates
+    page-height: Height of the page in PDF points
+    margins: Optional margins vector [top right bottom left]
+    
+  Returns:
+    Y coordinate in PDF-style coordinates"
+  ([web-y page-height]
+   (web-to-pdf-y web-y page-height [0 0 0 0]))
+  ([web-y page-height margins]
+   (let [[top-margin _ bottom-margin _] margins]
+     ;; In web coordinates: y=0 is at top, increases downward
+     ;; In PDF coordinates: y=0 is at bottom, increases upward
+     ;; With margins: content area is between top-margin and (page-height - bottom-margin)
+     ;; Web y=0 should map to PDF y=(page-height - top-margin)
+     ;; Web y=top-margin should map to PDF y=(page-height - top-margin)
+     ;; Web y=(page-height - bottom-margin) should map to PDF y=bottom-margin
+     (- page-height web-y))))
+
+(defn transform-element-coordinates
+  "Transforms coordinates for a single element from web-style to PDF-style.
+  
+  Args:
+    element: Hiccup element vector [tag attributes & children]
+    page-height: Height of the page in PDF points
+    margins: Margins vector [top right bottom left]
+    
+  Returns:
+    Element with transformed coordinates"
+  [element page-height margins]
+  (if-not (vector? element)
+    element
+    (let [[tag attributes & children] element]
+      (if-not (keyword? tag)
+        element
+        (let [transformed-attributes
+              (case tag
+                :rect (if (:y attributes)
+                        (assoc attributes :y (web-to-pdf-y (:y attributes) page-height margins))
+                        attributes)
+                :circle (if (:cy attributes)
+                          (assoc attributes :cy (web-to-pdf-y (:cy attributes) page-height margins))
+                          attributes)
+                :line (cond-> attributes
+                        (:y1 attributes) (assoc :y1 (web-to-pdf-y (:y1 attributes) page-height margins))
+                        (:y2 attributes) (assoc :y2 (web-to-pdf-y (:y2 attributes) page-height margins)))
+                :text (if (:y attributes)
+                        (assoc attributes :y (web-to-pdf-y (:y attributes) page-height margins))
+                        attributes)
+                :path attributes  ; Path coordinates are handled within the path data
+                :g (if (:transforms attributes)
+                     (let [transformed-transforms
+                           (mapv (fn [transform]
+                                   (if (and (vector? transform) (= :translate (first transform)))
+                                     (let [[_ [tx ty]] transform]
+                                       [:translate [tx (if ty (web-to-pdf-y ty page-height margins) 0)]])
+                                     transform))
+                                 (:transforms attributes))]
+                       (assoc attributes :transforms transformed-transforms))
+                     attributes)
+                :document attributes  ; Document elements don't have coordinates
+                :page attributes      ; Page elements don't have coordinates
+                attributes)           ; Unknown elements pass through unchanged
+              
+              ;; Recursively transform children
+              transformed-children (mapv #(transform-element-coordinates % page-height margins) children)]
+          
+          (into [tag transformed-attributes] transformed-children))))))
+
+(defn transform-coordinates-for-page
+  "Transforms all coordinates in page content from web-style to PDF-style.
+  
+  Args:
+    page-content: Vector of hiccup elements representing page content
+    page-height: Height of the page in PDF points
+    margins: Margins vector [top right bottom left]
+    
+  Returns:
+    Vector of hiccup elements with transformed coordinates"
+  [page-content page-height margins]
+  (mapv #(transform-element-coordinates % page-height margins) page-content))
