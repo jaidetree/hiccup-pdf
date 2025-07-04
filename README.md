@@ -18,10 +18,15 @@ This library converts web-style hiccup markup into PDF content streams, providin
 - ✅ **Text Rendering**: Font support with emoji compatibility and proper PDF text escaping
 - ✅ **SVG Path Data**: Full support for SVG-style path commands (M, L, C, Z)
 - ✅ **Graphics State Management**: Proper PDF graphics state save/restore with nested groups
+- ✅ **Document Generation**: Complete PDF documents with metadata, multiple pages, and coordinate transformation
+- ✅ **Page Management**: Multiple page sizes, orientations, and inheritance from document defaults
+- ✅ **Web-style Coordinates**: Automatic conversion from web coordinates to PDF coordinate system
 - ✅ **Comprehensive Validation**: Immediate error detection with detailed error messages
 - ✅ **Performance Optimized**: Efficient string concatenation and memory usage
 
 ## Quick Start
+
+### Content Stream Generation
 
 ```clojure
 (require '[hiccup-pdf.core :refer [hiccup->pdf-ops]])
@@ -39,12 +44,46 @@ This library converts web-style hiccup markup into PDF content streams, providin
 ;; Complex group with transforms
 (hiccup->pdf-ops [:g {:transforms [[:translate [50 50]] [:rotate 45]]}
                   [:rect {:x 0 :y 0 :width 30 :height 30 :fill "green"}]
-                  [:circle {:cx 0 :cy 0 :r 15 :fill "white"}]])
+                  [:circle {:cx 0 :y 0 :r 15 :fill "white"}]])
 ```
+
+### Complete PDF Document Generation
+
+```clojure
+(require '[hiccup-pdf.core :refer [hiccup->pdf-document]])
+
+;; Simple business report
+(hiccup->pdf-document
+  [:document {:title "Q4 Sales Report" :author "Sales Team"}
+   [:page {}
+    [:text {:x 100 :y 100 :font "Arial" :size 24} "Q4 Sales Report"]
+    [:text {:x 100 :y 150 :font "Arial" :size 12} "Total Revenue: $1,234,567"]
+    [:rect {:x 100 :y 200 :width 400 :height 200 :fill "#e6f3ff" :stroke "blue"}]]])
+
+;; Multi-page document with different layouts
+(hiccup->pdf-document
+  [:document {:title "Mixed Format Document" :width 612 :height 792}
+   ;; Letter size page
+   [:page {}
+    [:text {:x 50 :y 50 :font "Arial" :size 16} "Letter Size Page"]]
+   ;; A4 landscape page
+   [:page {:width 842 :height 595}
+    [:text {:x 50 :y 50 :font "Arial" :size 16} "A4 Landscape Page"]]])
+```
+
+## API Overview
+
+The library provides two main functions:
+
+| Function | Purpose | Use Case |
+|----------|---------|----------|
+| `hiccup->pdf-ops` | Generate PDF content streams | Embedding in existing PDFs, custom layouts |
+| `hiccup->pdf-document` | Generate complete PDF documents | Standalone documents, file output |
 
 ## Documentation
 
-- **[API Reference](API.md)** - Complete API documentation with all element types and attributes
+- **[API Reference](API.md)** - Complete API documentation for both content streams and documents
+- **[Document Generation Guide](DOCUMENT_GUIDE.md)** - Comprehensive guide for PDF document creation
 - **[Examples](EXAMPLES.md)** - Comprehensive examples from basic shapes to complex layouts
 - **[Development Guide](CLAUDE.md)** - Development environment setup and architecture notes
 

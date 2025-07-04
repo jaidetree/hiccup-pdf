@@ -10,6 +10,11 @@ Add to your `nbb.edn`:
 {:deps {hiccup-pdf {:local/root "."}}}
 ```
 
+## See Also
+
+- **[Document Generation Guide](DOCUMENT_GUIDE.md)** - Comprehensive guide for PDF document creation with examples and best practices
+- **[Examples](EXAMPLES.md)** - Real-world examples including business documents and technical documentation
+
 ## Quick Start
 
 ```clojure
@@ -41,6 +46,115 @@ Transforms hiccup vectors into PDF vector primitives represented as raw PDF oper
 **Returns:** String of PDF operators ready for PDF content streams
 
 **Throws:** `ValidationError` if hiccup structure or element attributes are invalid
+
+### `hiccup->pdf-document`
+
+**Signature:** `(hiccup->pdf-document hiccup-document)`
+
+Generates complete PDF documents with pages from hiccup structure.
+
+**Parameters:**
+- `hiccup-document` - A hiccup vector with `:document` root element containing `:page` elements
+
+**Returns:** Complete PDF document as string ready for writing to file
+
+**Throws:** `ValidationError` if document structure or attributes are invalid
+
+**Example:**
+```clojure
+(require '[hiccup-pdf.core :refer [hiccup->pdf-document]])
+
+;; Simple document
+(hiccup->pdf-document
+  [:document {:title "Business Report"}
+   [:page {}
+    [:text {:x 100 :y 100 :font "Arial" :size 20} "Hello World!"]]])
+
+;; Multi-page document with different page sizes
+(hiccup->pdf-document
+  [:document {:title "Mixed Format" :width 612 :height 792}
+   [:page {}  ; Letter size
+    [:rect {:x 50 :y 50 :width 100 :height 100 :fill "blue"}]]
+   [:page {:width 842 :height 595}  ; A4 landscape
+    [:circle {:cx 400 :cy 300 :r 50 :fill "red"}]]])
+```
+
+## API Comparison
+
+| Function | Purpose | Input | Output | Use Case |
+|----------|---------|-------|--------|-----------|
+| `hiccup->pdf-ops` | Content stream generation | Primitive elements | PDF operators | Embedding in existing PDFs, custom layouts |
+| `hiccup->pdf-document` | Complete document generation | Document structure | Complete PDF | Standalone documents, file output |
+
+## Document Structure
+
+The `hiccup->pdf-document` function requires a specific document structure:
+
+### Document Element (`:document`)
+
+The root element must be `:document` with optional attributes:
+
+**Attributes:**
+- `:title` - Document title (string)
+- `:author` - Document author (string)  
+- `:subject` - Document subject (string)
+- `:keywords` - Document keywords (string)
+- `:creator` - Creating application (defaults to "hiccup-pdf")
+- `:producer` - Producing application (defaults to "hiccup-pdf")
+- `:width` - Default page width in points (defaults to 612)
+- `:height` - Default page height in points (defaults to 792)
+- `:margins` - Default margins `[top right bottom left]` (defaults to `[0 0 0 0]`)
+
+### Page Element (`:page`)
+
+Pages inherit document defaults but can override dimensions and margins:
+
+**Attributes:**
+- `:width` - Page width in points (inherits from document)
+- `:height` - Page height in points (inherits from document)  
+- `:margins` - Page margins `[top right bottom left]` (inherits from document)
+
+**Example:**
+```clojure
+[:document {:title "My Document" :width 612 :height 792}
+ [:page {}]                           ; Uses document defaults
+ [:page {:width 842 :height 595}]     ; A4 landscape  
+ [:page {:margins [50 50 50 50]}]     ; Custom margins
+]
+```
+
+## Page Size Reference
+
+Common page sizes in PDF points (1 point = 1/72 inch):
+
+| Format | Width | Height | Orientation |
+|--------|-------|--------|--------------|
+| Letter | 612 | 792 | Portrait |
+| Letter | 792 | 612 | Landscape |
+| A4 | 595 | 842 | Portrait |
+| A4 | 842 | 595 | Landscape |
+| Legal | 612 | 1008 | Portrait |
+| Tabloid | 792 | 1224 | Portrait |
+
+## Coordinate System
+
+Both functions use **web-style coordinates** for input:
+- Origin (0,0) at top-left
+- X increases rightward  
+- Y increases downward
+
+The library automatically converts to PDF coordinate system (origin at bottom-left) internally.
+
+## Inheritance Behavior
+
+Pages inherit attributes from their parent document:
+
+```clojure
+[:document {:width 612 :height 792 :margins [72 72 72 72]}
+ [:page {}]                     ; Inherits: width=612, height=792, margins=[72,72,72,72]
+ [:page {:width 842}]           ; Inherits: height=792, margins=[72,72,72,72], overrides width=842
+ [:page {:margins [0 0 0 0]}]]  ; Inherits: width=612, height=792, overrides margins=[0,0,0,0]
+```
 
 ## Supported Elements
 

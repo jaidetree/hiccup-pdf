@@ -1,15 +1,23 @@
 # Hiccup-PDF Examples
 
-This document provides comprehensive examples for using the hiccup-pdf library to generate PDF vector graphics.
+This document provides comprehensive examples for using the hiccup-pdf library to generate PDF vector graphics and complete PDF documents.
 
 ## Table of Contents
 
+### Content Stream Generation
 1. [Basic Shapes](#basic-shapes)
 2. [Styling and Colors](#styling-and-colors)  
 3. [Text Rendering](#text-rendering)
 4. [Complex Paths](#complex-paths)
 5. [Groups and Transforms](#groups-and-transforms)
-6. [Real-World Examples](#real-world-examples)
+6. [Real-World Content Examples](#real-world-content-examples)
+
+### Document Generation
+7. [Document Structure](#document-structure)
+8. [Page Management](#page-management)
+9. [Business Documents](#business-documents)
+10. [Technical Documentation](#technical-documentation)
+11. [Multi-format Documents](#multi-format-documents)
 
 ## Basic Shapes
 
@@ -254,7 +262,7 @@ This document provides comprehensive examples for using the hiccup-pdf library t
      [:circle {:cx 0 :cy 0 :r 10 :fill "white"}]]]])
 ```
 
-## Real-World Examples
+## Real-World Content Examples
 
 ### Business Card
 
@@ -411,4 +419,352 @@ This document provides comprehensive examples for using the hiccup-pdf library t
    [:text {:x 285 :y 110 :font "Arial" :size 8} "result"]])
 ```
 
-These examples demonstrate the versatility and power of the hiccup-pdf library for creating a wide range of PDF vector graphics, from simple shapes to complex technical diagrams and layouts.
+---
+
+# Document Generation Examples
+
+The following examples demonstrate complete PDF document generation using `hiccup->pdf-document`.
+
+## Document Structure
+
+### Basic Document
+
+```clojure
+(require '[hiccup-pdf.core :refer [hiccup->pdf-document]])
+
+;; Minimal document
+(hiccup->pdf-document
+  [:document {:title "Hello World"}
+   [:page {}
+    [:text {:x 100 :y 100 :font "Arial" :size 20} "Hello, PDF World!"]]])
+```
+
+### Document with Metadata
+
+```clojure
+;; Complete metadata
+(hiccup->pdf-document
+  [:document {:title "Technical Report"
+              :author "Engineering Team"
+              :subject "System Performance Analysis"
+              :keywords "performance, analysis, metrics"
+              :creator "hiccup-pdf v1.0"
+              :producer "Company Analytics"}
+   [:page {}
+    [:text {:x 50 :y 50 :font "Arial" :size 16} "Technical Report"]
+    [:text {:x 50 :y 100 :font "Arial" :size 12} "Generated with hiccup-pdf"]]])
+```
+
+## Page Management
+
+### Multiple Page Sizes
+
+```clojure
+;; Mixed page sizes
+(hiccup->pdf-document
+  [:document {:title "Mixed Format Document"}
+   ;; Standard letter page
+   [:page {:width 612 :height 792}
+    [:text {:x 50 :y 50 :font "Arial" :size 16} "Letter Size Page"]
+    [:rect {:x 50 :y 100 :width 512 :height 592 :stroke "black"}]]
+   
+   ;; A4 portrait page
+   [:page {:width 595 :height 842}
+    [:text {:x 50 :y 50 :font "Arial" :size 16} "A4 Portrait Page"]
+    [:circle {:cx 297 :cy 421 :r 200 :stroke "blue" :stroke-width 2}]]
+   
+   ;; Custom landscape page
+   [:page {:width 800 :height 600}
+    [:text {:x 50 :y 50 :font "Arial" :size 16} "Custom Landscape Page"]
+    [:line {:x1 50 :y1 100 :x2 750 :y2 100 :stroke "red" :stroke-width 3}]]])
+```
+
+### Page Inheritance
+
+```clojure
+;; Document defaults with page overrides
+(hiccup->pdf-document
+  [:document {:width 612 :height 792 :margins [72 72 72 72]}
+   ;; Inherits all document settings
+   [:page {}
+    [:text {:x 0 :y 0 :font "Arial" :size 12} "Uses document defaults"]]
+   
+   ;; Override just the width
+   [:page {:width 842}
+    [:text {:x 0 :y 0 :font "Arial" :size 12} "Landscape orientation"]]
+   
+   ;; Override margins only
+   [:page {:margins [0 0 0 0]}
+    [:text {:x 0 :y 0 :font "Arial" :size 12} "Full bleed page"]]])
+```
+
+## Business Documents
+
+### Invoice Template
+
+```clojure
+;; Professional invoice
+(hiccup->pdf-document
+  [:document {:title "Invoice #INV-2024-001"
+              :author "ABC Company"
+              :subject "Invoice for services rendered"}
+   [:page {}
+    ;; Header
+    [:text {:x 50 :y 50 :font "Arial" :size 24} "INVOICE"]
+    [:text {:x 400 :y 50 :font "Arial" :size 12} "Invoice #INV-2024-001"]
+    [:text {:x 400 :y 70 :font "Arial" :size 12} "Date: March 15, 2024"]
+    
+    ;; Company info
+    [:text {:x 50 :y 100 :font "Arial" :size 14} "ABC Company"]
+    [:text {:x 50 :y 120 :font "Arial" :size 12} "123 Business St"]
+    [:text {:x 50 :y 140 :font "Arial" :size 12} "City, ST 12345"]
+    
+    ;; Client info
+    [:text {:x 350 :y 100 :font "Arial" :size 14} "Bill To:"]
+    [:text {:x 350 :y 120 :font "Arial" :size 12} "XYZ Corporation"]
+    [:text {:x 350 :y 140 :font "Arial" :size 12} "456 Client Ave"]
+    [:text {:x 350 :y 160 :font "Arial" :size 12} "Town, ST 67890"]
+    
+    ;; Table header
+    [:rect {:x 50 :y 200 :width 500 :height 30 :fill "#f0f0f0" :stroke "black"}]
+    [:text {:x 60 :y 220 :font "Arial" :size 12} "Description"]
+    [:text {:x 350 :y 220 :font "Arial" :size 12} "Quantity"]
+    [:text {:x 450 :y 220 :font "Arial" :size 12} "Rate"]
+    [:text {:x 500 :y 220 :font "Arial" :size 12} "Amount"]
+    
+    ;; Table rows
+    [:rect {:x 50 :y 230 :width 500 :height 25 :stroke "black"}]
+    [:text {:x 60 :y 250 :font "Arial" :size 11} "Web Development Services"]
+    [:text {:x 370 :y 250 :font "Arial" :size 11} "1"]
+    [:text {:x 450 :y 250 :font "Arial" :size 11} "$2,500"]
+    [:text {:x 500 :y 250 :font "Arial" :size 11} "$2,500"]
+    
+    ;; Total
+    [:rect {:x 400 :y 280 :width 150 :height 25 :fill "#e6f3ff" :stroke "black"}]
+    [:text {:x 410 :y 300 :font "Arial" :size 12} "Total: $2,500.00"]
+    
+    ;; Footer
+    [:text {:x 50 :y 350 :font "Arial" :size 10} "Thank you for your business!"]
+    [:text {:x 50 :y 370 :font "Arial" :size 10} "Payment due within 30 days."]]])
+```
+
+### Sales Report
+
+```clojure
+;; Quarterly sales report
+(hiccup->pdf-document
+  [:document {:title "Q4 2024 Sales Report"
+              :author "Sales Department"
+              :subject "Quarterly performance analysis"}
+   ;; Executive summary page
+   [:page {}
+    [:text {:x 50 :y 50 :font "Arial" :size 20} "Q4 2024 Sales Report"]
+    [:text {:x 50 :y 100 :font "Arial" :size 14} "Executive Summary"]
+    [:text {:x 50 :y 130 :font "Arial" :size 12} "• Total Revenue: $4.2M (+15% YoY)"]
+    [:text {:x 50 :y 150 :font "Arial" :size 12} "• New Customers: 1,247 (+22% YoY)"]
+    [:text {:x 50 :y 170 :font "Arial" :size 12} "• Customer Retention: 94.3%"]
+    
+    ;; Revenue chart (simplified)
+    [:rect {:x 50 :y 220 :width 400 :height 200 :stroke "black" :stroke-width 2}]
+    [:text {:x 225 :y 210 :font "Arial" :size 12} "Quarterly Revenue"]
+    [:rect {:x 80 :y 350 :width 40 :height 50 :fill "blue"}]
+    [:rect {:x 150 :y 330 :width 40 :height 70 :fill "blue"}]
+    [:rect {:x 220 :y 320 :width 40 :height 80 :fill "blue"}]
+    [:rect {:x 290 :y 300 :width 40 :height 100 :fill "blue"}]
+    [:text {:x 95 :y 470 :font "Arial" :size 10} "Q1"]
+    [:text {:x 165 :y 470 :font "Arial" :size 10} "Q2"]
+    [:text {:x 235 :y 470 :font "Arial" :size 10} "Q3"]
+    [:text {:x 305 :y 470 :font "Arial" :size 10} "Q4"]]
+   
+   ;; Detailed metrics page
+   [:page {}
+    [:text {:x 50 :y 50 :font "Arial" :size 16} "Detailed Metrics"]
+    
+    ;; Customer acquisition table
+    [:text {:x 50 :y 100 :font "Arial" :size 14} "Customer Acquisition"]
+    [:rect {:x 50 :y 120 :width 300 :height 120 :stroke "black"}]
+    [:text {:x 60 :y 140 :font "Arial" :size 11} "Channel"]
+    [:text {:x 200 :y 140 :font "Arial" :size 11} "Customers"]
+    [:text {:x 60 :y 160 :font "Arial" :size 11} "Direct Sales"]
+    [:text {:x 220 :y 160 :font "Arial" :size 11} "456"]
+    [:text {:x 60 :y 180 :font "Arial" :size 11} "Online"]
+    [:text {:x 220 :y 180 :font "Arial" :size 11} "623"]
+    [:text {:x 60 :y 200 :font "Arial" :size 11} "Referrals"]
+    [:text {:x 220 :y 200 :font "Arial" :size 11} "168"]
+    
+    ;; Regional performance
+    [:text {:x 50 :y 280 :font "Arial" :size 14} "Regional Performance"]
+    [:circle {:cx 150 :cy 350 :r 60 :fill "green"}]
+    [:text {:x 130 :y 355 :font "Arial" :size 10} "North"]
+    [:circle {:cx 300 :cy 350 :r 45 :fill "yellow"}]
+    [:text {:x 285 :y 355 :font "Arial" :size 10} "South"]
+    [:circle {:cx 450 :cy 350 :r 50 :fill "blue"}]
+    [:text {:x 435 :y 355 :font "Arial" :size 10} "West"]]])
+```
+
+## Technical Documentation
+
+### API Documentation
+
+```clojure
+;; API reference document
+(hiccup->pdf-document
+  [:document {:title "API Reference Guide"
+              :author "Development Team"
+              :subject "REST API Documentation"}
+   ;; Title page
+   [:page {}
+    [:text {:x 200 :y 100 :font "Arial" :size 28} "API Reference"]
+    [:text {:x 250 :y 150 :font "Arial" :size 16} "Version 2.0"]
+    [:text {:x 225 :y 200 :font "Arial" :size 12} "Development Team"]
+    [:text {:x 240 :y 220 :font "Arial" :size 12} "March 2024"]
+    
+    ;; Decorative elements
+    [:rect {:x 100 :y 80 :width 400 :height 200 :stroke "blue" :stroke-width 3}]
+    [:circle {:cx 300 :cy 350 :r 100 :stroke "blue" :stroke-width 2}]]
+   
+   ;; Endpoints page
+   [:page {}
+    [:text {:x 50 :y 50 :font "Arial" :size 20} "Endpoints"]
+    
+    ;; GET endpoint
+    [:rect {:x 50 :y 100 :width 500 :height 80 :fill "#f8f9fa" :stroke "black"}]
+    [:rect {:x 60 :y 110 :width 40 :height 20 :fill "green"}]
+    [:text {:x 70 :y 125 :font "Courier" :size 10} "GET"]
+    [:text {:x 120 :y 125 :font "Courier" :size 12} "/api/users"]
+    [:text {:x 60 :y 145 :font "Arial" :size 11} "Retrieve all users"]
+    [:text {:x 60 :y 165 :font "Arial" :size 10} "Returns: Array of user objects"]
+    
+    ;; POST endpoint
+    [:rect {:x 50 :y 200 :width 500 :height 80 :fill "#f8f9fa" :stroke "black"}]
+    [:rect {:x 60 :y 210 :width 50 :height 20 :fill "blue"}]
+    [:text {:x 70 :y 225 :font "Courier" :size 10} "POST"]
+    [:text {:x 120 :y 225 :font "Courier" :size 12} "/api/users"]
+    [:text {:x 60 :y 245 :font "Arial" :size 11} "Create a new user"]
+    [:text {:x 60 :y 265 :font "Arial" :size 10} "Body: User object | Returns: Created user"]
+    
+    ;; Code example
+    [:text {:x 50 :y 320 :font "Arial" :size 14} "Example Request"]
+    [:rect {:x 50 :y 340 :width 500 :height 100 :fill "#2d3748" :stroke "black"}]
+    [:text {:x 60 :y 360 :font "Courier" :size 10 :fill "white"} "curl -X POST https://api.example.com/users \\"]
+    [:text {:x 60 :y 380 :font "Courier" :size 10 :fill "white"} "  -H \"Content-Type: application/json\" \\"]
+    [:text {:x 60 :y 400 :font "Courier" :size 10 :fill "white"} "  -d '{\"name\": \"John Doe\", \"email\": \"john@example.com\"}'"]
+    [:text {:x 60 :y 420 :font "Courier" :size 10 :fill "white"} ""]]]
+   
+   ;; Response formats page
+   [:page {}
+    [:text {:x 50 :y 50 :font "Arial" :size 20} "Response Formats"]
+    
+    ;; Success response
+    [:text {:x 50 :y 100 :font "Arial" :size 14} "Success Response (200 OK)"]
+    [:rect {:x 50 :y 120 :width 500 :height 80 :fill "#f0fff4" :stroke "green"}]
+    [:text {:x 60 :y 140 :font "Courier" :size 10} "{"]
+    [:text {:x 70 :y 155 :font "Courier" :size 10} "  \"status\": \"success\","]
+    [:text {:x 70 :y 170 :font "Courier" :size 10} "  \"data\": { ... },"]
+    [:text {:x 70 :y 185 :font "Courier" :size 10} "  \"message\": \"Operation completed\""]
+    [:text {:x 60 :y 195 :font "Courier" :size 10} "}"]
+    
+    ;; Error response
+    [:text {:x 50 :y 230 :font "Arial" :size 14} "Error Response (400+ status)"]
+    [:rect {:x 50 :y 250 :width 500 :height 80 :fill "#fff5f5" :stroke "red"}]
+    [:text {:x 60 :y 270 :font "Courier" :size 10} "{"]
+    [:text {:x 70 :y 285 :font "Courier" :size 10} "  \"status\": \"error\","]
+    [:text {:x 70 :y 300 :font "Courier" :size 10} "  \"error\": \"Validation failed\","]
+    [:text {:x 70 :y 315 :font "Courier" :size 10} "  \"details\": [ ... ]"]
+    [:text {:x 60 :y 325 :font "Courier" :size 10} "}"]]])
+```
+
+## Multi-format Documents
+
+### Presentation with Speaker Notes
+
+```clojure
+;; Conference presentation
+(hiccup->pdf-document
+  [:document {:title "Machine Learning in Production"
+              :author "Dr. Jane Smith"
+              :subject "Tech Conference 2024"}
+   ;; Slide 1 - Title slide (16:9 aspect ratio)
+   [:page {:width 792 :height 612}
+    [:rect {:x 0 :y 0 :width 792 :height 612 :fill "#1e3a8a"}]
+    [:text {:x 200 :y 200 :font "Arial" :size 36 :fill "white"} "Machine Learning"]
+    [:text {:x 240 :y 250 :font "Arial" :size 36 :fill "white"} "in Production"]
+    [:text {:x 300 :y 350 :font "Arial" :size 18 :fill "white"} "Dr. Jane Smith"]
+    [:text {:x 280 :y 380 :font "Arial" :size 14 :fill "white"} "Tech Conference 2024"]]
+   
+   ;; Speaker notes for slide 1 (standard letter)
+   [:page {:width 612 :height 792}
+    [:text {:x 50 :y 50 :font "Arial" :size 16} "Speaker Notes - Slide 1"]
+    [:text {:x 50 :y 100 :font "Arial" :size 12} "Introduction points:"]
+    [:text {:x 50 :y 130 :font "Arial" :size 11} "• Welcome audience and introduce topic"]
+    [:text {:x 50 :y 150 :font "Arial" :size 11} "• Brief overview of ML challenges in production"]
+    [:text {:x 50 :y 170 :font "Arial" :size 11} "• Agenda: models, monitoring, scaling, best practices"]
+    [:text {:x 50 :y 190 :font "Arial" :size 11} "• Personal experience: 5 years ML engineering"]
+    
+    [:text {:x 50 :y 240 :font "Arial" :size 12} "Key statistics to mention:"]
+    [:text {:x 50 :y 270 :font "Arial" :size 11} "• 85% of ML models never make it to production"]
+    [:text {:x 50 :y 290 :font "Arial" :size 11} "• Average time from model to production: 8 months"]
+    [:text {:x 50 :y 310 :font "Arial" :size 11} "• 60% of companies struggle with model monitoring"]
+    
+    [:rect {:x 50 :y 350 :width 500 :height 100 :fill "#fef3c7" :stroke "orange"}]
+    [:text {:x 60 :y 370 :font "Arial" :size 11} "💡 Timing: 3 minutes"]
+    [:text {:x 60 :y 390 :font "Arial" :size 11} "🎯 Goal: Set context and engage audience"]
+    [:text {:x 60 :y 410 :font "Arial" :size 11} "⚠️  Don't: Get too technical in introduction"]
+    [:text {:x 60 :y 430 :font "Arial" :size 11} "✅ Do: Use relatable examples and ask questions"]]
+   
+   ;; Slide 2 - Content slide
+   [:page {:width 792 :height 612}
+    [:rect {:x 0 :y 0 :width 792 :height 612 :fill "white"}]
+    [:text {:x 50 :y 50 :font "Arial" :size 24} "Challenges in ML Production"]
+    
+    ;; Challenge 1
+    [:circle {:cx 100 :cy 150 :r 30 :fill "red"}]
+    [:text {:x 85 :y 155 :font "Arial" :size 14 :fill "white"} "1"]
+    [:text {:x 150 :y 155 :font "Arial" :size 16} "Model Drift"]
+    [:text {:x 150 :y 180 :font "Arial" :size 12} "Performance degrades over time"]
+    
+    ;; Challenge 2
+    [:circle {:cx 100 :cy 250 :r 30 :fill "orange"}]
+    [:text {:x 85 :y 255 :font "Arial" :size 14 :fill "white"} "2"]
+    [:text {:x 150 :y 255 :font "Arial" :size 16} "Data Pipeline Failures"]
+    [:text {:x 150 :y 280 :font "Arial" :size 12} "Upstream data quality issues"]
+    
+    ;; Challenge 3
+    [:circle {:cx 100 :cy 350 :r 30 :fill "blue"}]
+    [:text {:x 85 :y 355 :font "Arial" :size 14 :fill "white"} "3"]
+    [:text {:x 150 :y 355 :font "Arial" :size 16} "Scalability"]
+    [:text {:x 150 :y 380 :font "Arial" :size 12} "Handling increasing load"]
+    
+    ;; Visual element
+    [:g {:transforms [[:translate [500 200]]]}
+     [:rect {:x 0 :y 0 :width 200 :height 150 :fill "#f3f4f6" :stroke "black"}]
+     [:text {:x 70 :y 30 :font "Arial" :size 14} "ML System"]
+     [:rect {:x 20 :y 50 :width 160 :height 20 :fill "green"}]
+     [:text {:x 90 :y 65 :font "Arial" :size 10} "Training"]
+     [:rect {:x 20 :y 80 :width 160 :height 20 :fill "yellow"}]
+     [:text {:x 85 :y 95 :font "Arial" :size 10} "Validation"]
+     [:rect {:x 20 :y 110 :width 160 :height 20 :fill "red"}]
+     [:text {:x 80 :y 125 :font "Arial" :size 10} "Production"]]]]
+   
+   ;; Speaker notes for slide 2
+   [:page {:width 612 :height 792}
+    [:text {:x 50 :y 50 :font "Arial" :size 16} "Speaker Notes - Slide 2"]
+    [:text {:x 50 :y 100 :font "Arial" :size 12} "Detailed talking points:"]
+    
+    [:text {:x 50 :y 130 :font "Arial" :size 12} "Model Drift:"]
+    [:text {:x 50 :y 150 :font "Arial" :size 11} "• Real-world example: recommendation system accuracy"]
+    [:text {:x 50 :y 170 :font "Arial" :size 11} "• Causes: changing user behavior, seasonal patterns"]
+    [:text {:x 50 :y 190 :font "Arial" :size 11} "• Solutions: continuous monitoring, automatic retraining"]
+    
+    [:text {:x 50 :y 230 :font "Arial" :size 12} "Data Pipeline Failures:"]
+    [:text {:x 50 :y 250 :font "Arial" :size 11} "• Story: 3am incident at previous company"]
+    [:text {:x 50 :y 270 :font "Arial" :size 11} "• Impact: wrong predictions for 6 hours"]
+    [:text {:x 50 :y 290 :font "Arial" :size 11} "• Prevention: data validation, circuit breakers"]
+    
+    [:text {:x 50 :y 330 :font "Arial" :size 12} "Scalability:"]
+    [:text {:x 50 :y 350 :font "Arial" :size 11} "• Question for audience: \"Who has seen 10x traffic spikes?\""]
+    [:text {:x 50 :y 370 :font "Arial" :size 11} "• Technical solutions: caching, model optimization"]
+    [:text {:x 50 :y 390 :font "Arial" :size 11} "• Architecture patterns: microservices, async processing"]]])
+```
+
+These document generation examples demonstrate the versatility and power of the hiccup-pdf library for creating complete PDF documents, from simple business reports to complex technical documentation and presentation materials. The library handles coordinate transformation, page management, and proper PDF structure automatically while providing full control over layout and styling.
