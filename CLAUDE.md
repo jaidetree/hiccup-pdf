@@ -118,3 +118,16 @@ nbb repl
 
 - After marking a prompt as complete, propose a git commit with accurate details about the changes
 - Create a git commit after completing each step in the prompt-plan
+
+## Continue Iteratively
+
+1. Open **@prompt-plan.md** and identify any prompts not marked as completed.
+2. For each incomplete prompt:
+   - Double-check if it's truly unfinished (if uncertain, ask for clarification).
+   - If you confirm it's already done, skip it.
+   - Otherwise, implement it as described.
+   - Make sure the tests pass, and the program builds/runs
+   - Commit the changes to your repository with a clear commit message.
+   - Update **@prompt_plan.md** to mark this prompt as completed.
+3. After you finish each prompt, pause and wait for user review or feedback.
+4. Repeat with the next unfinished prompt as directed by the user.

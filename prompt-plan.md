@@ -356,6 +356,84 @@ This step ties everything together and ensures completeness.
 
 **Status**: Completed final integration and polish with comprehensive verification of all specification requirements. All elements working together seamlessly with comprehensive integration testing covering mixed element types, nested groups with transforms, complex styling combinations, and real-world document structures. Emoji support thoroughly tested and verified with Unicode character handling, mixed content support, and proper PDF text escaping. Error handling verified throughout with comprehensive validation, immediate error throwing, and descriptive error messages. Final documentation complete including FINAL_VERIFICATION.md with comprehensive compliance verification. All 41 tests passing (398 assertions) plus 8 performance tests (38 assertions). Library ready for release with complete feature implementation, excellent performance metrics, and comprehensive documentation. All 20 implementation steps successfully completed.
 
+## Phase 9: Document Structure Foundation
+
+### Step 21: Document Function and Namespace Setup
+**Goal**: Create public document API and implementation namespace
+
+```
+Add the main `hiccup->pdf-document` function to the core namespace alongside the existing `hiccup->pdf-ops` function. Create a new namespace `hiccup-pdf.document` for PDF document generation implementation details. The public API function in core should accept a hiccup document vector and delegate to the document namespace for processing. Set up proper requires between namespaces. Add basic validation that the input is a hiccup vector with `:document` as the root element. Include comprehensive unit tests for the function signature, delegation, and basic validation. This establishes the public API in core while keeping implementation details separate.
+```
+
+### Step 22: Document Element Validation
+**Goal**: Implement document-level attribute validation
+
+```
+Extend the validation namespace to support `:document` element validation. Implement `validate-document-attributes` function with optional attributes: `:title`, `:author`, `:subject`, `:keywords`, `:creator`, `:producer`, `:width`, `:height`, and `:margins`. Provide defaults: width 612, height 792, margins [0 0 0 0], creator/producer "hiccup-pdf". Validate width/height as positive numbers, margins as 4-element vector of numbers, metadata fields as non-empty strings when provided. Update the main element validator to recognize `:document` as a valid element type. Add comprehensive tests covering all attributes, defaults, validation errors, and integration with existing validation patterns.
+```
+
+### Step 23: Page Element Validation with Inheritance
+**Goal**: Implement page validation with document inheritance
+
+```
+Implement `:page` element validation in the validation namespace with inheritance from document defaults. Create `validate-page-attributes` function that accepts page attributes and document defaults, merges them appropriately, and validates the result. Pages inherit `:width`, `:height`, and `:margins` from document but can override any/all values. Validate that final page dimensions are positive numbers and margins are 4-element number vectors. Update element dispatcher to recognize `:page` elements. Add comprehensive tests for inheritance behavior: full inheritance, partial overrides, complete overrides, and landscape orientation (explicit width/height swap). Ensure clear error messages for validation failures.
+```
+
+## Phase 10: Coordinate System and Processing
+
+### Step 24: Web-to-PDF Coordinate Transformation
+**Goal**: Implement automatic coordinate system conversion
+
+```
+Implement coordinate system transformation from web-style to PDF-style coordinates in the document namespace. Create `transform-coordinates-for-page` function that walks hiccup content and transforms coordinates based on page height and margins. Handle all element types: rectangles (transform y), circles (transform cy), lines (transform y1, y2), text (transform y), and groups with translate transforms in their `:transforms` vector. Always enforce web-style input coordinates for consistency. Implement helper functions for transform-specific coordinate changes. Add comprehensive tests with known transformations, edge cases (zero coordinates, page boundaries), and verification that relative positioning is preserved.
+```
+
+### Step 25: Page Content Stream Generation
+**Goal**: Create page processing pipeline with coordinate transformation
+
+```
+Create page processing pipeline in document namespace that combines coordinate transformation with existing content stream generation. Implement `page->content-stream` function that takes page attributes, content, and document defaults; applies coordinate transformation; generates content stream using existing `element->pdf-ops` from core; and returns structured page data (dimensions, content stream, metadata). Ensure existing functionality (groups, transforms, styling) works correctly within page context. Add comprehensive tests with complex page content including nested elements, mixed transforms, and all primitive types. Verify coordinate transformation doesn't interfere with existing transform operations.
+```
+
+## Phase 11: PDF Document Structure Generation
+
+### Step 26: PDF Object Generation from Scratch
+**Goal**: Implement complete PDF object generation
+
+```
+Implement complete PDF object generation from scratch in document namespace. Create functions for: PDF catalog object, pages collection object, individual page objects with MediaBox, content stream objects with proper length calculation, and basic font resource objects for standard system fonts. Generate proper PDF syntax with object numbering, cross-references, and PDF operators. Support multiple pages with different dimensions and orientations (accept any positive dimensions). Extract font names from content to create font resource dictionaries referencing system fonts. Add comprehensive tests for each object type, multi-page documents, and PDF syntax correctness. Ensure generated objects follow PDF specification.
+```
+
+### Step 27: Complete PDF Document Assembly
+**Goal**: Generate complete PDF documents as strings
+
+```
+Implement complete PDF document assembly in document namespace. Create functions for: PDF header generation (%PDF-1.4), complete object generation and numbering, cross-reference table (xref) generation with proper byte offsets, trailer generation with document metadata embedding (title, author, subject, keywords). Implement main `document->pdf` function that processes all pages, extracts fonts, generates all objects in correct order, calculates byte offsets, and assembles final PDF string. Support document metadata embedding in info object. Return complete PDF as string for easy file writing in ClojureScript/nbb environment. Add comprehensive tests for complete document generation, metadata embedding, and multi-page documents with different sizes.
+```
+
+## Phase 12: Integration and Verification
+
+### Step 28: Document Integration Testing
+**Goal**: Comprehensive testing of complete document functionality
+
+```
+Create comprehensive integration tests for complete document generation functionality. Test complex documents with: multiple pages with different sizes, landscape pages (swapped width/height), nested groups with transforms, all primitive element types, emoji support in document context, mixed coordinate systems and transformations, and proper metadata embedding. Test edge cases: empty pages, single-page documents, many-page documents, unusual but valid page dimensions. Verify coordinate transformation works correctly across different page sizes and that existing element functionality is preserved. Test performance with typical document sizes and ensure string output can be written directly to files.
+```
+
+### Step 29: Document API Documentation and Examples
+**Goal**: Complete documentation for document generation
+
+```
+Create comprehensive documentation for document generation functionality. Document `hiccup->pdf-document` public API with parameter descriptions, return value (PDF string), and usage examples. Document document/page attributes, inheritance behavior, and validation rules. Create extensive examples: business reports, technical documentation, presentations, mixed-format documents with different page sizes. Document coordinate system (web-style input), page size reference (Letter, A4, etc.), and system font usage patterns. Update existing API documentation to clearly distinguish content stream generation from document generation. Ensure examples demonstrate inheritance, coordinate transformation, and complex layouts.
+```
+
+### Step 30: Final Document Implementation Verification
+**Goal**: Complete verification of document functionality
+
+```
+Perform final verification of document generation implementation. Verify: complete specification compliance for both functions, seamless integration with existing content stream functionality, proper coordinate transformation from web to PDF coordinates, comprehensive error handling with clear messages, complete test coverage (unit, integration, edge cases), generated PDF strings can be written to files and opened in PDF readers. Test emoji support in document context, validate PDF syntax correctness, and ensure performance is suitable for typical use cases. Create verification report documenting implementation completeness, test coverage, and compliance with specification. Verify separation between content stream and document APIs while maintaining consistent hiccup element support.
+```
+
 ## Testing Strategy for Each Step
 
 Each step should include:
@@ -376,10 +454,22 @@ Each step is complete when:
 
 ## Dependencies Between Steps
 
+### Content Stream Implementation (Phases 1-8)
 - Steps 1-3 must be completed sequentially
 - Steps 4-5 can be done in parallel after step 3
 - Steps 6-12 can be done in parallel after step 5
 - Steps 13-15 require steps 6-12 to be complete
 - Steps 16-20 require all previous steps
 
-This plan ensures incremental progress with strong testing at each stage, building complexity gradually while maintaining working functionality throughout the development process.
+### Document Generation Implementation (Phases 9-12)
+- Steps 21-23 must be completed sequentially after step 20
+- Steps 24-25 can be done in parallel after step 23
+- Steps 26-27 require steps 24-25 to be complete
+- Steps 28-30 require all previous steps (21-27)
+
+### Overall Dependencies
+- **Phase 9-12 requirements**: All content stream functionality (steps 1-20) must be complete
+- **Integration point**: Document generation builds on and extends content stream generation
+- **API separation**: Content streams (`hiccup->pdf-ops`) and documents (`hiccup->pdf-document`) are separate but complementary APIs
+
+This plan ensures incremental progress with strong testing at each stage, building complexity gradually while maintaining working functionality throughout the development process. The document generation phases extend the solid foundation established in the content stream phases.

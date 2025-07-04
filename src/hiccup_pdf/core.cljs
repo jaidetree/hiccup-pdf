@@ -1,6 +1,7 @@
 (ns hiccup-pdf.core
   "Core namespace for transforming hiccup vectors into PDF operators."
   (:require [hiccup-pdf.validation :as v]
+            [hiccup-pdf.document :as doc]
             [clojure.string :as str]))
 
 (declare element->pdf-ops)
@@ -426,3 +427,75 @@
    (hiccup->pdf-ops hiccup-vector nil))
   ([hiccup-vector _options]
    (element->pdf-ops hiccup-vector)))
+
+(defn hiccup->pdf-document
+  "Generates complete PDF documents with pages from hiccup structure.
+  
+  Takes a hiccup vector with :document root element containing :page elements
+  and returns a complete PDF document as a string ready for writing to file.
+  
+  ## Document Structure
+  
+  The input must be a hiccup vector with :document as the root element:
+  
+  ```clojure
+  [:document {:title \"My Document\" :author \"Author Name\" 
+              :width 612 :height 792 :margins [72 72 72 72]}
+   [:page {} 
+    [:rect {:x 10 :y 10 :width 100 :height 50 :fill \"red\"}]]
+   [:page {:width 792 :height 612}  ; Landscape page
+    [:text {:x 100 :y 100 :font \"Arial\" :size 14} \"Page 2\"]]]
+  ```
+  
+  ## Document Attributes
+  
+  - `:title` - Document title (string)
+  - `:author` - Document author (string)
+  - `:subject` - Document subject (string)
+  - `:keywords` - Document keywords (string)
+  - `:creator` - Creating application (defaults to \"hiccup-pdf\")
+  - `:producer` - Producing application (defaults to \"hiccup-pdf\")
+  - `:width` - Default page width in points (defaults to 612)
+  - `:height` - Default page height in points (defaults to 792)
+  - `:margins` - Default margins [left bottom right top] (defaults to [0 0 0 0])
+  
+  ## Page Elements
+  
+  Pages inherit document defaults but can override dimensions and margins:
+  
+  ```clojure
+  [:page {}]                           ; Uses document defaults
+  [:page {:width 842 :height 595}]     ; A4 landscape
+  [:page {:margins [50 50 50 50]}]     ; Custom margins
+  ```
+  
+  ## Coordinate System
+  
+  Uses web-style coordinates (top-left origin, y increases downward).
+  The library automatically converts to PDF coordinate system.
+  
+  Args:
+    hiccup-document: Hiccup vector with [:document attrs & pages] structure
+    
+  Returns:
+    Complete PDF document as string
+    
+  Examples:
+    ;; Simple document
+    (hiccup->pdf-document
+      [:document {:title \"Business Report\"}
+       [:page {}
+        [:text {:x 100 :y 100 :font \"Arial\" :size 20} \"Hello World!\"]]])
+    
+    ;; Multi-page document with different page sizes
+    (hiccup->pdf-document
+      [:document {:title \"Mixed Format\" :width 612 :height 792}
+       [:page {}  ; Letter size
+        [:rect {:x 50 :y 50 :width 100 :height 100 :fill \"blue\"}]]
+       [:page {:width 842 :height 595}  ; A4 landscape
+        [:circle {:cx 400 :cy 300 :r 50 :fill \"red\"}]]])
+  
+  Throws:
+    ValidationError if document structure or attributes are invalid"
+  [hiccup-document]
+  (doc/hiccup-document->pdf hiccup-document))
