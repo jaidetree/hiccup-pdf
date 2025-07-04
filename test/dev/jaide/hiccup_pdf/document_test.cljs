@@ -1,8 +1,8 @@
-(ns hiccup-pdf.document-test
+(ns dev.jaide.hiccup-pdf.document-test
   (:require [cljs.test :refer [deftest is testing]]
-            [hiccup-pdf.core :refer [hiccup->pdf-document]]
-            [hiccup-pdf.document :refer [hiccup-document->pdf web-to-pdf-y transform-element-coordinates transform-coordinates-for-page page->content-stream extract-fonts-from-content generate-font-resource-object generate-content-stream-object generate-page-object generate-pages-object generate-catalog-object generate-info-object generate-pdf-header calculate-byte-offsets generate-xref-table generate-trailer document->pdf]]
-            [hiccup-pdf.validation :refer [validate-document-attributes validate-element-type validate-page-attributes]]))
+            [dev.jaide.hiccup-pdf.core :refer [hiccup->pdf-document]]
+            [dev.jaide.hiccup-pdf.document :refer [hiccup-document->pdf web-to-pdf-y transform-element-coordinates transform-coordinates-for-page page->content-stream extract-fonts-from-content generate-font-resource-object generate-content-stream-object generate-page-object generate-pages-object generate-catalog-object generate-info-object generate-pdf-header calculate-byte-offsets generate-xref-table generate-trailer document->pdf]]
+            [dev.jaide.hiccup-pdf.validation :refer [validate-document-attributes validate-element-type validate-page-attributes]]))
 
 (deftest document-function-signature-test
   (testing "Document function exists and can be called"

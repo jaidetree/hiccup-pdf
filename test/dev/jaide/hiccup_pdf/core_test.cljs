@@ -1,7 +1,7 @@
-(ns hiccup-pdf.core-test
+(ns dev.jaide.hiccup-pdf.core-test
   (:require [cljs.test :refer [deftest is testing]]
             [clojure.string :as str]
-            [hiccup-pdf.core :refer [hiccup->pdf-ops]]))
+            [dev.jaide.hiccup-pdf.core :refer [hiccup->pdf-ops]]))
 
 (deftest smoke-test
   (testing "hiccup->pdf-ops function exists and can be called"

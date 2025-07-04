@@ -1,4 +1,4 @@
-(require '[hiccup-pdf.core :refer [hiccup->pdf-document]]
+(require '[dev.jaide.hiccup-pdf.core :refer [hiccup->pdf-document]]
          '["fs" :as fs])
 
 (println "=== Triangle Test with File Save ===")

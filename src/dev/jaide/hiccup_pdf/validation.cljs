@@ -1,4 +1,4 @@
-(ns hiccup-pdf.validation
+(ns dev.jaide.hiccup-pdf.validation
   "Validation namespace for hiccup-pdf library using valhalla."
   (:require [dev.jaide.valhalla.core :as v]
             [clojure.string :as str]))

@@ -1,6 +1,6 @@
-(ns hiccup-pdf.document
+(ns dev.jaide.hiccup-pdf.document
   "PDF document generation functionality for complete PDF files with pages."
-  (:require [hiccup-pdf.validation :as v]
+  (:require [dev.jaide.hiccup-pdf.validation :as v]
             [clojure.string :as str]))
 
 (declare document->pdf page->content-stream)
@@ -175,7 +175,7 @@
         content-stream (str/join "\n"
                                  (map (fn [element]
                                         ;; Use require to access hiccup->pdf-ops function
-                                        (let [core-ns (find-ns 'hiccup-pdf.core)
+                                        (let [core-ns (find-ns 'dev.jaide.hiccup-pdf.core)
                                               hiccup->pdf-ops-fn (ns-resolve core-ns 'hiccup->pdf-ops)]
                                           (if hiccup->pdf-ops-fn
                                             (hiccup->pdf-ops-fn element)

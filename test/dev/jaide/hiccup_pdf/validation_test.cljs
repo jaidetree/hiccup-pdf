@@ -1,6 +1,6 @@
-(ns hiccup-pdf.validation-test
+(ns dev.jaide.hiccup-pdf.validation-test
   (:require [cljs.test :refer [deftest is testing]]
-            [hiccup-pdf.validation :refer [validate-hiccup-structure
+            [dev.jaide.hiccup-pdf.validation :refer [validate-hiccup-structure
                                            validate-element-type
                                            validate-attributes
                                            validate-rect-attributes

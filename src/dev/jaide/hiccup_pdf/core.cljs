@@ -1,7 +1,7 @@
-(ns hiccup-pdf.core
+(ns dev.jaide.hiccup-pdf.core
   "Core namespace for transforming hiccup vectors into PDF operators."
-  (:require [hiccup-pdf.validation :as v]
-            [hiccup-pdf.document :as doc]
+  (:require [dev.jaide.hiccup-pdf.validation :as v]
+            [dev.jaide.hiccup-pdf.document :as doc]
             [clojure.string :as str]))
 
 (declare element->pdf-ops)
