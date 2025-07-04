@@ -6,6 +6,7 @@
                                            validate-rect-attributes
                                            validate-line-attributes
                                            validate-circle-attributes
+                                           validate-path-attributes
                                            validate-color]]))
 
 (deftest validate-hiccup-structure-test
@@ -186,4 +187,40 @@
         "Should throw error for empty attributes")
     
     (is (thrown? js/Error (validate-circle-attributes {:cx 50 :cy 50 :r 25 :fill "invalid"}))
+        "Should throw error for invalid fill color")))
+
+(deftest validate-path-attributes-test
+  (testing "Valid path attributes"
+    (is (= {:d "M10,10 L20,20"}
+           (validate-path-attributes {:d "M10,10 L20,20"}))
+        "Should validate basic path with d attribute")
+    
+    (is (= {:d "M0,0 L100,100 Z"}
+           (validate-path-attributes {:d "M0,0 L100,100 Z"}))
+        "Should validate path with close command")
+    
+    (is (= {:d "M10,10 C20,20 30,30 40,40"}
+           (validate-path-attributes {:d "M10,10 C20,20 30,30 40,40"}))
+        "Should validate path with curve command"))
+  
+  (testing "Path attributes with styling"
+    (is (= {:d "M10,10 L20,20" :fill "red"}
+           (validate-path-attributes {:d "M10,10 L20,20" :fill "red"}))
+        "Should validate path with fill")
+    
+    (is (= {:d "M10,10 L20,20" :stroke "blue" :stroke-width 2}
+           (validate-path-attributes {:d "M10,10 L20,20" :stroke "blue" :stroke-width 2}))
+        "Should validate path with stroke"))
+  
+  (testing "Invalid path attributes"
+    (is (thrown? js/Error (validate-path-attributes {}))
+        "Should throw error for missing d attribute")
+    
+    (is (thrown? js/Error (validate-path-attributes {:d ""}))
+        "Should throw error for empty d attribute")
+    
+    (is (thrown? js/Error (validate-path-attributes {:d 123}))
+        "Should throw error for non-string d attribute")
+    
+    (is (thrown? js/Error (validate-path-attributes {:d "M10,10 L20,20" :fill "invalid"}))
         "Should throw error for invalid fill color")))

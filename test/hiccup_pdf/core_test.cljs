@@ -27,8 +27,8 @@
     (is (thrown? js/Error (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Hello"]))
         "Text elements should throw error (not implemented)")
     
-    (is (thrown? js/Error (hiccup->pdf-ops [:path {:d "M10,10 L20,20"}]))
-        "Path elements should throw error (not implemented)")
+    (is (string? (hiccup->pdf-ops [:path {:d "M10,10 L20,20"}]))
+        "Path elements should return a string")
     
     (is (thrown? js/Error (hiccup->pdf-ops [:g {} [:rect {:x 0 :y 0 :width 50 :height 50}]]))
         "Group elements should throw error (not implemented)")))
@@ -186,3 +186,86 @@
           "Should handle zero radius circle")
       (is (re-find #"10 20 m\n" result)
           "Should start at center point"))))
+
+(deftest path-element-test
+  (testing "Path element transformation"
+    (let [result (hiccup->pdf-ops [:path {:d "M10,10 L20,20"}])]
+      (is (string? result)
+          "Should generate string output for basic path")
+      (is (re-find #"10 10 m\n" result)
+          "Should contain move command")
+      (is (re-find #"20 20 l\n" result)
+          "Should contain line command")
+      (is (re-find #"f$" result)
+          "Should end with fill operator"))
+    
+    (let [result (hiccup->pdf-ops [:path {:d "M0,0 L100,100 Z"}])]
+      (is (string? result)
+          "Should generate string output for closed path")
+      (is (re-find #"0 0 m\n" result)
+          "Should start with move command")
+      (is (re-find #"100 100 l\n" result)
+          "Should contain line command")
+      (is (re-find #"h\n" result)
+          "Should contain close path command"))
+    
+    (let [result (hiccup->pdf-ops [:path {:d "M10,10 C20,20 30,30 40,40"}])]
+      (is (string? result)
+          "Should generate string output for curve path")
+      (is (re-find #"10 10 m\n" result)
+          "Should start with move command")
+      (is (re-find #"20 20 30 30 40 40 c\n" result)
+          "Should contain cubic curve command")))
+  
+  (testing "Path element validation errors"
+    (is (thrown? js/Error (hiccup->pdf-ops [:path {}]))
+        "Should throw error for missing d attribute")
+    
+    (is (thrown? js/Error (hiccup->pdf-ops [:path {:d ""}]))
+        "Should throw error for empty d attribute")
+    
+    (is (thrown? js/Error (hiccup->pdf-ops [:path {:d 123}]))
+        "Should throw error for non-string d attribute")))
+
+(deftest path-styling-test
+  (testing "Path with fill styling"
+    (let [result (hiccup->pdf-ops [:path {:d "M10,10 L20,20" :fill "red"}])]
+      (is (re-find #"1 0 0 rg\n" result)
+          "Should contain fill color operator")
+      (is (re-find #"f$" result)
+          "Should end with fill operator"))
+    
+    (let [result (hiccup->pdf-ops [:path {:d "M10,10 L20,20" :fill "#ff0000"}])]
+      (is (re-find #"1 0 0 rg\n" result)
+          "Should handle hex color fill")))
+  
+  (testing "Path with stroke styling"
+    (let [result (hiccup->pdf-ops [:path {:d "M10,10 L20,20" :stroke "blue"}])]
+      (is (re-find #"0 0 1 RG\n" result)
+          "Should contain stroke color operator")
+      (is (re-find #"S$" result)
+          "Should end with stroke operator"))
+    
+    (let [result (hiccup->pdf-ops [:path {:d "M10,10 L20,20" :stroke "blue" :stroke-width 2}])]
+      (is (re-find #"2 w\n" result)
+          "Should contain stroke width operator")))
+  
+  (testing "Path with both fill and stroke"
+    (let [result (hiccup->pdf-ops [:path {:d "M10,10 L20,20" :fill "red" :stroke "blue"}])]
+      (is (re-find #"1 0 0 rg\n" result)
+          "Should contain fill color")
+      (is (re-find #"0 0 1 RG\n" result)
+          "Should contain stroke color")
+      (is (re-find #"B$" result)
+          "Should end with both fill and stroke operator")))
+  
+  (testing "Complex path commands"
+    (let [result (hiccup->pdf-ops [:path {:d "M10,10 L20,20 L30,10 Z"}])]
+      (is (re-find #"10 10 m\n" result)
+          "Should start with move")
+      (is (re-find #"20 20 l\n" result)
+          "Should contain first line")
+      (is (re-find #"30 10 l\n" result)
+          "Should contain second line")
+      (is (re-find #"h\n" result)
+          "Should close path"))))

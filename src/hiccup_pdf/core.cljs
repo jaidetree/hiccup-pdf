@@ -106,6 +106,69 @@
                   :else "f")] ; Default to fill if no styling specified
     (str stroke-width-op fill-color-op stroke-color-op circle-path draw-op)))
 
+(defn- parse-path-data
+  "Parses SVG-style path data and converts to PDF operators.
+  
+  Args:
+    path-data: String containing SVG path commands
+    
+  Returns:
+    String of PDF path operators"
+  [path-data]
+  (let [;; Simple regex to match path commands and their parameters
+        ;; This handles basic M, L, C, Z commands with number sequences
+        commands (re-seq #"[MLCZmlcz][^MLCZmlcz]*" path-data)]
+    (apply str
+           (map (fn [cmd-str]
+                  (let [cmd-char (first cmd-str)
+                        params-str (subs cmd-str 1)
+                        ;; Extract numbers from the parameter string
+                        numbers (map #(js/parseFloat %) (re-seq #"[-+]?[0-9]*\.?[0-9]+" params-str))]
+                    (case (str cmd-char)
+                      ;; Move to (absolute)
+                      "M" (str (nth numbers 0) " " (nth numbers 1) " m\n")
+                      "m" (str (nth numbers 0) " " (nth numbers 1) " m\n") ; Treat relative as absolute for simplicity
+                      ;; Line to (absolute)
+                      "L" (str (nth numbers 0) " " (nth numbers 1) " l\n")
+                      "l" (str (nth numbers 0) " " (nth numbers 1) " l\n") ; Treat relative as absolute for simplicity
+                      ;; Cubic Bézier curve (absolute)
+                      "C" (str (nth numbers 0) " " (nth numbers 1) " "
+                               (nth numbers 2) " " (nth numbers 3) " "
+                               (nth numbers 4) " " (nth numbers 5) " c\n")
+                      "c" (str (nth numbers 0) " " (nth numbers 1) " "
+                               (nth numbers 2) " " (nth numbers 3) " "
+                               (nth numbers 4) " " (nth numbers 5) " c\n") ; Treat relative as absolute for simplicity
+                      ;; Close path
+                      "Z" "h\n"
+                      "z" "h\n"
+                      ;; Unknown command, skip
+                      "")))
+                commands))))
+
+(defn- path->pdf-ops
+  "Converts a path hiccup vector to PDF operators.
+  
+  Args:
+    attributes: Map containing :d and optional styling
+    
+  Returns:
+    String of PDF operators for path drawing"
+  [attributes]
+  (let [validated-attrs (v/validate-path-attributes attributes)
+        {:keys [d fill stroke stroke-width]} validated-attrs
+        path-data (parse-path-data d)
+        has-fill (some? fill)
+        has-stroke (some? stroke)
+        stroke-width-op (if stroke-width (str stroke-width " w\n") "")
+        fill-color-op (if has-fill (str (color->pdf-color fill) " rg\n") "")
+        stroke-color-op (if has-stroke (str (color->pdf-color stroke) " RG\n") "")
+        draw-op (cond
+                  (and has-fill has-stroke) "B"
+                  has-fill "f"
+                  has-stroke "S"
+                  :else "f")] ; Default to fill if no styling specified
+    (str stroke-width-op fill-color-op stroke-color-op path-data draw-op)))
+
 (defn- element->pdf-ops
   "Converts a hiccup element to PDF operators.
   
@@ -122,6 +185,7 @@
       :rect (rect->pdf-ops attributes)
       :line (line->pdf-ops attributes)
       :circle (circle->pdf-ops attributes)
+      :path (path->pdf-ops attributes)
       (throw (js/Error. (str "Element type " tag " not yet implemented"))))))
 
 (defn hiccup->pdf-ops
