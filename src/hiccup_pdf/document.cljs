@@ -175,3 +175,168 @@
                 :has-transforms (boolean (some #(and (vector? %) (= :g (first %)) (:transforms (second %))) page-content))
                 :coordinate-system "pdf"}}))
 
+(defn extract-fonts-from-content
+  "Extracts unique font names from page content for font resource dictionary.
+  
+  Args:
+    page-content: Vector of hiccup elements
+    
+  Returns:
+    Set of font names used in the content"
+  [page-content]
+  (letfn [(extract-fonts [element]
+            (if-not (vector? element)
+              #{}
+              (let [[tag attributes & children] element]
+                (cond-> #{}
+                  (and (= tag :text) (:font attributes))
+                  (conj (:font attributes))
+                  
+                  (seq children)
+                  (into (mapcat extract-fonts children))))))]
+    (into #{} (mapcat extract-fonts page-content))))
+
+(defn generate-font-resource-object
+  "Generates a font resource object for system fonts.
+  
+  Args:
+    object-number: PDF object number
+    font-name: Name of the font (e.g., 'Arial', 'Times-Roman')
+    
+  Returns:
+    String containing PDF font object"
+  [object-number font-name]
+  (let [;; Map common font names to PDF standard font names
+        pdf-font-name (case font-name
+                        "Arial" "Helvetica"
+                        "Times" "Times-Roman"
+                        "Courier" "Courier"
+                        "Times New Roman" "Times-Roman"
+                        "Helvetica" "Helvetica"
+                        ;; Default to Helvetica for unknown fonts
+                        "Helvetica")]
+    (str object-number " 0 obj\n"
+         "<<\n"
+         "/Type /Font\n"
+         "/Subtype /Type1\n"
+         "/BaseFont /" pdf-font-name "\n"
+         ">>\n"
+         "endobj")))
+
+(defn generate-content-stream-object
+  "Generates a content stream object with proper length calculation.
+  
+  Args:
+    object-number: PDF object number
+    content-stream: String containing PDF operators
+    
+  Returns:
+    String containing PDF content stream object"
+  [object-number content-stream]
+  (let [stream-length (count content-stream)]
+    (str object-number " 0 obj\n"
+         "<<\n"
+         "/Length " stream-length "\n"
+         ">>\n"
+         "stream\n"
+         content-stream "\n"
+         "endstream\n"
+         "endobj")))
+
+(defn generate-page-object
+  "Generates a page object with MediaBox and resource references.
+  
+  Args:
+    object-number: PDF object number
+    page-data: Map with :width, :height, :content-stream, etc.
+    parent-pages-ref: Reference to parent pages object
+    content-stream-ref: Reference to content stream object
+    font-refs: Map of font names to object references
+    
+  Returns:
+    String containing PDF page object"
+  [object-number page-data parent-pages-ref content-stream-ref font-refs]
+  (let [{:keys [width height margins]} page-data
+        [top right bottom left] (or margins [0 0 0 0])
+        ;; MediaBox defines the page boundaries
+        media-box (str "[" left " " bottom " " width " " height "]")
+        ;; Create font resource dictionary
+        font-dict (if (empty? font-refs)
+                    ""
+                    (str "/Font <<\n"
+                         (str/join "\n" (map (fn [[font-name ref]]
+                                               (str "/" font-name " " ref " 0 R"))
+                                             font-refs))
+                         "\n>>"))]
+    (str object-number " 0 obj\n"
+         "<<\n"
+         "/Type /Page\n"
+         "/Parent " parent-pages-ref " 0 R\n"
+         "/MediaBox " media-box "\n"
+         (when (not (str/blank? font-dict))
+           (str "/Resources <<\n" font-dict "\n>>\n"))
+         "/Contents " content-stream-ref " 0 R\n"
+         ">>\n"
+         "endobj")))
+
+(defn generate-pages-object
+  "Generates a pages collection object.
+  
+  Args:
+    object-number: PDF object number
+    page-refs: Vector of page object references
+    
+  Returns:
+    String containing PDF pages object"
+  [object-number page-refs]
+  (let [page-count (count page-refs)
+        kids-array (str "[" (str/join " " (map #(str % " 0 R") page-refs)) "]")]
+    (str object-number " 0 obj\n"
+         "<<\n"
+         "/Type /Pages\n"
+         "/Kids " kids-array "\n"
+         "/Count " page-count "\n"
+         ">>\n"
+         "endobj")))
+
+(defn generate-catalog-object
+  "Generates the PDF catalog (root) object.
+  
+  Args:
+    object-number: PDF object number  
+    pages-ref: Reference to pages object
+    
+  Returns:
+    String containing PDF catalog object"
+  [object-number pages-ref]
+  (str object-number " 0 obj\n"
+       "<<\n"
+       "/Type /Catalog\n"
+       "/Pages " pages-ref " 0 R\n"
+       ">>\n"
+       "endobj"))
+
+(defn generate-info-object
+  "Generates the PDF info object with document metadata.
+  
+  Args:
+    object-number: PDF object number
+    document-attributes: Map with document metadata
+    
+  Returns:
+    String containing PDF info object"
+  [object-number document-attributes]
+  (let [{:keys [title author subject keywords creator producer]} document-attributes
+        ;; Helper to format PDF string with proper escaping
+        format-pdf-string (fn [s] (when s (str "(" s ")")))]
+    (str object-number " 0 obj\n"
+         "<<\n"
+         (when title (str "/Title " (format-pdf-string title) "\n"))
+         (when author (str "/Author " (format-pdf-string author) "\n"))
+         (when subject (str "/Subject " (format-pdf-string subject) "\n"))
+         (when keywords (str "/Keywords " (format-pdf-string keywords) "\n"))
+         (when creator (str "/Creator " (format-pdf-string creator) "\n"))
+         (when producer (str "/Producer " (format-pdf-string producer) "\n"))
+         ">>\n"
+         "endobj")))
+

@@ -1,7 +1,7 @@
 (ns hiccup-pdf.document-test
   (:require [cljs.test :refer [deftest is testing]]
             [hiccup-pdf.core :refer [hiccup->pdf-document]]
-            [hiccup-pdf.document :refer [hiccup-document->pdf web-to-pdf-y transform-element-coordinates transform-coordinates-for-page page->content-stream]]
+            [hiccup-pdf.document :refer [hiccup-document->pdf web-to-pdf-y transform-element-coordinates transform-coordinates-for-page page->content-stream extract-fonts-from-content generate-font-resource-object generate-content-stream-object generate-page-object generate-pages-object generate-catalog-object generate-info-object]]
             [hiccup-pdf.validation :refer [validate-document-attributes validate-element-type validate-page-attributes]]))
 
 (deftest document-function-signature-test
@@ -556,4 +556,173 @@
       (is (= 612 (:width result)) "Should inherit document width")
       (is (= 792 (:height result)) "Should inherit document height")
       (is (= [10 10 10 10] (:margins result)) "Should inherit document margins"))))
+
+(deftest extract-fonts-from-content-test
+  (testing "Font extraction from page content"
+    ;; Test with no fonts
+    (is (= #{} (extract-fonts-from-content []))
+        "Should return empty set for empty content")
+    
+    (is (= #{} (extract-fonts-from-content [[:rect {:x 0 :y 0 :width 100 :height 50}]]))
+        "Should return empty set for content without text")
+    
+    ;; Test with single font
+    (is (= #{"Arial"} (extract-fonts-from-content [[:text {:x 10 :y 10 :font "Arial" :size 12} "Hello"]]))
+        "Should extract single font from text element")
+    
+    ;; Test with multiple fonts
+    (let [content [[:text {:x 10 :y 10 :font "Arial" :size 12} "Hello"]
+                   [:text {:x 50 :y 50 :font "Times" :size 14} "World"]
+                   [:rect {:x 0 :y 0 :width 100 :height 50}]
+                   [:text {:x 100 :y 100 :font "Arial" :size 16} "Again"]]]
+      (is (= #{"Arial" "Times"} (extract-fonts-from-content content))
+          "Should extract unique fonts from multiple text elements"))
+    
+    ;; Test with nested groups
+    (let [content [[:g {}
+                    [:text {:x 10 :y 10 :font "Courier" :size 10} "Nested"]
+                    [:g {:transforms [[:translate [50 50]]]}
+                     [:text {:x 0 :y 0 :font "Helvetica" :size 12} "Deep nested"]]]]]
+      (is (= #{"Courier" "Helvetica"} (extract-fonts-from-content content))
+          "Should extract fonts from nested groups"))))
+
+(deftest pdf-object-generation-test
+  (testing "Font resource object generation"
+    (let [font-obj (generate-font-resource-object 5 "Arial")]
+      (is (re-find #"5 0 obj" font-obj) "Should include object number")
+      (is (re-find #"/Type /Font" font-obj) "Should specify font type")
+      (is (re-find #"/Subtype /Type1" font-obj) "Should specify Type1 subtype")
+      (is (re-find #"/BaseFont /Helvetica" font-obj) "Should map Arial to Helvetica")
+      (is (re-find #"endobj" font-obj) "Should end with endobj"))
+    
+    ;; Test font name mapping
+    (is (re-find #"/BaseFont /Times-Roman" (generate-font-resource-object 1 "Times New Roman"))
+        "Should map Times New Roman to Times-Roman")
+    (is (re-find #"/BaseFont /Helvetica" (generate-font-resource-object 1 "UnknownFont"))
+        "Should default to Helvetica for unknown fonts"))
+  
+  (testing "Content stream object generation"
+    (let [content "10 10 100 50 re\nf"
+          content-length (count content)
+          stream-obj (generate-content-stream-object 3 content)]
+      (is (re-find #"3 0 obj" stream-obj) "Should include object number")
+      (is (re-find (re-pattern (str "/Length " content-length)) stream-obj) "Should calculate correct length")
+      (is (re-find #"stream" stream-obj) "Should include stream keyword")
+      (is (re-find #"10 10 100 50 re" stream-obj) "Should include content")
+      (is (re-find #"endstream" stream-obj) "Should end with endstream")
+      (is (re-find #"endobj" stream-obj) "Should end with endobj")))
+  
+  (testing "Page object generation"
+    (let [page-data {:width 612 :height 792 :margins [10 20 30 40]}
+          font-refs {"Arial" 5 "Times" 6}
+          page-obj (generate-page-object 2 page-data 4 3 font-refs)]
+      (is (re-find #"2 0 obj" page-obj) "Should include object number")
+      (is (re-find #"/Type /Page" page-obj) "Should specify page type")
+      (is (re-find #"/Parent 4 0 R" page-obj) "Should reference parent pages")
+      (is (re-find #"/MediaBox \[40 30 612 792\]" page-obj) "Should include MediaBox with margins")
+      (is (re-find #"/Contents 3 0 R" page-obj) "Should reference content stream")
+      (is (re-find #"/Arial 5 0 R" page-obj) "Should include font resources")
+      (is (re-find #"/Times 6 0 R" page-obj) "Should include all font resources")
+      (is (re-find #"endobj" page-obj) "Should end with endobj"))
+    
+    ;; Test page without fonts
+    (let [page-obj (generate-page-object 1 {:width 595 :height 842} 2 3 {})]
+      (is (not (re-find #"/Font" page-obj)) "Should not include font resources when none present")))
+  
+  (testing "Pages collection object generation"
+    (let [pages-obj (generate-pages-object 4 [2 7 9])]
+      (is (re-find #"4 0 obj" pages-obj) "Should include object number")
+      (is (re-find #"/Type /Pages" pages-obj) "Should specify pages type")
+      (is (re-find #"/Kids \[2 0 R 7 0 R 9 0 R\]" pages-obj) "Should list all page references")
+      (is (re-find #"/Count 3" pages-obj) "Should specify correct page count")
+      (is (re-find #"endobj" pages-obj) "Should end with endobj"))
+    
+    ;; Test with single page
+    (let [pages-obj (generate-pages-object 1 [2])]
+      (is (re-find #"/Kids \[2 0 R\]" pages-obj) "Should handle single page")
+      (is (re-find #"/Count 1" pages-obj) "Should count single page")))
+  
+  (testing "Catalog object generation"
+    (let [catalog-obj (generate-catalog-object 1 4)]
+      (is (re-find #"1 0 obj" catalog-obj) "Should include object number")
+      (is (re-find #"/Type /Catalog" catalog-obj) "Should specify catalog type")
+      (is (re-find #"/Pages 4 0 R" catalog-obj) "Should reference pages object")
+      (is (re-find #"endobj" catalog-obj) "Should end with endobj")))
+  
+  (testing "Info object generation"
+    (let [metadata {:title "Test Document" :author "Test Author" :creator "hiccup-pdf"}
+          info-obj (generate-info-object 8 metadata)]
+      (is (re-find #"8 0 obj" info-obj) "Should include object number")
+      (is (re-find #"/Title \(Test Document\)" info-obj) "Should include title")
+      (is (re-find #"/Author \(Test Author\)" info-obj) "Should include author")
+      (is (re-find #"/Creator \(hiccup-pdf\)" info-obj) "Should include creator")
+      (is (re-find #"endobj" info-obj) "Should end with endobj"))
+    
+    ;; Test with minimal metadata
+    (let [info-obj (generate-info-object 1 {:title "Simple"})]
+      (is (re-find #"/Title \(Simple\)" info-obj) "Should include only provided metadata")
+      (is (not (re-find #"/Author" info-obj)) "Should not include absent metadata"))
+    
+    ;; Test with empty metadata
+    (let [info-obj (generate-info-object 1 {})]
+      (is (re-find #"1 0 obj" info-obj) "Should generate object even with no metadata")
+      (is (re-find #"<<" info-obj) "Should include dictionary markers")
+      (is (re-find #">>" info-obj) "Should close dictionary"))))
+
+(deftest pdf-object-integration-test
+  (testing "Multiple PDF objects working together"
+    ;; Test a complete set of objects for a simple document
+    (let [;; Page content with fonts
+          page-content [[:text {:x 100 :y 100 :font "Arial" :size 12} "Hello World"]
+                        [:rect {:x 50 :y 200 :width 200 :height 100 :fill "red"}]]
+          
+          ;; Extract fonts
+          fonts (extract-fonts-from-content page-content)
+          
+          ;; Generate content stream
+          content-stream "BT\n/Arial 12 Tf\n100 692 Td\n(Hello World) Tj\nET\n1 0 0 rg\n50 592 200 100 re\nf"
+          
+          ;; Generate all objects
+          font-obj (generate-font-resource-object 2 "Arial")
+          content-obj (generate-content-stream-object 3 content-stream)
+          page-obj (generate-page-object 4 {:width 612 :height 792} 5 3 {"Arial" 2})
+          pages-obj (generate-pages-object 5 [4])
+          catalog-obj (generate-catalog-object 1 5)
+          info-obj (generate-info-object 6 {:title "Integration Test"})]
+      
+      ;; Test font extraction
+      (is (= #{"Arial"} fonts) "Should extract Arial font")
+      
+      ;; Test object references are consistent
+      (is (re-find #"/Arial 2 0 R" page-obj) "Page should reference font object")
+      (is (re-find #"/Contents 3 0 R" page-obj) "Page should reference content stream")
+      (is (re-find #"/Parent 5 0 R" page-obj) "Page should reference parent pages")
+      (is (re-find #"/Kids \[4 0 R\]" pages-obj) "Pages should reference page")
+      (is (re-find #"/Pages 5 0 R" catalog-obj) "Catalog should reference pages")
+      
+      ;; Test all objects are properly formatted
+      (is (every? #(re-find #"endobj$" %) [font-obj content-obj page-obj pages-obj catalog-obj info-obj])
+          "All objects should end with endobj")))
+  
+  (testing "Multi-page document object generation"
+    (let [page1-data {:width 612 :height 792}
+          page2-data {:width 595 :height 842}  ; Different size (A4)
+          
+          ;; Generate objects for multi-page document
+          page1-obj (generate-page-object 4 page1-data 6 3 {"Arial" 2})
+          page2-obj (generate-page-object 5 page2-data 6 7 {"Times" 8})
+          pages-obj (generate-pages-object 6 [4 5])
+          catalog-obj (generate-catalog-object 1 6)]
+      
+      ;; Test different page dimensions
+      (is (re-find #"/MediaBox \[0 0 612 792\]" page1-obj) "Should handle letter size")
+      (is (re-find #"/MediaBox \[0 0 595 842\]" page2-obj) "Should handle A4 size")
+      
+      ;; Test pages collection with multiple pages
+      (is (re-find #"/Kids \[4 0 R 5 0 R\]" pages-obj) "Should reference both pages")
+      (is (re-find #"/Count 2" pages-obj) "Should count both pages")
+      
+      ;; Test different fonts per page
+      (is (re-find #"/Arial 2 0 R" page1-obj) "Page 1 should use Arial")
+      (is (re-find #"/Times 8 0 R" page2-obj) "Page 2 should use Times"))))
 
