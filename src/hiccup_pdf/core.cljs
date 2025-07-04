@@ -68,6 +68,44 @@
         line-path (str x1 " " y1 " m\n" x2 " " y2 " l\n")]
     (str stroke-width-op stroke-color-op line-path "S")))
 
+(defn- circle->pdf-ops
+  "Converts a circle hiccup vector to PDF operators using Bézier curve approximation.
+  
+  Args:
+    attributes: Map containing :cx, :cy, :r and optional styling
+    
+  Returns:
+    String of PDF operators for circle drawing"
+  [attributes]
+  (let [validated-attrs (v/validate-circle-attributes attributes)
+        {:keys [cx cy r fill stroke stroke-width]} validated-attrs
+        ;; Bézier curve control point offset for circle approximation
+        ;; Using the standard 4-arc approximation with control points at distance r * 0.552284749831
+        k (* r 0.552284749831)
+        ;; Circle path using 4 Bézier curves
+        circle-path (str 
+                     ;; Move to top point
+                     cx " " (+ cy r) " m\n"
+                     ;; First curve (top to right)
+                     (+ cx k) " " (+ cy r) " " (+ cx r) " " (+ cy k) " " (+ cx r) " " cy " c\n"
+                     ;; Second curve (right to bottom)  
+                     (+ cx r) " " (- cy k) " " (+ cx k) " " (- cy r) " " cx " " (- cy r) " c\n"
+                     ;; Third curve (bottom to left)
+                     (- cx k) " " (- cy r) " " (- cx r) " " (- cy k) " " (- cx r) " " cy " c\n"
+                     ;; Fourth curve (left to top)
+                     (- cx r) " " (+ cy k) " " (- cx k) " " (+ cy r) " " cx " " (+ cy r) " c\n")
+        has-fill (some? fill)
+        has-stroke (some? stroke)
+        stroke-width-op (if stroke-width (str stroke-width " w\n") "")
+        fill-color-op (if has-fill (str (color->pdf-color fill) " rg\n") "")
+        stroke-color-op (if has-stroke (str (color->pdf-color stroke) " RG\n") "")
+        draw-op (cond
+                  (and has-fill has-stroke) "B"
+                  has-fill "f"
+                  has-stroke "S"
+                  :else "f")] ; Default to fill if no styling specified
+    (str stroke-width-op fill-color-op stroke-color-op circle-path draw-op)))
+
 (defn- element->pdf-ops
   "Converts a hiccup element to PDF operators.
   
@@ -83,6 +121,7 @@
     (case validated-tag
       :rect (rect->pdf-ops attributes)
       :line (line->pdf-ops attributes)
+      :circle (circle->pdf-ops attributes)
       (throw (js/Error. (str "Element type " tag " not yet implemented"))))))
 
 (defn hiccup->pdf-ops

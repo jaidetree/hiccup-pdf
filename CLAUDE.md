@@ -117,3 +117,4 @@ nbb repl
 ## Git and Development Workflow
 
 - After marking a prompt as complete, propose a git commit with accurate details about the changes
+- Create a git commit after completing each step in the prompt-plan

@@ -125,3 +125,30 @@
     (v/parse required-schema attributes)
     (v/parse optional-schema attributes)
     attributes))
+
+(defn validate-circle-attributes
+  "Validates that attributes contains required circle attributes.
+  
+  Args:
+    attributes: The attributes map to validate
+    
+  Returns:
+    The validated attributes map if valid
+    
+  Throws:
+    Validation error if required attributes are missing or invalid"
+  [attributes]
+  (let [required-schema (v/record {:cx (v/number)
+                                   :cy (v/number)
+                                   :r (v/chain (v/number) (v/assert #(>= % 0)))})
+        valid-color-names #{"red" "green" "blue" "black" "white" "yellow" "cyan" "magenta"}
+        color-validator (v/chain
+                          (v/string)
+                          (v/assert #(or (some? (re-find #"^#[0-9a-fA-F]{6}$" %))
+                                         (contains? valid-color-names %))))
+        optional-schema (v/record {:fill (v/nilable color-validator)
+                                   :stroke (v/nilable color-validator)
+                                   :stroke-width (v/nilable (v/number))})]
+    (v/parse required-schema attributes)
+    (v/parse optional-schema attributes)
+    attributes))

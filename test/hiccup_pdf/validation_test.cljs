@@ -5,6 +5,7 @@
                                            validate-attributes
                                            validate-rect-attributes
                                            validate-line-attributes
+                                           validate-circle-attributes
                                            validate-color]]))
 
 (deftest validate-hiccup-structure-test
@@ -144,3 +145,45 @@
     
     (is (thrown? js/Error (validate-line-attributes {:x1 10 :y1 20 :x2 100 :y2 50 :stroke "invalid"}))
         "Should throw error for invalid stroke color")))
+
+(deftest validate-circle-attributes-test
+  (testing "Valid circle attributes"
+    (is (= {:cx 50 :cy 50 :r 25}
+           (validate-circle-attributes {:cx 50 :cy 50 :r 25}))
+        "Should validate basic circle attributes")
+    
+    (is (= {:cx 0 :cy 0 :r 1}
+           (validate-circle-attributes {:cx 0 :cy 0 :r 1}))
+        "Should validate minimal circle attributes")
+    
+    (is (= {:cx 10 :cy 20 :r 0}
+           (validate-circle-attributes {:cx 10 :cy 20 :r 0}))
+        "Should validate circle with zero radius"))
+  
+  (testing "Circle attributes with styling"
+    (is (= {:cx 50 :cy 50 :r 25 :fill "red"}
+           (validate-circle-attributes {:cx 50 :cy 50 :r 25 :fill "red"}))
+        "Should validate circle with fill")
+    
+    (is (= {:cx 50 :cy 50 :r 25 :stroke "blue" :stroke-width 2}
+           (validate-circle-attributes {:cx 50 :cy 50 :r 25 :stroke "blue" :stroke-width 2}))
+        "Should validate circle with stroke"))
+  
+  (testing "Invalid circle attributes"
+    (is (thrown? js/Error (validate-circle-attributes {:cx 50 :cy 50}))
+        "Should throw error for missing radius")
+    
+    (is (thrown? js/Error (validate-circle-attributes {:cx 50 :r 25}))
+        "Should throw error for missing cy")
+    
+    (is (thrown? js/Error (validate-circle-attributes {:cx "50" :cy 50 :r 25}))
+        "Should throw error for non-numeric cx")
+    
+    (is (thrown? js/Error (validate-circle-attributes {:cx 50 :cy 50 :r -5}))
+        "Should throw error for negative radius")
+    
+    (is (thrown? js/Error (validate-circle-attributes {}))
+        "Should throw error for empty attributes")
+    
+    (is (thrown? js/Error (validate-circle-attributes {:cx 50 :cy 50 :r 25 :fill "invalid"}))
+        "Should throw error for invalid fill color")))
