@@ -3,6 +3,8 @@
   (:require [hiccup-pdf.validation :as v]
             [clojure.string :as str]))
 
+(declare document->pdf page->content-stream)
+
 (defn hiccup-document->pdf
   "Implementation function for generating complete PDF documents from hiccup.
 
@@ -40,12 +42,23 @@
     ;; Validate and apply document attribute defaults
     (let [validated-attributes (v/validate-document-attributes attributes)]
 
-      ;; For now, return a placeholder with validated attributes
-      ;; This will be implemented in subsequent steps
-      (str "PDF document placeholder for: "
-           (:title validated-attributes "Untitled Document")
-           " (width: " (:width validated-attributes)
-           ", height: " (:height validated-attributes) ")"))))
+      ;; Process all pages in the document
+      (if (empty? _pages)
+        ;; Document with no pages - create a minimal PDF
+        (document->pdf [] validated-attributes)
+        
+        ;; Process each page
+        (let [pages-data (mapv (fn [page-element]
+                                 (when-not (vector? page-element)
+                                   (throw (js/Error. "Page must be a hiccup vector")))
+                                 (let [[page-tag page-attributes & page-content] page-element]
+                                   (when-not (= page-tag :page)
+                                     (throw (js/Error. (str "Expected :page element, got: " page-tag))))
+                                   ;; Process page content into content stream
+                                   (page->content-stream page-attributes page-content validated-attributes)))
+                               _pages)]
+          ;; Generate complete PDF document
+          (document->pdf pages-data validated-attributes))))))
 
 (defn web-to-pdf-y
   "Converts web-style Y coordinate to PDF-style Y coordinate.
@@ -339,4 +352,180 @@
          (when producer (str "/Producer " (format-pdf-string producer) "\n"))
          ">>\n"
          "endobj")))
+
+(defn generate-pdf-header
+  "Generates the PDF header.
+  
+  Returns:
+    String containing PDF header"
+  []
+  "%PDF-1.4")
+
+(defn calculate-byte-offsets
+  "Calculates byte offsets for PDF objects for xref table.
+  
+  Args:
+    objects: Vector of PDF object strings
+    
+  Returns:
+    Vector of byte offsets"
+  [objects]
+  (let [header-length (+ (count (generate-pdf-header)) 1)] ; +1 for newline
+    (loop [objects objects
+           offsets []
+           current-offset header-length]
+      (if (empty? objects)
+        offsets
+        (let [obj (first objects)
+              obj-length (+ (count obj) 1)] ; +1 for newline
+          (recur (rest objects)
+                 (conj offsets current-offset)
+                 (+ current-offset obj-length)))))))
+
+(defn generate-xref-table
+  "Generates the cross-reference table.
+  
+  Args:
+    object-count: Total number of objects (including object 0)
+    byte-offsets: Vector of byte offsets for each object
+    
+  Returns:
+    String containing xref table"
+  [object-count byte-offsets]
+  (let [;; Object 0 is always free with generation 65535
+        obj-0-entry "0000000000 65535 f \n"
+        ;; Generate entries for each object
+        object-entries (map-indexed
+                        (fn [idx offset]
+                          (let [padded-offset (str (apply str (repeat (- 10 (count (str offset))) "0")) offset)]
+                            (str padded-offset " 00000 n \n")))
+                        byte-offsets)]
+    (str "xref\n"
+         "0 " object-count "\n"
+         obj-0-entry
+         (str/join "" object-entries))))
+
+(defn generate-trailer
+  "Generates the PDF trailer.
+  
+  Args:
+    object-count: Total number of objects
+    catalog-ref: Reference to catalog object
+    info-ref: Reference to info object (optional)
+    xref-offset: Byte offset of xref table
+    
+  Returns:
+    String containing trailer"
+  [object-count catalog-ref info-ref xref-offset]
+  (str "trailer\n"
+       "<<\n"
+       "/Size " object-count "\n"
+       "/Root " catalog-ref " 0 R\n"
+       (when info-ref (str "/Info " info-ref " 0 R\n"))
+       ">>\n"
+       "startxref\n"
+       xref-offset "\n"
+       "%%EOF"))
+
+(defn document->pdf
+  "Generates a complete PDF document from processed page data.
+  
+  Args:
+    pages-data: Vector of page data maps from page->content-stream
+    document-attributes: Document metadata
+    
+  Returns:
+    Complete PDF document as string"
+  [pages-data document-attributes]
+  (let [;; Extract all fonts from content streams by parsing the content
+        ;; For now, we'll use a simple approach - extract fonts from content streams
+        extract-fonts-from-content-stream (fn [content-stream]
+                                            (let [font-matches (re-seq #"/(\w+)\s+\d+\s+Tf" content-stream)]
+                                              (set (map second font-matches))))
+        all-fonts (into #{} (mapcat #(extract-fonts-from-content-stream (:content-stream %)) pages-data))
+        
+        ;; Object numbering strategy:
+        ;; 1: Catalog
+        ;; 2+: Font objects (one per unique font)
+        ;; N+: Content stream objects (one per page)  
+        ;; M+: Page objects (one per page)
+        ;; Last: Pages collection object
+        ;; Last+1: Info object (if metadata provided)
+        
+        font-list (vec all-fonts)
+        font-count (count font-list)
+        page-count (count pages-data)
+        
+        ;; Calculate object numbers
+        catalog-ref 1
+        first-font-ref 2
+        first-content-ref (+ first-font-ref font-count)
+        first-page-ref (+ first-content-ref page-count)
+        pages-collection-ref (+ first-page-ref page-count)
+        info-ref (if (seq document-attributes) (+ pages-collection-ref 1) nil)
+        total-objects (if info-ref (+ pages-collection-ref 1) pages-collection-ref)
+        
+        ;; Generate font objects and create font reference map
+        font-refs (into {} (map-indexed
+                           (fn [idx font-name]
+                             [font-name (+ first-font-ref idx)])
+                           font-list))
+        font-objects (map-indexed
+                      (fn [idx font-name]
+                        (generate-font-resource-object (+ first-font-ref idx) font-name))
+                      font-list)
+        
+        ;; Generate content stream objects
+        content-objects (map-indexed
+                         (fn [idx page-data]
+                           (generate-content-stream-object 
+                            (+ first-content-ref idx)
+                            (:content-stream page-data)))
+                         pages-data)
+        
+        ;; Generate page objects
+        page-objects (map-indexed
+                      (fn [idx page-data]
+                        (generate-page-object
+                         (+ first-page-ref idx)
+                         page-data
+                         pages-collection-ref
+                         (+ first-content-ref idx)
+                         font-refs))
+                      pages-data)
+        
+        ;; Generate pages collection object
+        page-refs (map #(+ first-page-ref %) (range page-count))
+        pages-object (generate-pages-object pages-collection-ref page-refs)
+        
+        ;; Generate catalog object
+        catalog-object (generate-catalog-object catalog-ref pages-collection-ref)
+        
+        ;; Generate info object if metadata provided
+        info-object (when info-ref
+                      (generate-info-object info-ref document-attributes))
+        
+        ;; Assemble all objects in order
+        all-objects (concat [catalog-object]
+                           font-objects
+                           content-objects
+                           page-objects
+                           [pages-object]
+                           (when info-object [info-object]))
+        
+        ;; Calculate byte offsets
+        byte-offsets (calculate-byte-offsets all-objects)
+        
+        ;; Generate PDF components
+        header (generate-pdf-header)
+        objects-section (str/join "\n" all-objects)
+        xref-offset (+ (count header) 1 (count objects-section) 1) ; +1 for newlines
+        xref-table (generate-xref-table (+ total-objects 1) byte-offsets) ; +1 for object 0
+        trailer (generate-trailer (+ total-objects 1) catalog-ref info-ref xref-offset)]
+    
+    ;; Assemble final PDF
+    (str header "\n"
+         objects-section "\n"
+         xref-table
+         trailer)))
 
