@@ -876,3 +876,227 @@
                           (hiccup->pdf-document [:document {} "not a page"]))
         "Should reject non-vector page elements")))
 
+(deftest comprehensive-document-integration-test
+  (testing "Complex documents with multiple pages and sizes"
+    ;; Test document with multiple pages of different sizes
+    (let [hiccup-doc [:document {:title "Multi-Size Document" :author "Test Author"}
+                      ;; Standard letter page
+                      [:page {:width 612 :height 792}
+                       [:text {:x 50 :y 50 :font "Arial" :size 16} "Letter Page"]
+                       [:rect {:x 50 :y 100 :width 200 :height 100 :fill "blue"}]]
+                      ;; A4 page
+                      [:page {:width 595 :height 842}
+                       [:text {:x 50 :y 50 :font "Times" :size 14} "A4 Page"]
+                       [:circle {:cx 200 :cy 200 :r 50 :stroke "green" :stroke-width 2}]]
+                      ;; Custom landscape page
+                      [:page {:width 800 :height 600}
+                       [:text {:x 50 :y 50 :font "Courier" :size 12} "Landscape Page"]
+                       [:line {:x1 50 :y1 100 :x2 750 :y2 100 :stroke "red"}]]]
+          pdf (hiccup->pdf-document hiccup-doc)]
+      
+      ;; Test multiple page sizes
+      (is (re-find #"\[0 0 612 792\]" pdf) "Should include letter size page")
+      (is (re-find #"\[0 0 595 842\]" pdf) "Should include A4 size page")
+      (is (re-find #"\[0 0 800 600\]" pdf) "Should include landscape size page")
+      
+      ;; Test content from each page
+      (is (re-find #"Letter Page" pdf) "Should include letter page content")
+      (is (re-find #"A4 Page" pdf) "Should include A4 page content")
+      (is (re-find #"Landscape Page" pdf) "Should include landscape page content")
+      
+      ;; Test different fonts are included
+      (is (re-find #"/BaseFont /Helvetica" pdf) "Should include Arial font")
+      (is (re-find #"/BaseFont /Times-Roman" pdf) "Should include Times font")
+      (is (re-find #"/BaseFont /Courier" pdf) "Should include Courier font")
+      
+      ;; Test metadata
+      (is (re-find #"/Title \(Multi-Size Document\)" pdf) "Should include document title")
+      (is (re-find #"/Author \(Test Author\)" pdf) "Should include document author")
+      
+      ;; Test page count
+      (is (re-find #"/Count 3" pdf) "Should specify 3 pages")))
+  
+  (testing "Document with all primitive element types"
+    (let [hiccup-doc [:document {:title "All Elements Test"}
+                      [:page {}
+                       ;; Rectangle
+                       [:rect {:x 50 :y 50 :width 100 :height 80 :fill "red" :stroke "black" :stroke-width 2}]
+                       ;; Circle
+                       [:circle {:cx 250 :cy 100 :r 40 :fill "green" :stroke "blue" :stroke-width 1}]
+                       ;; Line
+                       [:line {:x1 350 :y1 50 :x2 450 :y2 130 :stroke "magenta" :stroke-width 3}]
+                       ;; Text
+                       [:text {:x 50 :y 200 :font "Arial" :size 14 :fill "blue"} "Sample Text"]
+                       ;; Path
+                       [:path {:d "M 50 300 L 150 300 L 100 250 Z" :fill "yellow" :stroke "red"}]
+                       ;; Nested group with transforms
+                       [:g {:transforms [[:translate [300 300]] [:rotate 30]]}
+                        [:rect {:x 0 :y 0 :width 60 :height 40 :fill "cyan"}]
+                        [:text {:x 10 :y 25 :font "Courier" :size 10} "Rotated"]]]]
+          pdf (hiccup->pdf-document hiccup-doc)]
+      
+      ;; Test all element types are present
+      (is (re-find #"50 742 100 80 re" pdf) "Should include rectangle")
+      (is (re-find #"250 732 m" pdf) "Should include circle")
+      (is (re-find #"350 742 m" pdf) "Should include line")
+      (is (re-find #"Sample Text" pdf) "Should include text")
+      (is (re-find #"50 300 m" pdf) "Should include path")
+      (is (re-find #"(?s)q.*cm.*Rotated.*Q" pdf) "Should include transformed group")
+      
+      ;; Test colors are included
+      (is (re-find #"1 0 0 rg" pdf) "Should include red fill")
+      (is (re-find #"0 1 0 rg" pdf) "Should include green fill")
+      (is (re-find #"0 0 1 RG" pdf) "Should include blue stroke")
+      (is (re-find #"1 1 0 rg" pdf) "Should include yellow fill")))
+  
+  (testing "Document with emoji support"
+    (let [hiccup-doc [:document {:title "Emoji Test 🎉"}
+                      [:page {}
+                       [:text {:x 50 :y 50 :font "Arial" :size 20} "Hello 👋 World 🌍"]
+                       [:text {:x 50 :y 100 :font "Times" :size 16} "Math: 2 + 2 = 4 ✓"]
+                       [:text {:x 50 :y 150 :font "Courier" :size 12} "Symbols: ★ ❤ 😊 🚀"]]]
+          pdf (hiccup->pdf-document hiccup-doc)]
+      
+      ;; Test emoji content is preserved
+      (is (re-find #"Hello 👋 World 🌍" pdf) "Should include emoji in text")
+      (is (re-find #"Math: 2 \+ 2 = 4 ✓" pdf) "Should include mathematical symbols")
+      (is (re-find #"Symbols: ★ ❤ 😊 🚀" pdf) "Should include various emoji")
+      
+      ;; Test document title with emoji
+      (is (re-find #"Emoji Test 🎉" pdf) "Should include emoji in document title")))
+  
+  (testing "Document with nested groups and complex transforms"
+    (let [hiccup-doc [:document {:title "Transform Test"}
+                      [:page {}
+                       ;; Deep nesting with multiple transforms
+                       [:g {:transforms [[:translate [100 100]]]}
+                        [:rect {:x 0 :y 0 :width 50 :height 50 :fill "red"}]
+                        [:g {:transforms [[:rotate 45]]}
+                         [:rect {:x 60 :y 0 :width 30 :height 30 :fill "green"}]
+                         [:g {:transforms [[:scale [2 1]]]}
+                          [:rect {:x 20 :y 20 :width 15 :height 15 :fill "blue"}]]]]
+                       ;; Multiple transforms on same group
+                       [:g {:transforms [[:translate [200 200]] [:rotate 30] [:scale [1.5 0.8]]]}
+                        [:text {:x 0 :y 0 :font "Arial" :size 12} "Multi-transform"]]]]
+          pdf (hiccup->pdf-document hiccup-doc)]
+      
+      ;; Test nested graphics state save/restore
+      (is (>= (count (re-seq #"q" pdf)) 3) "Should have multiple graphics state saves")
+      (is (>= (count (re-seq #"Q" pdf)) 3) "Should have multiple graphics state restores")
+      
+      ;; Test transformation matrices
+      (is (re-find #"cm" pdf) "Should include transformation matrices")
+      (is (re-find #"Multi-transform" pdf) "Should include transformed text")))
+  
+  (testing "Empty pages and edge cases"
+    (let [hiccup-doc [:document {:title "Edge Cases"}
+                      ;; Empty page
+                      [:page {}]
+                      ;; Page with only whitespace text
+                      [:page {}
+                       [:text {:x 50 :y 50 :font "Arial" :size 12} "   "]]
+                      ;; Page with zero-size elements
+                      [:page {}
+                       [:rect {:x 50 :y 50 :width 0 :height 0 :fill "red"}]
+                       [:circle {:cx 100 :cy 100 :r 0 :fill "blue"}]]]
+          pdf (hiccup->pdf-document hiccup-doc)]
+      
+      ;; Test document structure
+      (is (re-find #"/Count 3" pdf) "Should specify 3 pages")
+      (is (re-find #"%PDF-1.4" pdf) "Should have valid PDF header")
+      (is (re-find #"%%EOF" pdf) "Should have valid PDF ending")
+      
+      ;; Test zero-size elements are handled
+      (is (re-find #"50 742 0 0 re" pdf) "Should include zero-size rectangle")
+      (is (string? pdf) "Should return valid PDF string")))
+  
+  (testing "Large document with many pages"
+    ;; Create a document with many pages to test performance
+    (let [pages (for [i (range 10)]
+                  [:page {}
+                   [:text {:x 50 :y 50 :font "Arial" :size 12} (str "Page " (inc i))]
+                   [:rect {:x 50 :y 100 :width 100 :height 50 :fill (if (even? i) "red" "blue")}]])
+          hiccup-doc (into [:document {:title "Large Document"}] pages)
+          pdf (hiccup->pdf-document hiccup-doc)]
+      
+      ;; Test page count
+      (is (re-find #"/Count 10" pdf) "Should specify 10 pages")
+      
+      ;; Test first and last page content
+      (is (re-find #"Page 1" pdf) "Should include first page")
+      (is (re-find #"Page 10" pdf) "Should include last page")
+      
+      ;; Test alternating colors
+      (is (re-find #"1 0 0 rg" pdf) "Should include red rectangles")
+      (is (re-find #"0 0 1 rg" pdf) "Should include blue rectangles")
+      
+      ;; Test document is reasonably sized (should be manageable)
+      (is (< (count pdf) 50000) "Should generate reasonably sized PDF")
+      (is (> (count pdf) 3000) "Should generate substantial PDF content")))
+  
+  (testing "Coordinate transformation across different page sizes"
+    (let [hiccup-doc [:document {}
+                      ;; Small page
+                      [:page {:width 400 :height 300}
+                       [:text {:x 50 :y 50 :font "Arial" :size 12} "Small"]
+                       [:rect {:x 50 :y 100 :width 100 :height 50 :fill "red"}]]
+                      ;; Large page
+                      [:page {:width 1000 :height 800}
+                       [:text {:x 50 :y 50 :font "Arial" :size 12} "Large"]
+                       [:rect {:x 50 :y 100 :width 100 :height 50 :fill "blue"}]]]
+          pdf (hiccup->pdf-document hiccup-doc)]
+      
+      ;; Test coordinate transformation for different page sizes
+      ;; Small page: web y=50 -> PDF y=300-50=250
+      ;; Large page: web y=50 -> PDF y=800-50=750
+      (is (re-find #"50 250" pdf) "Should transform coordinates for small page")
+      (is (re-find #"50 750" pdf) "Should transform coordinates for large page")
+      
+      ;; Test different page sizes are included
+      (is (re-find #"\[0 0 400 300\]" pdf) "Should include small page MediaBox")
+      (is (re-find #"\[0 0 1000 800\]" pdf) "Should include large page MediaBox")))
+  
+  (testing "Complete metadata embedding"
+    (let [hiccup-doc [:document {:title "Complete Metadata Test"
+                                 :author "Test Author"
+                                 :subject "Testing Subject"
+                                 :keywords "test, metadata, pdf"
+                                 :creator "Custom Creator"
+                                 :producer "Custom Producer"}
+                      [:page {}
+                       [:text {:x 50 :y 50 :font "Arial" :size 12} "Metadata test"]]]
+          pdf (hiccup->pdf-document hiccup-doc)]
+      
+      ;; Test all metadata fields are included
+      (is (re-find #"/Title \(Complete Metadata Test\)" pdf) "Should include title")
+      (is (re-find #"/Author \(Test Author\)" pdf) "Should include author")
+      (is (re-find #"/Subject \(Testing Subject\)" pdf) "Should include subject")
+      (is (re-find #"/Keywords \(test, metadata, pdf\)" pdf) "Should include keywords")
+      (is (re-find #"/Creator \(Custom Creator\)" pdf) "Should include creator")
+      (is (re-find #"/Producer \(Custom Producer\)" pdf) "Should include producer")))
+  
+  (testing "Performance and output characteristics"
+    ;; Test that PDF output can be written to files (simulate file writing)
+    (let [hiccup-doc [:document {:title "Performance Test"}
+                      [:page {}
+                       [:text {:x 50 :y 50 :font "Arial" :size 12} "Performance test content"]]]
+          pdf (hiccup->pdf-document hiccup-doc)
+          start-time (js/Date.now)
+          ;; Simulate multiple document generations
+          pdfs (doall (for [i (range 10)]
+                        (hiccup->pdf-document hiccup-doc)))
+          end-time (js/Date.now)
+          duration (- end-time start-time)]
+      
+      ;; Test all PDFs are identical
+      (is (every? #(= pdf %) pdfs) "Should generate consistent PDFs")
+      
+      ;; Test performance is reasonable (should be under 1 second for 10 documents)
+      (is (< duration 1000) "Should generate documents efficiently")
+      
+      ;; Test PDF string characteristics
+      (is (string? pdf) "Should return string")
+      (is (> (count pdf) 100) "Should have substantial content")
+      (is (re-find #"^%PDF-1.4" pdf) "Should start with PDF header")
+      (is (re-find #"%%EOF$" pdf) "Should end with PDF footer"))))
+
