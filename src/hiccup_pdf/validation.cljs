@@ -362,3 +362,40 @@
     ;; Validate the merged attributes
     (v/parse optional-schema merged-attributes)
     merged-attributes))
+
+(defn validate-page-attributes
+  "Validates that attributes contains valid page attributes with inheritance from document defaults.
+  
+  Args:
+    attributes: The page attributes map to validate
+    document-defaults: Document attributes to inherit from (optional)
+    
+  Returns:
+    The validated page attributes map with inheritance applied
+    
+  Throws:
+    Validation error if attributes are invalid"
+  ([attributes]
+   (validate-page-attributes attributes {}))
+  ([attributes document-defaults]
+   (let [;; Extract inheritable attributes from document defaults
+         inheritable-keys [:width :height :margins]
+         inherited-values (select-keys document-defaults inheritable-keys)
+         
+         ;; Validation schemas
+         positive-number-schema (v/chain (v/number) (v/assert #(pos? %)))
+         margins-schema (v/chain 
+                          (v/assert vector?)
+                          (v/assert #(= 4 (count %)))
+                          (v/assert #(every? number? %)))
+         
+         optional-schema (v/record {:width (v/nilable positive-number-schema)
+                                    :height (v/nilable positive-number-schema)
+                                    :margins (v/nilable margins-schema)})
+         
+         ;; Merge inheritance with page attributes (page attributes override document)
+         merged-attributes (merge inherited-values attributes)]
+     
+     ;; Validate the merged attributes
+     (v/parse optional-schema merged-attributes)
+     merged-attributes)))

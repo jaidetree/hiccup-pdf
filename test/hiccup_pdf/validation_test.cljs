@@ -11,7 +11,9 @@
                                            validate-group-attributes
                                            validate-transform
                                            validate-transforms
-                                           validate-color]]))
+                                           validate-color
+                                           validate-document-attributes
+                                           validate-page-attributes]]))
 
 (deftest validate-hiccup-structure-test
   (testing "Valid hiccup structures"
@@ -347,3 +349,101 @@
     
     (is (thrown? js/Error (validate-group-attributes {:transforms [[:invalid [10 20]]]}))
         "Should throw error for invalid transform type")))
+
+(deftest validate-page-attributes-test
+  (testing "Page attributes with no document defaults"
+    ;; Test with empty page attributes
+    (let [result (validate-page-attributes {})]
+      (is (= {} result)
+          "Should handle empty page attributes"))
+    
+    ;; Test with page-specific attributes
+    (let [result (validate-page-attributes {:width 595 :height 842})]
+      (is (= {:width 595 :height 842} result)
+          "Should validate page dimensions"))
+    
+    ;; Test with margins
+    (let [result (validate-page-attributes {:margins [10 20 30 40]})]
+      (is (= {:margins [10 20 30 40]} result)
+          "Should validate page margins")))
+  
+  (testing "Page attributes with document defaults inheritance"
+    ;; Test full inheritance
+    (let [document-defaults {:width 612 :height 792 :margins [5 5 5 5]}
+          result (validate-page-attributes {} document-defaults)]
+      (is (= {:width 612 :height 792 :margins [5 5 5 5]} result)
+          "Should inherit all document defaults"))
+    
+    ;; Test partial override
+    (let [document-defaults {:width 612 :height 792 :margins [5 5 5 5]}
+          result (validate-page-attributes {:width 595} document-defaults)]
+      (is (= {:width 595 :height 792 :margins [5 5 5 5]} result)
+          "Should override width but inherit height and margins"))
+    
+    ;; Test complete override
+    (let [document-defaults {:width 612 :height 792 :margins [5 5 5 5]}
+          result (validate-page-attributes {:width 595 :height 842 :margins [10 10 10 10]} document-defaults)]
+      (is (= {:width 595 :height 842 :margins [10 10 10 10]} result)
+          "Should override all document defaults"))
+    
+    ;; Test landscape orientation (width/height swap)
+    (let [document-defaults {:width 612 :height 792}
+          result (validate-page-attributes {:width 792 :height 612} document-defaults)]
+      (is (= {:width 792 :height 612} result)
+          "Should handle landscape orientation (width/height swap)"))
+    
+    ;; Test non-inheritable attributes are not inherited
+    (let [document-defaults {:width 612 :height 792 :title "Document Title" :author "Author"}
+          result (validate-page-attributes {} document-defaults)]
+      (is (= {:width 612 :height 792} result)
+          "Should only inherit width, height, and margins")))
+  
+  (testing "Page attributes validation errors"
+    ;; Test invalid width
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (validate-page-attributes {:width -100}))
+        "Should reject negative width")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (validate-page-attributes {:width "invalid"}))
+        "Should reject non-numeric width")
+    
+    ;; Test invalid height
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (validate-page-attributes {:height 0}))
+        "Should reject zero height")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (validate-page-attributes {:height "invalid"}))
+        "Should reject non-numeric height")
+    
+    ;; Test invalid margins
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (validate-page-attributes {:margins [10 20 30]}))
+        "Should reject margins with wrong number of elements")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (validate-page-attributes {:margins "invalid"}))
+        "Should reject non-vector margins")
+    
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (validate-page-attributes {:margins [10 "invalid" 30 40]}))
+        "Should reject margins with non-numeric elements"))
+  
+  (testing "Page attributes inheritance edge cases"
+    ;; Test inheritance with invalid document defaults (should still work)
+    (let [document-defaults {:width 612 :height 792 :invalid-key "should-be-ignored"}
+          result (validate-page-attributes {:margins [1 2 3 4]} document-defaults)]
+      (is (= {:width 612 :height 792 :margins [1 2 3 4]} result)
+          "Should inherit valid attributes and ignore invalid ones"))
+    
+    ;; Test with nil document defaults
+    (let [result (validate-page-attributes {:width 595} nil)]
+      (is (= {:width 595} result)
+          "Should handle nil document defaults"))
+    
+    ;; Test complex inheritance scenario
+    (let [document-defaults {:width 612 :height 792 :margins [5 5 5 5]}
+          result (validate-page-attributes {:height 842} document-defaults)]
+      (is (= {:width 612 :height 842 :margins [5 5 5 5]} result)
+          "Should inherit width and margins, override height"))))
