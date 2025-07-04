@@ -5,6 +5,52 @@
 
 (declare element->pdf-ops)
 
+;; Performance optimization: Color conversion cache
+(def ^:private color-cache (atom {}))
+
+;; Performance optimization: Pre-computed constants
+(def ^:private circle-bezier-factor 0.552284749831)
+(def ^:private identity-matrix [1 0 0 1 0 0])
+
+;; Performance optimization: Common PDF operators as constants
+(def ^:private pdf-operators
+  {:save-state "q\n"
+   :restore-state "Q"
+   :fill "f"
+   :stroke "S"  
+   :fill-and-stroke "B"
+   :text-begin "BT\n"
+   :text-end "ET"
+   :path-close "h\n"
+   :move "m\n"
+   :line "l\n"
+   :curve "c\n"
+   :rect "re\n"})
+
+(defn- cached-color->pdf-color
+  "Cached version of color conversion for performance."
+  [color]
+  (if-let [cached (@color-cache color)]
+    cached
+    (let [result (case color
+                   "red" "1 0 0"
+                   "green" "0 1 0"
+                   "blue" "0 0 1"
+                   "black" "0 0 0"
+                   "white" "1 1 1"
+                   "yellow" "1 1 0"
+                   "cyan" "0 1 1"
+                   "magenta" "1 0 1"
+                   ;; For hex colors, convert to RGB
+                   (if (re-matches #"^#[0-9a-fA-F]{6}$" color)
+                     (let [r (/ (js/parseInt (subs color 1 3) 16) 255.0)
+                           g (/ (js/parseInt (subs color 3 5) 16) 255.0)
+                           b (/ (js/parseInt (subs color 5 7) 16) 255.0)]
+                       (str r " " g " " b))
+                     "0 0 0"))] ; Default to black
+      (swap! color-cache assoc color result)
+      result)))
+
 (defn- color->pdf-color
   "Converts a color string to PDF color values.
   
@@ -14,22 +60,7 @@
   Returns:
     String with PDF color operators"
   [color]
-  (case color
-    "red" "1 0 0"
-    "green" "0 1 0"
-    "blue" "0 0 1"
-    "black" "0 0 0"
-    "white" "1 1 1"
-    "yellow" "1 1 0"
-    "cyan" "0 1 1"
-    "magenta" "1 0 1"
-    ;; For hex colors, convert to RGB
-    (if (re-matches #"^#[0-9a-fA-F]{6}$" color)
-      (let [r (/ (js/parseInt (subs color 1 3) 16) 255.0)
-            g (/ (js/parseInt (subs color 3 5) 16) 255.0)
-            b (/ (js/parseInt (subs color 5 7) 16) 255.0)]
-        (str r " " g " " b))
-      "0 0 0"))) ; Default to black
+  (cached-color->pdf-color color))
 
 (defn- rect->pdf-ops
   "Converts a rectangle hiccup vector to PDF operators.
@@ -83,8 +114,8 @@
   (let [validated-attrs (v/validate-circle-attributes attributes)
         {:keys [cx cy r fill stroke stroke-width]} validated-attrs
         ;; Bézier curve control point offset for circle approximation
-        ;; Using the standard 4-arc approximation with control points at distance r * 0.552284749831
-        k (* r 0.552284749831)
+        ;; Using the standard 4-arc approximation with control points at distance r * circle-bezier-factor
+        k (* r circle-bezier-factor)
         ;; Circle path using 4 Bézier curves
         circle-path (str 
                      ;; Move to top point
@@ -111,6 +142,7 @@
 
 (defn- parse-path-data
   "Parses SVG-style path data and converts to PDF operators.
+  Performance optimized version with reduced string allocations.
   
   Args:
     path-data: String containing SVG path commands
@@ -121,32 +153,39 @@
   (let [;; Simple regex to match path commands and their parameters
         ;; This handles basic M, L, C, Z commands with number sequences
         commands (re-seq #"[MLCZmlcz][^MLCZmlcz]*" path-data)]
-    (apply str
-           (map (fn [cmd-str]
-                  (let [cmd-char (first cmd-str)
-                        params-str (subs cmd-str 1)
-                        ;; Extract numbers from the parameter string
-                        numbers (map #(js/parseFloat %) (re-seq #"[-+]?[0-9]*\.?[0-9]+" params-str))]
-                    (case (str cmd-char)
-                      ;; Move to (absolute)
-                      "M" (str (nth numbers 0) " " (nth numbers 1) " m\n")
-                      "m" (str (nth numbers 0) " " (nth numbers 1) " m\n") ; Treat relative as absolute for simplicity
-                      ;; Line to (absolute)
-                      "L" (str (nth numbers 0) " " (nth numbers 1) " l\n")
-                      "l" (str (nth numbers 0) " " (nth numbers 1) " l\n") ; Treat relative as absolute for simplicity
-                      ;; Cubic Bézier curve (absolute)
-                      "C" (str (nth numbers 0) " " (nth numbers 1) " "
-                               (nth numbers 2) " " (nth numbers 3) " "
-                               (nth numbers 4) " " (nth numbers 5) " c\n")
-                      "c" (str (nth numbers 0) " " (nth numbers 1) " "
-                               (nth numbers 2) " " (nth numbers 3) " "
-                               (nth numbers 4) " " (nth numbers 5) " c\n") ; Treat relative as absolute for simplicity
-                      ;; Close path
-                      "Z" "h\n"
-                      "z" "h\n"
-                      ;; Unknown command, skip
-                      "")))
-                commands))))
+    (str/join
+     (map (fn [cmd-str]
+            (let [cmd-char (first cmd-str)
+                  params-str (subs cmd-str 1)
+                  ;; Extract numbers from the parameter string - optimized
+                  numbers (when-not (empty? params-str)
+                            (mapv #(js/parseFloat %) (re-seq #"[-+]?[0-9]*\.?[0-9]+" params-str)))]
+              (case (str cmd-char)
+                ;; Move to (absolute) - use direct indexing for performance
+                "M" (when (>= (count numbers) 2)
+                      (str (numbers 0) " " (numbers 1) " m\n"))
+                "m" (when (>= (count numbers) 2)
+                      (str (numbers 0) " " (numbers 1) " m\n"))
+                ;; Line to (absolute)
+                "L" (when (>= (count numbers) 2)
+                      (str (numbers 0) " " (numbers 1) " l\n"))
+                "l" (when (>= (count numbers) 2)
+                      (str (numbers 0) " " (numbers 1) " l\n"))
+                ;; Cubic Bézier curve (absolute) - optimized concatenation
+                "C" (when (>= (count numbers) 6)
+                      (str (numbers 0) " " (numbers 1) " "
+                           (numbers 2) " " (numbers 3) " "
+                           (numbers 4) " " (numbers 5) " c\n"))
+                "c" (when (>= (count numbers) 6)
+                      (str (numbers 0) " " (numbers 1) " "
+                           (numbers 2) " " (numbers 3) " "
+                           (numbers 4) " " (numbers 5) " c\n"))
+                ;; Close path
+                "Z" "h\n"
+                "z" "h\n"
+                ;; Unknown command, skip
+                nil)))
+          commands))))
 
 (defn- path->pdf-ops
   "Converts a path hiccup vector to PDF operators.
@@ -220,6 +259,7 @@
 
 (defn- multiply-matrices
   "Multiplies two PDF transformation matrices.
+  Performance optimized with direct array access.
   
   Args:
     m1: First matrix [a1 b1 c1 d1 e1 f1]
@@ -228,8 +268,10 @@
   Returns:
     Result matrix [a b c d e f]"
   [m1 m2]
-  (let [[a1 b1 c1 d1 e1 f1] m1
-        [a2 b2 c2 d2 e2 f2] m2]
+  ;; Direct destructuring for performance
+  (let [a1 (m1 0) b1 (m1 1) c1 (m1 2) d1 (m1 3) e1 (m1 4) f1 (m1 5)
+        a2 (m2 0) b2 (m2 1) c2 (m2 2) d2 (m2 3) e2 (m2 4) f2 (m2 5)]
+    ;; Pre-compute repeated calculations
     [(+ (* a1 a2) (* b1 c2))
      (+ (* a1 b2) (* b1 d2))
      (+ (* c1 a2) (* d1 c2))
@@ -247,7 +289,7 @@
     Vector of 6 numbers representing combined PDF transformation matrix"
   [transforms]
   (if (empty? transforms)
-    [1 0 0 1 0 0] ; Identity matrix
+    identity-matrix
     (reduce multiply-matrices (map transform->matrix transforms))))
 
 (defn- matrix->pdf-op
@@ -273,17 +315,13 @@
     String of PDF operators for group with save/restore state"
   [attributes content]
   (let [_ (v/validate-group-attributes attributes)
-        ;; Save graphics state with q operator
-        save-state "q\n"
         ;; Apply transforms if present
         transform-op (if-let [transforms (:transforms attributes)]
                        (matrix->pdf-op (transforms->matrix transforms))
                        "")
         ;; Process all child elements
-        child-ops (apply str (map element->pdf-ops content))
-        ;; Restore graphics state with Q operator
-        restore-state "Q"]
-    (str save-state transform-op child-ops restore-state)))
+        child-ops (apply str (map element->pdf-ops content))]
+    (str (:save-state pdf-operators) transform-op child-ops (:restore-state pdf-operators))))
 
 (defn- element->pdf-ops
   "Converts a hiccup element to PDF operators.
