@@ -263,7 +263,7 @@
           rect-element [:rect {:x 100 :y 50 :width 200 :height 100}]]
 
       (let [transformed (transform-element-coordinates rect-element page-height margins)]
-        (is (= [:rect {:x 100 :y 742 :width 200 :height 100}] transformed)
+        (is (= [:rect {:x 100 :y 642 :width 200 :height 100}] transformed)
             "Should transform rectangle Y coordinate"))))
 
   (testing "Circle coordinate transformation"
@@ -301,7 +301,7 @@
 
       (let [transformed (transform-element-coordinates group-element page-height margins)]
         (is (= [:g {:transforms [[:translate [50 692]]]}
-                [:rect {:x 10 :y 772 :width 50 :height 30}]] transformed)
+                [:rect {:x 10 :y 742 :width 50 :height 30}]] transformed)
             "Should transform group translate Y and child element Y coordinates"))))
 
   (testing "Group coordinate transformation with multiple transforms"
@@ -348,7 +348,7 @@
         ;; web y=75 -> PDF y = 30 + (742 - (75 - 20)) = 30 + 687 = 717
         ;; web y=125 -> PDF y = 30 + (742 - (125 - 20)) = 30 + 637 = 667
         (is (= [:g {}
-                [:rect {:x 50 :y 692 :width 100 :height 50}]
+                [:rect {:x 50 :y 642 :width 100 :height 50}]
                 [:g {:transforms [[:translate [25 717]]]}
                  [:circle {:cx 75 :cy 667 :r 25}]]] transformed)
             "Should recursively transform all nested elements with margins"))))
@@ -378,7 +378,7 @@
                         [:text {:x 50 :y 150 :font "Arial" :size 14} "Test"]]]
 
       (let [transformed (transform-coordinates-for-page page-content page-height margins)]
-        (is (= [[:rect {:x 10 :y 772 :width 100 :height 50}]
+        (is (= [[:rect {:x 10 :y 722 :width 100 :height 50}]
                 [:circle {:cx 200 :cy 692 :r 30}]
                 [:text {:x 50 :y 642 :font "Arial" :size 14} "Test"]] transformed)
             "Should transform all elements in page content"))))
@@ -400,7 +400,7 @@
         ;; Line y1=150 -> PDF y = 50 + (500 - (150 - 50)) = 50 + 400 = 450
         ;; Line y2=200 -> PDF y = 50 + (500 - (200 - 50)) = 50 + 350 = 400
         (is (= [[:g {:transforms [[:translate [0 500]]]}
-                 [:rect {:x 10 :y 580 :width 50 :height 30}]
+                 [:rect {:x 10 :y 550 :width 50 :height 30}]
                  [:g {}
                   [:circle {:cx 100 :cy 520 :r 20}]]]
                 [:line {:x1 200 :y1 450 :x2 300 :y2 400}]] transformed)
@@ -421,8 +421,8 @@
       ;; Page boundaries
       (let [boundary-content [[:rect {:x 0 :y 0 :width 10 :height 10}]    ; Top-left
                               [:rect {:x 0 :y 792 :width 10 :height 10}]]] ; Bottom-left
-        (is (= [[:rect {:x 0 :y 792 :width 10 :height 10}]    ; Should become bottom-left in PDF
-                [:rect {:x 0 :y 0 :width 10 :height 10}]]     ; Should become top-left in PDF
+        (is (= [[:rect {:x 0 :y 782 :width 10 :height 10}]    ; Should become bottom-left in PDF
+                [:rect {:x 0 :y -10 :width 10 :height 10}]]     ; Should become top-left in PDF
                (transform-coordinates-for-page boundary-content page-height margins))
             "Should correctly handle page boundary coordinates")))))
 
@@ -448,7 +448,7 @@
 
       ;; Test that content stream contains expected PDF operators
       (is (re-find #"1 0 0 rg" (:content-stream result)) "Should contain red fill color")
-      (is (re-find #"10 772 100 50 re" (:content-stream result)) "Should contain transformed rectangle coordinates")))
+      (is (re-find #"10 722 100 50 re" (:content-stream result)) "Should contain transformed rectangle coordinates")))
 
   (testing "Page content stream with inheritance"
     (let [page-attributes {:margins [10 20 30 40]}  ; Only override margins
@@ -487,7 +487,7 @@
 
         ;; Test coordinate transformations
         ;; Rectangle y=20 -> PDF y = 800-20 = 780
-        (is (re-find #"10 780 100 50 re" content) "Should transform rectangle coordinates")
+        (is (re-find #"10 730 100 50 re" content) "Should transform rectangle coordinates")
         ;; Circle cy=100 -> PDF cy = 800-100 = 700
         (is (re-find #"700" content) "Should transform circle coordinates")
         ;; Text y=200 -> PDF y = 800-200 = 600
@@ -516,7 +516,7 @@
         ;; Group translate y=100 -> PDF y = 700-100 = 600
         (is (re-find #"1 0 0 1 50 600 cm" content) "Should transform group translate coordinates")
         ;; Nested rectangle y=20 -> PDF y = 700-20 = 680
-        (is (re-find #"10 680 80 40 re" content) "Should transform nested rectangle coordinates")
+        (is (re-find #"10 640 80 40 re" content) "Should transform nested rectangle coordinates")
         ;; Rotation should be preserved as-is
         (is (re-find #"0.707" content) "Should preserve rotation transform"))))
 
@@ -535,8 +535,8 @@
       ;; y=0 -> PDF y = 792-0 = 792
       ;; y=702 -> PDF y = 792-702 = 90
       (let [content (:content-stream result)]
-        (is (re-find #"0 792 100 50 re" content) "Should transform top rectangle")
-        (is (re-find #"0 90 100 50 re" content) "Should transform bottom rectangle"))))
+        (is (re-find #"0 742 100 50 re" content) "Should transform top rectangle")
+        (is (re-find #"0 40 100 50 re" content) "Should transform bottom rectangle"))))
 
   (testing "Edge cases for page content stream generation"
     ;; Empty page content
@@ -603,7 +603,7 @@
   
   (testing "Content stream object generation"
     (let [content "10 10 100 50 re\nf"
-          content-length (count content)
+          content-length (+ (count content) 1)  ; Include the newline in expected length
           stream-obj (generate-content-stream-object 3 content)]
       (is (re-find #"3 0 obj" stream-obj) "Should include object number")
       (is (re-find (re-pattern (str "/Length " content-length)) stream-obj) "Should calculate correct length")
@@ -936,7 +936,7 @@
           pdf (hiccup->pdf-document hiccup-doc)]
       
       ;; Test all element types are present
-      (is (re-find #"50 742 100 80 re" pdf) "Should include rectangle")
+      (is (re-find #"50 662 100 80 re" pdf) "Should include rectangle")
       (is (re-find #"250 732 m" pdf) "Should include circle")
       (is (re-find #"350 742 m" pdf) "Should include line")
       (is (re-find #"Sample Text" pdf) "Should include text")

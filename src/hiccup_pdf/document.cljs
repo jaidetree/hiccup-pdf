@@ -248,13 +248,14 @@
   Returns:
     String containing PDF content stream object"
   [object-number content-stream]
-  (let [stream-length (count content-stream)]
+  (let [stream-content (str content-stream "\n")  ; Include the newline in the length calculation
+        stream-length (count stream-content)]
     (str object-number " 0 obj\n"
          "<<\n"
          "/Length " stream-length "\n"
          ">>\n"
          "stream\n"
-         content-stream "\n"
+         stream-content
          "endstream\n"
          "endobj")))
 
