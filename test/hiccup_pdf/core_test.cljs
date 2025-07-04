@@ -937,3 +937,397 @@
                                            [:rect {:invalid "attributes"}]             ; Invalid
                                            [:rect {:x 20 :y 20 :width 30 :height 40}]])) ; Would be valid
         "Should throw error immediately when invalid element is encountered")))
+
+(deftest complex-document-integration-test
+  (testing "Complex hiccup document with multiple element types"
+    (let [complex-doc [:g {}
+                       [:rect {:x 10 :y 10 :width 50 :height 30 :fill "red" :stroke "blue" :stroke-width 2}]
+                       [:circle {:cx 100 :cy 50 :r 20 :fill "green"}]
+                       [:line {:x1 0 :y1 0 :x2 200 :y2 100 :stroke "black" :stroke-width 1}]
+                       [:text {:x 50 :y 80 :font "Arial" :size 14 :fill "blue"} "Complex Document"]
+                       [:path {:d "M150,150 L200,150 L175,200 Z" :fill "yellow" :stroke "red"}]]
+          result (hiccup->pdf-ops complex-doc)]
+      
+      (is (string? result)
+          "Should return string for complex document")
+      
+      ;; Verify all element types are present
+      (is (re-find #"re\n" result)
+          "Should contain rectangle operators")
+      (is (re-find #"c\n" result)
+          "Should contain circle operators") 
+      (is (re-find #"m\n.*l\n" result)
+          "Should contain line operators")
+      (is (re-find #"BT\n" result)
+          "Should contain text block operators")
+      (is (re-find #"ET" result)
+          "Should contain text block end")
+      (is (re-find #"h\n" result)
+          "Should contain path close operators")
+      
+      ;; Verify styling is applied
+      (is (re-find #"1 0 0 rg" result)
+          "Should contain red fill color")
+      (is (re-find #"0 1 0 rg" result)
+          "Should contain green fill color")
+      (is (re-find #"0 0 1 RG" result)
+          "Should contain blue stroke color")
+      
+      ;; Verify graphics state management
+      (is (re-find #"q\n" result)
+          "Should contain graphics state save")
+      (is (re-find #"Q" result)
+          "Should contain graphics state restore")))
+  
+  (testing "Nested groups with different transforms"
+    (let [nested-doc [:g {:transforms [[:translate [50 50]]]}
+                      [:rect {:x 0 :y 0 :width 20 :height 20 :fill "red"}]
+                      [:g {:transforms [[:rotate 45]]}
+                       [:circle {:cx 0 :cy 0 :r 10 :fill "blue"}]
+                       [:g {:transforms [[:scale [2 2]]]}
+                        [:text {:x 5 :y 5 :font "Arial" :size 8} "Nested"]]]
+                      [:line {:x1 0 :y1 0 :x2 30 :y2 30 :stroke "black"}]]
+          result (hiccup->pdf-ops nested-doc)]
+      
+      (is (string? result)
+          "Should handle nested groups with transforms")
+      
+      ;; Count graphics state operations
+      (let [q-count (count (re-seq #"q\n" result))
+            Q-count (count (re-seq #"Q" result))]
+        (is (= q-count Q-count)
+            "Should have balanced save/restore operations")
+        (is (>= q-count 3)
+            "Should have multiple graphics state saves for nested groups"))
+      
+      ;; Verify transform matrices are present
+      (is (re-find #"cm\n" result)
+          "Should contain transformation matrices")
+      
+      ;; Verify all elements are rendered
+      (is (re-find #"re\n" result)
+          "Should contain rectangle")
+      (is (re-find #"c\n" result)
+          "Should contain circle")
+      (is (re-find #"BT\n" result)
+          "Should contain text")
+      (is (re-find #"l\n" result)
+          "Should contain line")))
+  
+  (testing "Document with complex styling combinations"
+    (let [styled-doc [:g {}
+                      [:rect {:x 10 :y 10 :width 40 :height 20 :fill "#ff0000" :stroke "#0000ff" :stroke-width 3}]
+                      [:circle {:cx 80 :cy 30 :r 15 :stroke "#00ff00" :stroke-width 2}]
+                      [:text {:x 20 :y 60 :font "Times" :size 16 :fill "#ff00ff"} "Styled Text"]
+                      [:path {:d "M100,50 C120,30 140,70 160,50" :stroke "yellow" :stroke-width 4 :fill "cyan"}]]
+          result (hiccup->pdf-ops styled-doc)]
+      
+      (is (string? result)
+          "Should handle complex styling")
+      
+      ;; Verify hex color conversion
+      (is (re-find #"1 0 0 rg" result)
+          "Should convert #ff0000 to red")
+      (is (re-find #"0 0 1 RG" result)
+          "Should convert #0000ff to blue stroke")
+      (is (re-find #"0 1 0 RG" result)
+          "Should convert #00ff00 to green stroke")
+      (is (re-find #"1 0 1 rg" result)
+          "Should convert #ff00ff to magenta")
+      
+      ;; Verify stroke widths
+      (is (re-find #"3 w\n" result)
+          "Should contain stroke width 3")
+      (is (re-find #"2 w\n" result)
+          "Should contain stroke width 2")
+      (is (re-find #"4 w\n" result)
+          "Should contain stroke width 4")
+      
+      ;; Verify both fill and stroke operations
+      (is (re-find #"B" result)
+          "Should contain both fill and stroke operations")))
+  
+  (testing "Large document with many elements"
+    (let [large-doc [:g {}
+                     ;; Generate 10 rectangles with different positions
+                     (for [i (range 10)]
+                       [:rect {:x (* i 20) :y (* i 10) :width 15 :height 15 :fill (if (even? i) "red" "blue")}])
+                     ;; Generate 5 circles 
+                     (for [i (range 5)]
+                       [:circle {:cx (+ 200 (* i 30)) :cy (+ 50 (* i 20)) :r (+ 5 i) :fill "green"}])
+                     ;; Generate some text elements
+                     (for [i (range 3)]
+                       [:text {:x (+ 10 (* i 50)) :y (+ 200 (* i 25)) :font "Arial" :size (+ 10 i)} (str "Text " i)])]
+          ;; Flatten the nested structure
+          flattened-doc (into [:g {}] (apply concat (rest large-doc)))
+          result (hiccup->pdf-ops flattened-doc)]
+      
+      (is (string? result)
+          "Should handle large documents")
+      
+      ;; Verify element counts
+      (let [rect-count (count (re-seq #"re\n" result))
+            text-count (count (re-seq #"BT\n" result))]
+        (is (= rect-count 10)
+            "Should contain 10 rectangles")
+        (is (= text-count 3)
+            "Should contain 3 text elements"))
+      
+      ;; Verify performance - result should be reasonable size
+      (is (< (count result) 10000)
+          "Should generate reasonable size output for large document"))))
+
+(deftest edge-case-integration-test
+  (testing "Documents with edge case elements"
+    (let [edge-doc [:g {}
+                    ;; Zero-size elements
+                    [:rect {:x 10 :y 10 :width 0 :height 0 :fill "red"}]
+                    [:circle {:cx 50 :cy 50 :r 0 :fill "blue"}]
+                    ;; Empty text
+                    [:text {:x 100 :y 100 :font "Arial" :size 12} ""]
+                    ;; Minimal path
+                    [:path {:d "M0,0"}]
+                    ;; Group with no children
+                    [:g {}]
+                    ;; Complex nested empty groups
+                    [:g {:transforms [[:translate [10 10]]]}
+                     [:g {}
+                      [:g {}]]]]
+          result (hiccup->pdf-ops edge-doc)]
+      
+      (is (string? result)
+          "Should handle edge case elements")
+      
+      ;; Should still contain proper graphics state management
+      (is (re-find #"q\n" result)
+          "Should contain graphics state operations")
+      (is (re-find #"Q" result)
+          "Should contain graphics state restore")
+      
+      ;; Should handle zero-size elements gracefully
+      (is (re-find #"0 0 re" result)
+          "Should handle zero-size rectangle")
+      
+      ;; Should handle empty text
+      (is (re-find #"\(\) Tj" result)
+          "Should handle empty text content")))
+  
+  (testing "Complex transform compositions"
+    (let [transform-doc [:g {:transforms [[:translate [100 100]] [:rotate 90] [:scale [2 2]]]}
+                         [:rect {:x 0 :y 0 :width 10 :height 10 :fill "red"}]
+                         [:g {:transforms [[:translate [-50 -50]] [:rotate -45]]}
+                          [:circle {:cx 0 :cy 0 :r 5 :fill "blue"}]
+                          [:g {:transforms [[:scale [0.5 0.5]]]}
+                           [:text {:x 0 :y 0 :font "Arial" :size 24} "Deep"]
+                           [:path {:d "M0,0 L10,10 L0,20 Z" :fill "green"}]]]]
+          result (hiccup->pdf-ops transform-doc)]
+      
+      (is (string? result)
+          "Should handle complex transform compositions")
+      
+      ;; Verify deep nesting
+      (let [q-count (count (re-seq #"q\n" result))
+            Q-count (count (re-seq #"Q" result))]
+        (is (= q-count Q-count)
+            "Should have balanced save/restore for deep nesting")
+        (is (>= q-count 3)
+            "Should have proper nesting depth"))
+      
+      ;; Verify multiple transform matrices
+      (is (>= (count (re-seq #"cm\n" result)) 3)
+          "Should have multiple transformation matrices")))
+  
+  (testing "Mixed coordinate systems and scaling"
+    (let [mixed-doc [:g {}
+                     ;; Large coordinates
+                     [:rect {:x 1000 :y 2000 :width 500 :height 300 :fill "red"}]
+                     ;; Small coordinates  
+                     [:g {:transforms [[:scale [0.01 0.01]]]}
+                      [:rect {:x 10000 :y 20000 :width 50000 :height 30000 :fill "blue"}]]
+                     ;; Fractional coordinates
+                     [:circle {:cx 123.456 :cy 789.123 :r 45.67 :fill "green"}]
+                     ;; Negative coordinates
+                     [:line {:x1 -100 :y1 -50 :x2 -200 :y2 -100 :stroke "black"}]]
+          result (hiccup->pdf-ops mixed-doc)]
+      
+      (is (string? result)
+          "Should handle mixed coordinate systems")
+      
+      ;; Verify large numbers are handled
+      (is (re-find #"1000 2000" result)
+          "Should handle large coordinates")
+      
+      ;; Verify fractional numbers are handled
+      (is (re-find #"123\.456" result)
+          "Should handle fractional coordinates")
+      
+      ;; Verify negative numbers are handled
+      (is (re-find #"-100" result)
+          "Should handle negative coordinates")))
+  
+  (testing "Performance with deeply nested groups"
+    (let [deep-doc (reduce (fn [doc _]
+                             [:g {:transforms [[:translate [1 1]]]} doc])
+                           [:rect {:x 0 :y 0 :width 5 :height 5 :fill "red"}]
+                           (range 20)) ; 20 levels deep
+          start-time (js/Date.now)
+          result (hiccup->pdf-ops deep-doc)
+          end-time (js/Date.now)
+          duration (- end-time start-time)]
+      
+      (is (string? result)
+          "Should handle deeply nested groups")
+      
+      ;; Performance check - should complete in reasonable time
+      (is (< duration 1000)
+          "Should complete deeply nested processing in under 1 second")
+      
+      ;; Verify proper nesting
+      (let [q-count (count (re-seq #"q\n" result))
+            Q-count (count (re-seq #"Q" result))]
+        (is (= q-count Q-count)
+            "Should have balanced save/restore for deep nesting")
+        (is (= q-count 20)
+            "Should have exactly 20 nested groups")))))
+
+(deftest complex-error-integration-test
+  (testing "Error conditions in complex documents"
+    ;; Test that error occurs early in complex document processing
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:g {}
+                                           [:rect {:x 10 :y 10 :width 20 :height 30 :fill "red"}] ; Valid
+                                           [:circle {:cx 50 :cy 50 :r 25 :fill "blue"}]          ; Valid
+                                           [:text {:x 100 :y 100 :font "Arial" :size 12} "Valid"] ; Valid
+                                           [:line {:x1 0 :y1 0 :x2 "invalid" :y2 100}]           ; Invalid - should fail here
+                                           [:path {:d "M10,10 L20,20"}]                          ; Would be valid
+                                           [:rect {:x 200 :y 200 :width 50 :height 50}]]))       ; Would be valid
+        "Should fail immediately when encountering invalid element in complex document")
+    
+    ;; Test nested error conditions
+    (is (thrown-with-msg? js/Error #"ValidationError"
+                          (hiccup->pdf-ops [:g {:transforms [[:translate [10 10]]]}
+                                           [:rect {:x 0 :y 0 :width 10 :height 10}]    ; Valid
+                                           [:g {:transforms [[:rotate 45]]}
+                                            [:circle {:cx 0 :cy 0 :r 5}]              ; Valid
+                                            [:g {}
+                                             [:text {:x 0 :y 0 :font "" :size 12} "Empty font"]]] ; Invalid
+                                           [:line {:x1 10 :y1 10 :x2 20 :y2 20}]]))   ; Would be valid
+        "Should fail immediately when encountering invalid nested element")
+    
+    ;; Test transform error in complex document
+    (is (thrown-with-msg? js/Error #"Unsupported transform type"
+                          (hiccup->pdf-ops [:g {}
+                                           [:rect {:x 10 :y 10 :width 20 :height 30}]           ; Valid
+                                           [:g {:transforms [[:translate [10 10]] [:invalid [1 2]]]} ; Invalid transform
+                                            [:circle {:cx 0 :cy 0 :r 5}]]                      ; Would be valid
+                                           [:text {:x 50 :y 50 :font "Arial" :size 12} "Text"]]))  ; Would be valid
+        "Should fail immediately when encountering invalid transform in complex document"))
+  
+  (testing "Real-world document structures"
+    ;; Simulate a business card layout
+    (let [business-card [:g {}
+                         ;; Background
+                         [:rect {:x 0 :y 0 :width 350 :height 200 :fill "white" :stroke "black" :stroke-width 2}]
+                         ;; Company logo area
+                         [:g {:transforms [[:translate [20 20]]]}
+                          [:circle {:cx 0 :cy 0 :r 15 :fill "blue"}]
+                          [:text {:x 25 :y 5 :font "Arial" :size 18 :fill "blue"} "TechCorp"]]
+                         ;; Contact info
+                         [:g {:transforms [[:translate [20 80]]]}
+                          [:text {:x 0 :y 0 :font "Arial" :size 14 :fill "black"} "John Smith"]
+                          [:text {:x 0 :y 20 :font "Arial" :size 12 :fill "black"} "Senior Developer"]
+                          [:text {:x 0 :y 40 :font "Arial" :size 10 :fill "black"} "john.smith@techcorp.com"]
+                          [:text {:x 0 :y 55 :font "Arial" :size 10 :fill "black"} "+1 (555) 123-4567"]]
+                         ;; Decorative elements
+                         [:g {:transforms [[:translate [250 50]]]}
+                          [:path {:d "M0,0 L50,25 L0,50 L10,25 Z" :fill "blue" :stroke "blue"}]]]
+          result (hiccup->pdf-ops business-card)]
+      
+      (is (string? result)
+          "Should handle business card layout")
+      
+      ;; Verify structure
+      (is (re-find #"350 200 re" result)
+          "Should contain background rectangle")
+      (is (>= (count (re-seq #"BT\n" result)) 5)
+          "Should contain multiple text elements")
+      (is (re-find #"TechCorp" result)
+          "Should contain company name")
+      (is (re-find #"john\.smith" result)
+          "Should contain contact info"))
+    
+    ;; Simulate a simple diagram with annotations
+    (let [diagram [:g {}
+                   ;; Main flow boxes
+                   [:g {:transforms [[:translate [50 50]]]}
+                    [:rect {:x 0 :y 0 :width 80 :height 40 :fill "white" :stroke "blue" :stroke-width 2}]
+                    [:text {:x 40 :y 25 :font "Arial" :size 12 :fill "blue"} "Start"]]
+                   
+                   ;; Arrow
+                   [:g {:transforms [[:translate [150 70]]]}
+                    [:path {:d "M0,0 L30,0 M25,-5 L30,0 L25,5" :stroke "black" :stroke-width 2}]]
+                   
+                   ;; Process box
+                   [:g {:transforms [[:translate [200 50]]]}
+                    [:rect {:x 0 :y 0 :width 80 :height 40 :fill "white" :stroke "magenta" :stroke-width 2}]
+                    [:text {:x 40 :y 25 :font "Arial" :size 12 :fill "magenta"} "Process"]]
+                   
+                   ;; Another arrow
+                   [:g {:transforms [[:translate [300 70]]]}
+                    [:path {:d "M0,0 L30,0 M25,-5 L30,0 L25,5" :stroke "black" :stroke-width 2}]]
+                   
+                   ;; End box
+                   [:g {:transforms [[:translate [350 50]]]}
+                    [:rect {:x 0 :y 0 :width 80 :height 40 :fill "white" :stroke "green" :stroke-width 2}]
+                    [:text {:x 40 :y 25 :font "Arial" :size 12 :fill "green"} "End"]]]
+          result (hiccup->pdf-ops diagram)]
+      
+      (is (string? result)
+          "Should handle diagram layout")
+      
+      ;; Verify diagram elements
+      (is (>= (count (re-seq #"re\n" result)) 3)
+          "Should contain multiple boxes")
+      (is (>= (count (re-seq #"m\n" result)) 2)
+          "Should contain arrow paths")
+      (is (re-find #"Start" result)
+          "Should contain start label")
+      (is (re-find #"Process" result)
+          "Should contain process label")
+      (is (re-find #"End" result)
+          "Should contain end label"))
+    
+    ;; Simulate a chart with data points
+    (let [chart [:g {}
+                 ;; Chart background
+                 [:rect {:x 50 :y 50 :width 300 :height 200 :fill "white" :stroke "black" :stroke-width 1}]
+                 ;; Grid lines - horizontal
+                 [:line {:x1 50 :y1 90 :x2 350 :y2 90 :stroke "#cccccc"}]
+                 [:line {:x1 50 :y1 130 :x2 350 :y2 130 :stroke "#cccccc"}]
+                 [:line {:x1 50 :y1 170 :x2 350 :y2 170 :stroke "#cccccc"}]
+                 ;; Grid lines - vertical
+                 [:line {:x1 110 :y1 50 :x2 110 :y2 250 :stroke "#cccccc"}]
+                 [:line {:x1 170 :y1 50 :x2 170 :y2 250 :stroke "#cccccc"}]
+                 [:line {:x1 230 :y1 50 :x2 230 :y2 250 :stroke "#cccccc"}]
+                 ;; Data points
+                 [:circle {:cx 80 :cy 80 :r 4 :fill "red"}]
+                 [:circle {:cx 140 :cy 110 :r 4 :fill "red"}]
+                 [:circle {:cx 200 :cy 140 :r 4 :fill "red"}]
+                 [:circle {:cx 260 :cy 170 :r 4 :fill "red"}]
+                 [:circle {:cx 320 :cy 200 :r 4 :fill "red"}]
+                 ;; Axis labels
+                 [:text {:x 200 :y 280 :font "Arial" :size 14 :fill "black"} "X Axis"]
+                 [:g {:transforms [[:translate [20 150]] [:rotate -90]]}
+                  [:text {:x 0 :y 0 :font "Arial" :size 14 :fill "black"} "Y Axis"]]]
+          result (hiccup->pdf-ops chart)]
+      
+      (is (string? result)
+          "Should handle chart layout")
+      
+      ;; Verify chart structure
+      (is (re-find #"300 200 re" result)
+          "Should contain chart background")
+      (is (>= (count (re-seq #"m\n" result)) 6)
+          "Should contain grid lines")
+      (is (>= (count (re-seq #"c\n" result)) 20)
+          "Should contain data point circles (4 curves per circle)"))))
