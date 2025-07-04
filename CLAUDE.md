@@ -131,3 +131,13 @@ nbb repl
    - Update **@prompt_plan.md** to mark this prompt as completed.
 3. After you finish each prompt, pause and wait for user review or feedback.
 4. Repeat with the next unfinished prompt as directed by the user.
+
+## End to End Testing
+
+Use the following process to make sure the PDF generated is valid and
+transforming into a SVG produces expected output.
+
+- Run `npx nbb ./triangle_with_save.cljs`.
+- After, use my script **@scripts/pdf2svg** like `./scripts/pdf2svg triangle_test.pdf` which will generate `triangle_test.svg`.
+- Fix any bugs returned by pdf2svg, which uses the inkscape cli
+- When an svg is produced check it to make sure it matches the expected output of triangle_with_save.cljs
