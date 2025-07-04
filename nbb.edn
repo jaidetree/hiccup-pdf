@@ -1,1 +1,2 @@
-{:paths ["src" "test"]}
+{:paths ["src" "test"]
+ :deps {dev.jaide/valhalla {:mvn/version "2025.7.3"}}}

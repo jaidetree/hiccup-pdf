@@ -113,3 +113,7 @@ nbb repl
 ### Runtime Environment
 
 - Nbb already provides a clojurescript runtime through node
+
+## Git and Development Workflow
+
+- After marking a prompt as complete, propose a git commit with accurate details about the changes

@@ -13,6 +13,7 @@
     {
       devShell = pkgs.mkShell {
         buildInputs = [
+          pkgs.babashka
           pkgs.clj-kondo
           pkgs.clojure
           pkgs.clojure-lsp
