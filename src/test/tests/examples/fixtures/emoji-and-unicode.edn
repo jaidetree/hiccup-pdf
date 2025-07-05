@@ -1,0 +1,19 @@
+[:document {:title "Hello World"}
+ [:page {:width 612 :height 792}
+  [:text {:x 50 :y 50 :font "Arial" :size 16} "Speaker Notes - Slide 1"]
+  [:text {:x 50 :y 100 :font "Arial" :size 12} "Introduction points:"]
+  [:text {:x 50 :y 130 :font "Arial" :size 11} "• Welcome audience and introduce topic"]
+  [:text {:x 50 :y 150 :font "Arial" :size 11} "• Brief overview of ML challenges in production"]
+  [:text {:x 50 :y 170 :font "Arial" :size 11} "• Agenda: models, monitoring, scaling, best practices"]
+  [:text {:x 50 :y 190 :font "Arial" :size 11} "• Personal experience: 5 years ML engineering"]
+
+  [:text {:x 50 :y 240 :font "Arial" :size 12} "Key statistics to mention:"]
+  [:text {:x 50 :y 270 :font "Arial" :size 11} "• 85% of ML models never make it to production"]
+  [:text {:x 50 :y 290 :font "Arial" :size 11} "• Average time from model to production: 8 months"]
+  [:text {:x 50 :y 310 :font "Arial" :size 11} "• 60% of companies struggle with model monitoring"]
+
+  [:rect {:x 50 :y 350 :width 500 :height 100 :fill "#fef3c7" :stroke "#ffa500"}]
+  [:text {:x 60 :y 370 :font "Arial" :size 11} "💡 Timing: 3 minutes"]
+  [:text {:x 60 :y 390 :font "Arial" :size 11} "🎯 Goal: Set context and engage audience"]
+  [:text {:x 60 :y 410 :font "Arial" :size 11} "⚠️  Don't: Get too technical in introduction"]
+  [:text {:x 60 :y 430 :font "Arial" :size 11} "✅ Do: Use relatable examples and ask questions"]]]

@@ -8,7 +8,7 @@
             ["child_process" :as cp]))
 
 (def fixtures-dir "src/test/tests/examples/fixtures")
-(def output-dir "src/test/tests/examples/out")
+(def output-dir "target/examples")
 
 (defn read-edn-file
   "Read and parse EDN file"
@@ -112,7 +112,7 @@
 
   ;; Ensure output directory exists
   (when-not (fs/existsSync output-dir)
-    (fs/mkdirSync output-dir {:recursive true}))
+    (fs/mkdirSync output-dir #js {:recursive true}))
 
   ;; Get files to process
   (let [fixture-files (get-fixture-files args)
