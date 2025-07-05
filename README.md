@@ -1,6 +1,6 @@
 # hiccup-pdf
 
-A ClojureScript library for transforming hiccup vectors into PDF vector primitives represented as raw PDF operators and coordinates.
+A ClojureScript library for transforming hiccup vectors into PDF vector-drawing primitives represented as raw PDF operators and coordinates.
 
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#testing)
 [![ClojureScript](https://img.shields.io/badge/ClojureScript-1.11+-blue)](#)
@@ -113,14 +113,6 @@ The library provides two main functions:
 | `:text`   | Text        | `:x`, `:y`, `:font`, `:size`    | `:fill`                             |
 | `:path`   | SVG Path    | `:d`                            | `:fill`, `:stroke`, `:stroke-width` |
 | `:g`      | Group       | None                            | `:transforms`                       |
-
-## Installation
-
-Add to your `nbb.edn`:
-
-```clojure
-{:deps {hiccup-pdf {:local/root "."}}}
-```
 
 ## Examples
 
