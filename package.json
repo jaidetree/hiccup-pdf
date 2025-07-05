@@ -25,5 +25,8 @@
   "homepage": "https://github.com/jaidetree/hiccup-pdf#readme",
   "dependencies": {
     "nbb": "^1.3.204"
+  },
+  "devDependencies": {
+    "@anthropic-ai/claude-code": "^1.0.43"
   }
 }
