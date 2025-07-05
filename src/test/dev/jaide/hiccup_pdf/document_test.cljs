@@ -563,14 +563,14 @@
     ;; Test with no fonts
     (is (= #{} (extract-fonts-from-content []))
         "Should return empty set for empty content")
-    
+
     (is (= #{} (extract-fonts-from-content [[:rect {:x 0 :y 0 :width 100 :height 50}]]))
         "Should return empty set for content without text")
-    
+
     ;; Test with single font
     (is (= #{"Arial"} (extract-fonts-from-content [[:text {:x 10 :y 10 :font "Arial" :size 12} "Hello"]]))
         "Should extract single font from text element")
-    
+
     ;; Test with multiple fonts
     (let [content [[:text {:x 10 :y 10 :font "Arial" :size 12} "Hello"]
                    [:text {:x 50 :y 50 :font "Times" :size 14} "World"]
@@ -578,7 +578,7 @@
                    [:text {:x 100 :y 100 :font "Arial" :size 16} "Again"]]]
       (is (= #{"Arial" "Times"} (extract-fonts-from-content content))
           "Should extract unique fonts from multiple text elements"))
-    
+
     ;; Test with nested groups
     (let [content [[:g {}
                     [:text {:x 10 :y 10 :font "Courier" :size 10} "Nested"]
@@ -595,13 +595,13 @@
       (is (re-find #"/Subtype /Type1" font-obj) "Should specify Type1 subtype")
       (is (re-find #"/BaseFont /Helvetica" font-obj) "Should map Arial to Helvetica")
       (is (re-find #"endobj" font-obj) "Should end with endobj"))
-    
+
     ;; Test font name mapping
     (is (re-find #"/BaseFont /Times-Roman" (generate-font-resource-object 1 "Times New Roman"))
         "Should map Times New Roman to Times-Roman")
     (is (re-find #"/BaseFont /Helvetica" (generate-font-resource-object 1 "UnknownFont"))
         "Should default to Helvetica for unknown fonts"))
-  
+
   (testing "Content stream object generation"
     (let [content "10 10 100 50 re\nf"
           content-length (+ (count content) 1)  ; Include the newline in expected length
@@ -612,7 +612,7 @@
       (is (re-find #"10 10 100 50 re" stream-obj) "Should include content")
       (is (re-find #"endstream" stream-obj) "Should end with endstream")
       (is (re-find #"endobj" stream-obj) "Should end with endobj")))
-  
+
   (testing "Page object generation"
     (let [page-data {:width 612 :height 792 :margins [10 20 30 40]}
           font-refs {"Arial" 5 "Times" 6}
@@ -625,11 +625,11 @@
       (is (re-find #"/Arial 5 0 R" page-obj) "Should include font resources")
       (is (re-find #"/Times 6 0 R" page-obj) "Should include all font resources")
       (is (re-find #"endobj" page-obj) "Should end with endobj"))
-    
+
     ;; Test page without fonts
     (let [page-obj (generate-page-object 1 {:width 595 :height 842} 2 3 {})]
       (is (not (re-find #"/Font" page-obj)) "Should not include font resources when none present")))
-  
+
   (testing "Pages collection object generation"
     (let [pages-obj (generate-pages-object 4 [2 7 9])]
       (is (re-find #"4 0 obj" pages-obj) "Should include object number")
@@ -637,19 +637,19 @@
       (is (re-find #"/Kids \[2 0 R 7 0 R 9 0 R\]" pages-obj) "Should list all page references")
       (is (re-find #"/Count 3" pages-obj) "Should specify correct page count")
       (is (re-find #"endobj" pages-obj) "Should end with endobj"))
-    
+
     ;; Test with single page
     (let [pages-obj (generate-pages-object 1 [2])]
       (is (re-find #"/Kids \[2 0 R\]" pages-obj) "Should handle single page")
       (is (re-find #"/Count 1" pages-obj) "Should count single page")))
-  
+
   (testing "Catalog object generation"
     (let [catalog-obj (generate-catalog-object 1 4)]
       (is (re-find #"1 0 obj" catalog-obj) "Should include object number")
       (is (re-find #"/Type /Catalog" catalog-obj) "Should specify catalog type")
       (is (re-find #"/Pages 4 0 R" catalog-obj) "Should reference pages object")
       (is (re-find #"endobj" catalog-obj) "Should end with endobj")))
-  
+
   (testing "Info object generation"
     (let [metadata {:title "Test Document" :author "Test Author" :creator "hiccup-pdf"}
           info-obj (generate-info-object 8 metadata)]
@@ -658,12 +658,12 @@
       (is (re-find #"/Author \(Test Author\)" info-obj) "Should include author")
       (is (re-find #"/Creator \(hiccup-pdf\)" info-obj) "Should include creator")
       (is (re-find #"endobj" info-obj) "Should end with endobj"))
-    
+
     ;; Test with minimal metadata
     (let [info-obj (generate-info-object 1 {:title "Simple"})]
       (is (re-find #"/Title \(Simple\)" info-obj) "Should include only provided metadata")
       (is (not (re-find #"/Author" info-obj)) "Should not include absent metadata"))
-    
+
     ;; Test with empty metadata
     (let [info-obj (generate-info-object 1 {})]
       (is (re-find #"1 0 obj" info-obj) "Should generate object even with no metadata")
@@ -676,13 +676,13 @@
     (let [;; Page content with fonts
           page-content [[:text {:x 100 :y 100 :font "Arial" :size 12} "Hello World"]
                         [:rect {:x 50 :y 200 :width 200 :height 100 :fill "#ff0000"}]]
-          
+
           ;; Extract fonts
           fonts (extract-fonts-from-content page-content)
-          
+
           ;; Generate content stream
           content-stream "BT\n/Arial 12 Tf\n100 692 Td\n(Hello World) Tj\nET\n1 0 0 rg\n50 592 200 100 re\nf"
-          
+
           ;; Generate all objects
           font-obj (generate-font-resource-object 2 "Arial")
           content-obj (generate-content-stream-object 3 content-stream)
@@ -690,39 +690,39 @@
           pages-obj (generate-pages-object 5 [4])
           catalog-obj (generate-catalog-object 1 5)
           info-obj (generate-info-object 6 {:title "Integration Test"})]
-      
+
       ;; Test font extraction
       (is (= #{"Arial"} fonts) "Should extract Arial font")
-      
+
       ;; Test object references are consistent
       (is (re-find #"/Arial 2 0 R" page-obj) "Page should reference font object")
       (is (re-find #"/Contents 3 0 R" page-obj) "Page should reference content stream")
       (is (re-find #"/Parent 5 0 R" page-obj) "Page should reference parent pages")
       (is (re-find #"/Kids \[4 0 R\]" pages-obj) "Pages should reference page")
       (is (re-find #"/Pages 5 0 R" catalog-obj) "Catalog should reference pages")
-      
+
       ;; Test all objects are properly formatted
       (is (every? #(re-find #"endobj$" %) [font-obj content-obj page-obj pages-obj catalog-obj info-obj])
           "All objects should end with endobj")))
-  
+
   (testing "Multi-page document object generation"
     (let [page1-data {:width 612 :height 792}
           page2-data {:width 595 :height 842}  ; Different size (A4)
-          
+
           ;; Generate objects for multi-page document
           page1-obj (generate-page-object 4 page1-data 6 3 {"Arial" 2})
           page2-obj (generate-page-object 5 page2-data 6 7 {"Times" 8})
           pages-obj (generate-pages-object 6 [4 5])
           catalog-obj (generate-catalog-object 1 6)]
-      
+
       ;; Test different page dimensions
       (is (re-find #"/MediaBox \[0 0 612 792\]" page1-obj) "Should handle letter size")
       (is (re-find #"/MediaBox \[0 0 595 842\]" page2-obj) "Should handle A4 size")
-      
+
       ;; Test pages collection with multiple pages
       (is (re-find #"/Kids \[4 0 R 5 0 R\]" pages-obj) "Should reference both pages")
       (is (re-find #"/Count 2" pages-obj) "Should count both pages")
-      
+
       ;; Test different fonts per page
       (is (re-find #"/Arial 2 0 R" page1-obj) "Page 1 should use Arial")
       (is (re-find #"/Times 8 0 R" page2-obj) "Page 2 should use Times"))))
@@ -731,17 +731,17 @@
   (testing "PDF header generation"
     (is (= "%PDF-1.4" (generate-pdf-header))
         "Should generate correct PDF header"))
-  
+
   (testing "Byte offset calculation"
     (let [objects ["obj1\ncontent" "obj2\nmore\ncontent" "obj3"]
           offsets (calculate-byte-offsets objects)]
       ;; Header is 8 chars ("%PDF-1.4") + 1 newline = 9
       ;; obj1 is 12 chars + 1 newline = 13, so starts at 9
-      ;; obj2 is 17 chars + 1 newline = 18, so starts at 9 + 13 = 22  
+      ;; obj2 is 17 chars + 1 newline = 18, so starts at 9 + 13 = 22
       ;; obj3 is 4 chars, so starts at 22 + 18 = 40
       (is (= [9 22 40] offsets)
           "Should calculate correct byte offsets")))
-  
+
   (testing "Cross-reference table generation"
     (let [xref (generate-xref-table 4 [9 22 40])]
       (is (re-find #"xref" xref) "Should include xref keyword")
@@ -750,7 +750,7 @@
       (is (re-find #"0000000009 00000 n" xref) "Should include first object offset")
       (is (re-find #"0000000022 00000 n" xref) "Should include second object offset")
       (is (re-find #"0000000040 00000 n" xref) "Should include third object offset")))
-  
+
   (testing "Trailer generation"
     (let [trailer (generate-trailer 4 1 3 100)]
       (is (re-find #"trailer" trailer) "Should include trailer keyword")
@@ -760,18 +760,18 @@
       (is (re-find #"startxref" trailer) "Should include startxref")
       (is (re-find #"100" trailer) "Should include xref offset")
       (is (re-find #"%%EOF" trailer) "Should end with EOF"))
-    
+
     ;; Test without info object
     (let [trailer (generate-trailer 3 1 nil 100)]
       (is (not (re-find #"/Info" trailer)) "Should not include info when not provided")))
-  
+
   (testing "Complete document assembly with single page"
-    (let [page-data {:width 612 :height 792 :margins [0 0 0 0] 
+    (let [page-data {:width 612 :height 792 :margins [0 0 0 0]
                      :content-stream "BT\n/Arial 12 Tf\n100 100 Td\n(Hello) Tj\nET"
                      :metadata {:element-count 1}}
           document-attrs {:title "Test Document" :creator "hiccup-pdf"}
           pdf (document->pdf [page-data] document-attrs)]
-      
+
       ;; Test PDF structure
       (is (re-find #"%PDF-1.4" pdf) "Should include PDF header")
       (is (re-find #"/Type /Catalog" pdf) "Should include catalog object")
@@ -783,37 +783,37 @@
       (is (re-find #"trailer" pdf) "Should include trailer")
       (is (re-find #"/Title \(Test Document\)" pdf) "Should include document metadata")
       (is (re-find #"%%EOF" pdf) "Should end with EOF")))
-  
+
   (testing "Complete document assembly with multiple pages"
-    (let [page1-data {:width 612 :height 792 
+    (let [page1-data {:width 612 :height 792
                       :content-stream "BT\n/Arial 12 Tf\n100 100 Td\n(Page 1) Tj\nET"
                       :metadata {:element-count 1}}
-          page2-data {:width 595 :height 842 
+          page2-data {:width 595 :height 842
                       :content-stream "BT\n/Times 14 Tf\n50 50 Td\n(Page 2) Tj\nET"
                       :metadata {:element-count 1}}
           document-attrs {:title "Multi-page Document"}
           pdf (document->pdf [page1-data page2-data] document-attrs)]
-      
+
       ;; Test multi-page structure
       (is (re-find #"/Count 2" pdf) "Should specify 2 pages")
       (is (re-find #"Page 1" pdf) "Should include first page content")
       (is (re-find #"Page 2" pdf) "Should include second page content")
       (is (re-find #"/BaseFont /Helvetica" pdf) "Should include Arial font (mapped to Helvetica)")
       (is (re-find #"/BaseFont /Times-Roman" pdf) "Should include Times font (mapped to Times-Roman)")
-      
+
       ;; Test different page sizes
       (is (re-find #"\[0 0 612 792\]" pdf) "Should include first page MediaBox")
       (is (re-find #"\[0 0 595 842\]" pdf) "Should include second page MediaBox")))
-  
+
   (testing "Document assembly without pages"
     (let [pdf (document->pdf [] {:title "Empty Document"})]
       (is (re-find #"%PDF-1.4" pdf) "Should include PDF header")
       (is (re-find #"/Count 0" pdf) "Should specify 0 pages")
       (is (re-find #"/Title \(Empty Document\)" pdf) "Should include document metadata")
       (is (re-find #"%%EOF" pdf) "Should end with EOF")))
-  
+
   (testing "Document assembly without metadata"
-    (let [page-data {:width 612 :height 792 
+    (let [page-data {:width 612 :height 792
                      :content-stream "10 10 100 50 re\nf"
                      :metadata {:element-count 1}}
           pdf (document->pdf [page-data] {})]
@@ -831,7 +831,7 @@
                       [:page {:width 595 :height 842}
                        [:circle {:cx 300 :cy 400 :r 50 :stroke "#0000ff"}]]]
           pdf (hiccup->pdf-document hiccup-doc)]
-      
+
       ;; Test that we get a complete PDF
       (is (string? pdf) "Should return PDF as string")
       (is (re-find #"%PDF-1.4" pdf) "Should include PDF header")
@@ -841,15 +841,15 @@
       (is (re-find #"1 0 0 rg" pdf) "Should include red color")
       (is (re-find #"0 0 1 RG" pdf) "Should include blue stroke")
       (is (re-find #"%%EOF" pdf) "Should end with EOF")
-      
+
       ;; Test coordinate transformation occurred
       ;; Text at web y=100 should become PDF y=792-100=692
       (is (re-find #"100 692" pdf) "Should transform text coordinates")
-      
+
       ;; Test different page sizes
       (is (re-find #"\[0 0 612 792\]" pdf) "Should include letter size page")
       (is (re-find #"\[0 0 595 842\]" pdf) "Should include A4 size page")))
-  
+
   (testing "Document with complex nested content"
     (let [hiccup-doc [:document {:title "Complex Document"}
                       [:page {}
@@ -858,20 +858,20 @@
                         [:g {:transforms [[:rotate 45]]}
                          [:rect {:x 10 :y 10 :width 50 :height 30 :fill "#00ff00"}]]]]]
           pdf (hiccup->pdf-document hiccup-doc)]
-      
+
       ;; Test that complex transformations are preserved
       (is (re-find #"(?s)q.*Q" pdf) "Should include graphics state save/restore")
       (is (re-find #"cm" pdf) "Should include transformation matrix")
       (is (re-find #"Transformed text" pdf) "Should include nested text")
       (is (re-find #"0 1 0 rg" pdf) "Should include green fill")
       (is (re-find #"/BaseFont /Courier" pdf) "Should include Courier font")))
-  
+
   (testing "Error handling in document generation"
     ;; Test invalid page element
     (is (thrown-with-msg? js/Error #"Expected :page element"
                           (hiccup->pdf-document [:document {} [:rect {:x 0 :y 0 :width 100 :height 50}]]))
         "Should reject non-page elements in document")
-    
+
     ;; Test invalid page structure
     (is (thrown-with-msg? js/Error #"Page must be a hiccup vector"
                           (hiccup->pdf-document [:document {} "not a page"]))
@@ -894,29 +894,29 @@
                        [:text {:x 50 :y 50 :font "Courier" :size 12} "Landscape Page"]
                        [:line {:x1 50 :y1 100 :x2 750 :y2 100 :stroke "#ff0000"}]]]
           pdf (hiccup->pdf-document hiccup-doc)]
-      
+
       ;; Test multiple page sizes
       (is (re-find #"\[0 0 612 792\]" pdf) "Should include letter size page")
       (is (re-find #"\[0 0 595 842\]" pdf) "Should include A4 size page")
       (is (re-find #"\[0 0 800 600\]" pdf) "Should include landscape size page")
-      
+
       ;; Test content from each page
       (is (re-find #"Letter Page" pdf) "Should include letter page content")
       (is (re-find #"A4 Page" pdf) "Should include A4 page content")
       (is (re-find #"Landscape Page" pdf) "Should include landscape page content")
-      
+
       ;; Test different fonts are included
       (is (re-find #"/BaseFont /Helvetica" pdf) "Should include Arial font")
       (is (re-find #"/BaseFont /Times-Roman" pdf) "Should include Times font")
       (is (re-find #"/BaseFont /Courier" pdf) "Should include Courier font")
-      
+
       ;; Test metadata
       (is (re-find #"/Title \(Multi-Size Document\)" pdf) "Should include document title")
       (is (re-find #"/Author \(Test Author\)" pdf) "Should include document author")
-      
+
       ;; Test page count
       (is (re-find #"/Count 3" pdf) "Should specify 3 pages")))
-  
+
   (testing "Document with all primitive element types"
     (let [hiccup-doc [:document {:title "All Elements Test"}
                       [:page {}
@@ -935,7 +935,7 @@
                         [:rect {:x 0 :y 0 :width 60 :height 40 :fill "#00ffff"}]
                         [:text {:x 10 :y 25 :font "Courier" :size 10} "Rotated"]]]]
           pdf (hiccup->pdf-document hiccup-doc)]
-      
+
       ;; Test all element types are present
       (is (re-find #"50 662 100 80 re" pdf) "Should include rectangle")
       (is (re-find #"250 732 m" pdf) "Should include circle")
@@ -943,13 +943,13 @@
       (is (re-find #"Sample Text" pdf) "Should include text")
       (is (re-find #"50 300 m" pdf) "Should include path")
       (is (re-find #"(?s)q.*cm.*Rotated.*Q" pdf) "Should include transformed group")
-      
+
       ;; Test colors are included
       (is (re-find #"1 0 0 rg" pdf) "Should include red fill")
       (is (re-find #"0 1 0 rg" pdf) "Should include green fill")
       (is (re-find #"0 0 1 RG" pdf) "Should include blue stroke")
       (is (re-find #"1 1 0 rg" pdf) "Should include yellow fill")))
-  
+
   (testing "Document with emoji support"
     (let [hiccup-doc [:document {:title "Emoji Test 🎉"}
                       [:page {}
@@ -957,19 +957,19 @@
                        [:text {:x 50 :y 100 :font "Times" :size 16} "Math: 2 + 2 = 4 ✓"]
                        [:text {:x 50 :y 150 :font "Courier" :size 12} "Symbols: ★ ❤ 😊 🚀"]]]
           pdf (hiccup->pdf-document hiccup-doc)]
-      
+
       ;; Test that PDF is generated successfully with Unicode content
       (is (string? pdf) "Should generate PDF successfully with Unicode")
       (is (> (count pdf) 500) "Should generate substantial PDF content")
       (is (str/includes? pdf "%PDF-1.4") "Should have proper PDF header")
       (is (str/includes? pdf "%%EOF") "Should have proper PDF footer")
-      
-      ;; Test that hex-encoded Unicode content is present in content streams
-      (is (re-find #"<[0-9A-F]+> Tj" pdf) "Should contain hex-encoded Unicode text")
-      
+
+      ;; Test that Unicode content is present in content streams (with hex encoding)
+      (is (re-find #"<[0-9A-F]+> Tj" pdf) "Should contain hex encoded Unicode text")
+
       ;; Test document title with emoji (should be in title metadata)
       (is (re-find #"Emoji Test 🎉" pdf) "Should include emoji in document title")))
-  
+
   (testing "Document with nested groups and complex transforms"
     (let [hiccup-doc [:document {:title "Transform Test"}
                       [:page {}
@@ -984,15 +984,15 @@
                        [:g {:transforms [[:translate [200 200]] [:rotate 30] [:scale [1.5 0.8]]]}
                         [:text {:x 0 :y 0 :font "Arial" :size 12} "Multi-transform"]]]]
           pdf (hiccup->pdf-document hiccup-doc)]
-      
+
       ;; Test nested graphics state save/restore
       (is (>= (count (re-seq #"q" pdf)) 3) "Should have multiple graphics state saves")
       (is (>= (count (re-seq #"Q" pdf)) 3) "Should have multiple graphics state restores")
-      
+
       ;; Test transformation matrices
       (is (re-find #"cm" pdf) "Should include transformation matrices")
       (is (re-find #"Multi-transform" pdf) "Should include transformed text")))
-  
+
   (testing "Empty pages and edge cases"
     (let [hiccup-doc [:document {:title "Edge Cases"}
                       ;; Empty page
@@ -1005,16 +1005,16 @@
                        [:rect {:x 50 :y 50 :width 0 :height 0 :fill "#ff0000"}]
                        [:circle {:cx 100 :cy 100 :r 0 :fill "#0000ff"}]]]
           pdf (hiccup->pdf-document hiccup-doc)]
-      
+
       ;; Test document structure
       (is (re-find #"/Count 3" pdf) "Should specify 3 pages")
       (is (re-find #"%PDF-1.4" pdf) "Should have valid PDF header")
       (is (re-find #"%%EOF" pdf) "Should have valid PDF ending")
-      
+
       ;; Test zero-size elements are handled
       (is (re-find #"50 742 0 0 re" pdf) "Should include zero-size rectangle")
       (is (string? pdf) "Should return valid PDF string")))
-  
+
   (testing "Large document with many pages"
     ;; Create a document with many pages to test performance
     (let [pages (for [i (range 10)]
@@ -1023,22 +1023,22 @@
                    [:rect {:x 50 :y 100 :width 100 :height 50 :fill (if (even? i) "#ff0000" "#0000ff")}]])
           hiccup-doc (into [:document {:title "Large Document"}] pages)
           pdf (hiccup->pdf-document hiccup-doc)]
-      
+
       ;; Test page count
       (is (re-find #"/Count 10" pdf) "Should specify 10 pages")
-      
+
       ;; Test first and last page content
       (is (re-find #"Page 1" pdf) "Should include first page")
       (is (re-find #"Page 10" pdf) "Should include last page")
-      
+
       ;; Test alternating colors
       (is (re-find #"1 0 0 rg" pdf) "Should include red rectangles")
       (is (re-find #"0 0 1 rg" pdf) "Should include blue rectangles")
-      
+
       ;; Test document is reasonably sized (should be manageable)
       (is (< (count pdf) 50000) "Should generate reasonably sized PDF")
       (is (> (count pdf) 3000) "Should generate substantial PDF content")))
-  
+
   (testing "Coordinate transformation across different page sizes"
     (let [hiccup-doc [:document {}
                       ;; Small page
@@ -1050,17 +1050,17 @@
                        [:text {:x 50 :y 50 :font "Arial" :size 12} "Large"]
                        [:rect {:x 50 :y 100 :width 100 :height 50 :fill "#0000ff"}]]]
           pdf (hiccup->pdf-document hiccup-doc)]
-      
+
       ;; Test coordinate transformation for different page sizes
       ;; Small page: web y=50 -> PDF y=300-50=250
       ;; Large page: web y=50 -> PDF y=800-50=750
       (is (re-find #"50 250" pdf) "Should transform coordinates for small page")
       (is (re-find #"50 750" pdf) "Should transform coordinates for large page")
-      
+
       ;; Test different page sizes are included
       (is (re-find #"\[0 0 400 300\]" pdf) "Should include small page MediaBox")
       (is (re-find #"\[0 0 1000 800\]" pdf) "Should include large page MediaBox")))
-  
+
   (testing "Complete metadata embedding"
     (let [hiccup-doc [:document {:title "Complete Metadata Test"
                                  :author "Test Author"
@@ -1071,7 +1071,7 @@
                       [:page {}
                        [:text {:x 50 :y 50 :font "Arial" :size 12} "Metadata test"]]]
           pdf (hiccup->pdf-document hiccup-doc)]
-      
+
       ;; Test all metadata fields are included
       (is (re-find #"/Title \(Complete Metadata Test\)" pdf) "Should include title")
       (is (re-find #"/Author \(Test Author\)" pdf) "Should include author")
@@ -1079,7 +1079,7 @@
       (is (re-find #"/Keywords \(test, metadata, pdf\)" pdf) "Should include keywords")
       (is (re-find #"/Creator \(Custom Creator\)" pdf) "Should include creator")
       (is (re-find #"/Producer \(Custom Producer\)" pdf) "Should include producer")))
-  
+
   (testing "Performance and output characteristics"
     ;; Test that PDF output can be written to files (simulate file writing)
     (let [hiccup-doc [:document {:title "Performance Test"}
@@ -1092,13 +1092,13 @@
                         (hiccup->pdf-document hiccup-doc)))
           end-time (js/Date.now)
           duration (- end-time start-time)]
-      
+
       ;; Test all PDFs are identical
       (is (every? #(= pdf %) pdfs) "Should generate consistent PDFs")
-      
+
       ;; Test performance is reasonable (should be under 1 second for 10 documents)
       (is (< duration 1000) "Should generate documents efficiently")
-      
+
       ;; Test PDF string characteristics
       (is (string? pdf) "Should return string")
       (is (> (count pdf) 100) "Should have substantial content")

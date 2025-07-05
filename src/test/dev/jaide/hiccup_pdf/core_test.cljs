@@ -343,7 +343,7 @@
       (is (string? result)
           "Should handle emoji characters")
       (is (re-find #"<[0-9A-F]+> Tj\n" result)
-          "Should use UTF-16BE hex encoding for Unicode content"))
+          "Should use hex string format for Unicode characters"))
     
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "🎉🚀✨"])]
       (is (re-find #"<[0-9A-F]+> Tj\n" result)
