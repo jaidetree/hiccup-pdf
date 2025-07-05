@@ -4,7 +4,7 @@
   "description": "A ClojureScript library for transforming hiccup into PDF vector elements",
   "main": "index.js",
   "scripts": {
-    "test": "npx nbb test_runner.cljs"
+    "test": "npx nbb -m scripts.test_runner"
   },
   "repository": {
     "type": "git",

@@ -20,6 +20,9 @@
           pkgs.nodejs_22
           pkgs.temurin-jre-bin-17
         ];
+        shellHook = ''
+          export PATH="node_modules/.bin":"$PATH";
+        '';
       };
     });
 }

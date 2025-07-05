@@ -1,7 +1,8 @@
 # Hiccup-PDF Project Todos
 
 - [x] Move library to dev.jaide.hiccup-pdf
-- [ ] Move tests to src/tests
-- [ ] Setup build.edn
+- [x] Move tests to src/tests
+- [x] Setup build.edn
+- [ ] Setup CLOJARS_USERNAME and CLOJARS_PASSWORD token repo secrets
 - [ ] Code review
-- [ ] Deploy to clojars
+- [ ] Deploy snapshot release to clojars
