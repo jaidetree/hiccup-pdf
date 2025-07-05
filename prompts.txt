@@ -9,3 +9,24 @@ Create a test script targeting nbb in src/tests/examples/run.cljs.
 - Use the scripts/pdf2svg to validate the output pdf files.
 - The project is done when all example files
 - Commit changes when verified that it works
+
+
+Draft a detailed, step-by-step blueprint for building the emoji png support. Then, once you have a solid plan, break it down into small, iterative chunks that build on each other. Look at these chunks and then go another round to break it into small steps. Review the results and make sure that the steps are small enough to be implemented safely with strong testing, but big enough to move the project forward. Iterate until you feel that the steps are right sized for this project.
+
+From here you should have the foundation to provide a series of prompts for a code-generation LLM that will implement each step in a test-driven manner. Prioritize best practices, incremental progress, and early testing, ensuring no big jumps in complexity at any stage. Make sure that each prompt builds on the previous prompts, and ends with wiring things together. There should be no hanging or orphaned code that isn't integrated into a previous step.
+
+Make sure and separate each prompt section. Use markdown. Each prompt should be tagged as text using code tags. The goal is to output prompts, but context, etc is important as well.
+
+@emoji-spec.md
+
+
+1. Open **@emoji-prompt-plan.md** and identify any prompts not marked as completed.
+2. For each incomplete prompt:
+    - Double-check if it's truly unfinished (if uncertain, ask for clarification).
+    - If you confirm it's already done, skip it.
+    - Otherwise, implement it as described.
+    - Make sure the tests pass, and the program builds/runs
+    - Commit the changes to your repository with a clear commit message.
+    - Update **@prompt_plan.md** to mark this prompt as completed.
+3. After you finish each prompt, pause and wait for user review or feedback.
+4. Repeat with the next unfinished prompt as directed by the user.
