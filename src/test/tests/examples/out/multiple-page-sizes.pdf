@@ -1,0 +1,144 @@
+%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 9 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+3 0 obj
+<<
+/Length 89
+>>
+stream
+BT
+0 0 0 rg
+/Arial 16 Tf
+50 742 Td
+(Letter Size Page) Tj
+ET
+0 0 0 RG
+50 100 512 592 re
+S
+endstream
+endobj
+4 0 obj
+<<
+/Length 274
+>>
+stream
+BT
+0 0 0 rg
+/Arial 16 Tf
+50 792 Td
+(A4 Portrait Page) Tj
+ET
+2 w
+0 0 1 RG
+297 621 m
+407.4569499662 621 497 531.4569499662 497 421 c
+497 310.5430500338 407.4569499662 221 297 221 c
+186.5430500338 221 97 310.5430500338 97 421 c
+97 531.4569499662 186.5430500338 621 297 621 c
+S
+endstream
+endobj
+5 0 obj
+<<
+/Length 99
+>>
+stream
+BT
+0 0 0 rg
+/Arial 16 Tf
+50 550 Td
+(Custom Landscape Page) Tj
+ET
+3 w
+1 0 0 RG
+50 500 m
+750 500 l
+S
+endstream
+endobj
+6 0 obj
+<<
+/Type /Page
+/Parent 9 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+>>
+>>
+/Contents 3 0 R
+>>
+endobj
+7 0 obj
+<<
+/Type /Page
+/Parent 9 0 R
+/MediaBox [0 0 595 842]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+>>
+>>
+/Contents 4 0 R
+>>
+endobj
+8 0 obj
+<<
+/Type /Page
+/Parent 9 0 R
+/MediaBox [0 0 800 600]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+>>
+>>
+/Contents 5 0 R
+>>
+endobj
+9 0 obj
+<<
+/Type /Pages
+/Kids [6 0 R 7 0 R 8 0 R]
+/Count 3
+>>
+endobj
+10 0 obj
+<<
+/Title (Mixed Format Document)
+/Creator (hiccup-pdf)
+/Producer (hiccup-pdf)
+>>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000128 00000 n 
+0000000266 00000 n 
+0000000590 00000 n 
+0000000738 00000 n 
+0000000867 00000 n 
+0000000996 00000 n 
+0000001125 00000 n 
+0000001194 00000 n 
+trailer
+<<
+/Size 11
+/Root 1 0 R
+/Info 10 0 R
+>>
+startxref
+1292
+%%EOF

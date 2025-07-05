@@ -7,11 +7,12 @@
             ["path" :as path]
             ["child_process" :as cp]))
 
-(def fixtures-dir "src/tests/examples/fixtures")
-(def output-dir "src/tests/examples/out")
+(def fixtures-dir "src/test/tests/examples/fixtures")
+(def output-dir "src/test/tests/examples/out")
 
-(defn read-edn-file [file-path]
+(defn read-edn-file
   "Read and parse EDN file"
+  [file-path]
   (try
     (-> (fs/readFileSync file-path "utf8")
         (edn/read-string))
@@ -19,8 +20,9 @@
       (println (str "ERROR reading " file-path ": " (.-message e)))
       nil)))
 
-(defn write-pdf-file [content file-path]
+(defn write-pdf-file
   "Write PDF content to file"
+  [content file-path]
   (try
     (fs/writeFileSync file-path content)
     (println (str "✓ Generated: " file-path))
@@ -29,8 +31,9 @@
       (println (str "✗ Failed to write " file-path ": " (.-message e)))
       false)))
 
-(defn get-fixture-files [specific-files]
+(defn get-fixture-files
   "Get list of fixture files to process"
+  [specific-files]
   (if (seq specific-files)
     ;; Process only specified files
     (map #(str fixtures-dir "/" % ".edn") specific-files)
@@ -40,16 +43,18 @@
            (filter #(str/ends-with? % ".edn"))
            (map #(str fixtures-dir "/" %))))))
 
-(defn extract-base-name [file-path]
+(defn extract-base-name
   "Extract base name without path and extension"
+  [file-path]
   (-> file-path
       (path/basename)
       (str/replace #"\.edn$" "")))
 
-(defn validate-pdf-with-svg [pdf-path]
+(defn validate-pdf-with-svg
   "Validate PDF by converting to SVG using scripts/pdf2svg"
+  [pdf-path]
   (try
-    (let [result (cp/spawnSync "./scripts/pdf2svg" [pdf-path] 
+    (let [result (cp/spawnSync "./scripts/pdf2svg" [pdf-path]
                                {:stdio "pipe" :encoding "utf8"})]
       (if (= 0 (.-status result))
         (do
@@ -64,14 +69,15 @@
       (println (str "✗ Validation error for " pdf-path ": " (.-message e)))
       false)))
 
-(defn process-fixture [fixture-path]
+(defn process-fixture
   "Process a single fixture file: read EDN, generate PDF, validate"
+  [fixture-path]
   (println (str "\n=== Processing: " (path/basename fixture-path) " ==="))
-  
+
   (let [base-name (extract-base-name fixture-path)
         pdf-path (str output-dir "/" base-name ".pdf")
         hiccup-doc (read-edn-file fixture-path)]
-    
+
     (if hiccup-doc
       (try
         ;; Generate PDF document
@@ -79,9 +85,9 @@
               pdf-content (hiccup->pdf-document hiccup-doc)
               end-time (js/Date.now)
               duration (- end-time start-time)]
-          
+
           (println (str "   Generated PDF: " (count pdf-content) " characters in " duration "ms"))
-          
+
           ;; Write PDF file
           (if (write-pdf-file pdf-content pdf-path)
             ;; Validate PDF with svg conversion
@@ -89,55 +95,56 @@
               {:success true :file base-name :size (count pdf-content) :duration duration}
               {:success false :file base-name :error "SVG validation failed"})
             {:success false :file base-name :error "Failed to write PDF"}))
-        
+
         (catch js/Error e
           (println (str "✗ Generation failed: " (.-message e)))
           {:success false :file base-name :error (.-message e)}))
-      
+
       {:success false :file base-name :error "Failed to read EDN file"})))
 
-(defn -main [& args]
+(defn -main
   "Main function - process fixture files and generate PDFs"
+  [& args]
   (println "=== Hiccup-PDF Examples Test Runner ===")
   (println (str "Output directory: " output-dir))
-  
+
   ;; Ensure output directory exists
   (when-not (fs/existsSync output-dir)
     (fs/mkdirSync output-dir {:recursive true}))
-  
+
   ;; Get files to process
   (let [fixture-files (get-fixture-files args)
         start-time (js/Date.now)]
-    
+
     (if (empty? fixture-files)
       (println "No fixture files found!")
       (do
         (println (str "Processing " (count fixture-files) " fixture files..."))
-        
+
         ;; Process each fixture
         (let [results (mapv process-fixture fixture-files)
               end-time (js/Date.now)
               total-duration (- end-time start-time)
               successful (filter :success results)
               failed (filter #(not (:success %)) results)]
-          
+
           ;; Print summary
           (println "\n=== SUMMARY ===")
           (println (str "Total files: " (count results)))
           (println (str "Successful: " (count successful)))
           (println (str "Failed: " (count failed)))
           (println (str "Total time: " total-duration "ms"))
-          
+
           (when (seq successful)
             (println "\n✓ Successfully processed:")
             (doseq [result successful]
               (println (str "  " (:file result) " (" (:size result) " chars, " (:duration result) "ms)"))))
-          
+
           (when (seq failed)
             (println "\n✗ Failed to process:")
             (doseq [result failed]
               (println (str "  " (:file result) " - " (:error result)))))
-          
+
           ;; Exit with appropriate code
           (if (seq failed)
             (do
@@ -148,4 +155,4 @@
               (js/process.exit 0))))))))
 
 ;; Auto-run when called as script
-(apply -main *command-line-args*)
+;; (apply -main *command-line-args*)

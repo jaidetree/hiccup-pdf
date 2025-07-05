@@ -1,0 +1,347 @@
+%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 10 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+3 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Courier
+>>
+endobj
+4 0 obj
+<<
+/Length 481
+>>
+stream
+BT
+0 0 0 rg
+/Arial 28 Tf
+200 692 Td
+(API Reference) Tj
+ET
+BT
+0 0 0 rg
+/Arial 16 Tf
+250 642 Td
+(Version 2.0) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+225 592 Td
+(Development Team) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+240 572 Td
+(March 2024) Tj
+ET
+3 w
+0 0 1 RG
+100 512 400 200 re
+S
+2 w
+0 0 1 RG
+300 542 m
+355.2284749831 542 400 497.2284749831 400 442 c
+400 386.7715250169 355.2284749831 342 300 342 c
+244.7715250169 342 200 386.7715250169 200 442 c
+200 497.2284749831 244.7715250169 542 300 542 c
+S
+endstream
+endobj
+5 0 obj
+<<
+/Length 1253
+>>
+stream
+BT
+0 0 0 rg
+/Arial 20 Tf
+50 742 Td
+(Endpoints) Tj
+ET
+0.9725490196078431 0.9764705882352941 0.9803921568627451 rg
+0 0 0 RG
+50 612 500 80 re
+B
+0 1 0 rg
+60 662 40 20 re
+f
+BT
+0 0 0 rg
+/Courier 10 Tf
+70 667 Td
+(GET) Tj
+ET
+BT
+0 0 0 rg
+/Courier 12 Tf
+120 667 Td
+(/api/users) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+60 647 Td
+(Retrieve all users) Tj
+ET
+BT
+0 0 0 rg
+/Arial 10 Tf
+60 627 Td
+(Returns: Array of user objects) Tj
+ET
+0.9725490196078431 0.9764705882352941 0.9803921568627451 rg
+0 0 0 RG
+50 512 500 80 re
+B
+0 0 1 rg
+60 562 50 20 re
+f
+BT
+0 0 0 rg
+/Courier 10 Tf
+70 567 Td
+(POST) Tj
+ET
+BT
+0 0 0 rg
+/Courier 12 Tf
+120 567 Td
+(/api/users) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+60 547 Td
+(Create a new user) Tj
+ET
+BT
+0 0 0 rg
+/Arial 10 Tf
+60 527 Td
+(Body: User object | Returns: Created user) Tj
+ET
+BT
+0 0 0 rg
+/Arial 14 Tf
+50 472 Td
+(Example Request) Tj
+ET
+0.17647058823529413 0.21568627450980393 0.2823529411764706 rg
+0 0 0 RG
+50 352 500 100 re
+B
+BT
+1 1 1 rg
+/Courier 10 Tf
+60 432 Td
+(curl -X POST https://api.example.com/users \\) Tj
+ET
+BT
+1 1 1 rg
+/Courier 10 Tf
+60 412 Td
+(  -H "Content-Type: application/json" \\) Tj
+ET
+BT
+1 1 1 rg
+/Courier 10 Tf
+60 392 Td
+(  -d '{"name": "John Doe", "email": "john@example.com"}') Tj
+ET
+BT
+1 1 1 rg
+/Courier 10 Tf
+60 372 Td
+() Tj
+ET
+endstream
+endobj
+6 0 obj
+<<
+/Length 956
+>>
+stream
+BT
+0 0 0 rg
+/Arial 20 Tf
+50 742 Td
+(Response Formats) Tj
+ET
+BT
+0 0 0 rg
+/Arial 14 Tf
+50 692 Td
+(Success Response \(200 OK\)) Tj
+ET
+0.9411764705882353 1 0.9568627450980393 rg
+0 1 0 RG
+50 592 500 80 re
+B
+BT
+0 0 0 rg
+/Courier 10 Tf
+60 652 Td
+({) Tj
+ET
+BT
+0 0 0 rg
+/Courier 10 Tf
+70 637 Td
+(  "status": "success",) Tj
+ET
+BT
+0 0 0 rg
+/Courier 10 Tf
+70 622 Td
+(  "data": { ... },) Tj
+ET
+BT
+0 0 0 rg
+/Courier 10 Tf
+70 607 Td
+(  "message": "Operation completed") Tj
+ET
+BT
+0 0 0 rg
+/Courier 10 Tf
+60 597 Td
+(}) Tj
+ET
+BT
+0 0 0 rg
+/Arial 14 Tf
+50 562 Td
+(Error Response \(400+ status\)) Tj
+ET
+1 0.9607843137254902 0.9607843137254902 rg
+1 0 0 RG
+50 462 500 80 re
+B
+BT
+0 0 0 rg
+/Courier 10 Tf
+60 522 Td
+({) Tj
+ET
+BT
+0 0 0 rg
+/Courier 10 Tf
+70 507 Td
+(  "status": "error",) Tj
+ET
+BT
+0 0 0 rg
+/Courier 10 Tf
+70 492 Td
+(  "error": "Validation failed",) Tj
+ET
+BT
+0 0 0 rg
+/Courier 10 Tf
+70 477 Td
+(  "details": [ ... ]) Tj
+ET
+BT
+0 0 0 rg
+/Courier 10 Tf
+60 467 Td
+(}) Tj
+ET
+endstream
+endobj
+7 0 obj
+<<
+/Type /Page
+/Parent 10 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+/Courier 3 0 R
+>>
+>>
+/Contents 4 0 R
+>>
+endobj
+8 0 obj
+<<
+/Type /Page
+/Parent 10 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+/Courier 3 0 R
+>>
+>>
+/Contents 5 0 R
+>>
+endobj
+9 0 obj
+<<
+/Type /Page
+/Parent 10 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+/Courier 3 0 R
+>>
+>>
+/Contents 6 0 R
+>>
+endobj
+10 0 obj
+<<
+/Type /Pages
+/Kids [7 0 R 8 0 R 9 0 R]
+/Count 3
+>>
+endobj
+11 0 obj
+<<
+/Title (API Reference Guide)
+/Author (Development Team)
+/Subject (REST API Documentation)
+/Creator (hiccup-pdf)
+/Producer (hiccup-pdf)
+>>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000009 00000 n 
+0000000059 00000 n 
+0000000129 00000 n 
+0000000197 00000 n 
+0000000728 00000 n 
+0000002032 00000 n 
+0000003038 00000 n 
+0000003183 00000 n 
+0000003328 00000 n 
+0000003473 00000 n 
+0000003543 00000 n 
+trailer
+<<
+/Size 12
+/Root 1 0 R
+/Info 11 0 R
+>>
+startxref
+3700
+%%EOF

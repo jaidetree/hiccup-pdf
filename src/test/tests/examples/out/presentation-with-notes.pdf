@@ -1,0 +1,449 @@
+%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 11 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+3 0 obj
+<<
+/Length 322
+>>
+stream
+0.11764705882352941 0.22745098039215686 0.5411764705882353 rg
+0 0 792 612 re
+f
+BT
+1 1 1 rg
+/Arial 36 Tf
+200 412 Td
+(Machine Learning) Tj
+ET
+BT
+1 1 1 rg
+/Arial 36 Tf
+240 362 Td
+(in Production) Tj
+ET
+BT
+1 1 1 rg
+/Arial 18 Tf
+300 262 Td
+(Dr. Jane Smith) Tj
+ET
+BT
+1 1 1 rg
+/Arial 14 Tf
+280 232 Td
+(Tech Conference 2024) Tj
+ET
+endstream
+endobj
+4 0 obj
+<<
+/Length 1267
+>>
+stream
+BT
+0 0 0 rg
+/Arial 16 Tf
+50 742 Td
+(Speaker Notes - Slide 1) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+50 692 Td
+(Introduction points:) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 662 Td
+(• Welcome audience and introduce topic) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 642 Td
+(• Brief overview of ML challenges in production) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 622 Td
+(• Agenda: models, monitoring, scaling, best practices) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 602 Td
+(• Personal experience: 5 years ML engineering) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+50 552 Td
+(Key statistics to mention:) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 522 Td
+(• 85% of ML models never make it to production) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 502 Td
+(• Average time from model to production: 8 months) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 482 Td
+(• 60% of companies struggle with model monitoring) Tj
+ET
+0.996078431372549 0.9529411764705882 0.7803921568627451 rg
+1 0.6470588235294118 0 RG
+50 342 500 100 re
+B
+BT
+0 0 0 rg
+/Arial 11 Tf
+60 422 Td
+(💡 Timing: 3 minutes) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+60 402 Td
+(🎯 Goal: Set context and engage audience) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+60 382 Td
+(⚠️  Don't: Get too technical in introduction) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+60 362 Td
+(✅ Do: Use relatable examples and ask questions) Tj
+ET
+endstream
+endobj
+5 0 obj
+<<
+/Length 1693
+>>
+stream
+1 1 1 rg
+0 0 792 612 re
+f
+BT
+0 0 0 rg
+/Arial 24 Tf
+50 562 Td
+(Challenges in ML Production) Tj
+ET
+1 0 0 rg
+100 492 m
+116.56854249493 492 130 478.56854249493 130 462 c
+130 445.43145750507 116.56854249493 432 100 432 c
+83.43145750507 432 70 445.43145750507 70 462 c
+70 478.56854249493 83.43145750507 492 100 492 c
+f
+BT
+1 1 1 rg
+/Arial 14 Tf
+85 457 Td
+(1) Tj
+ET
+BT
+0 0 0 rg
+/Arial 16 Tf
+150 457 Td
+(Model Drift) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+150 432 Td
+(Performance degrades over time) Tj
+ET
+1 0.6470588235294118 0 rg
+100 392 m
+116.56854249493 392 130 378.56854249493 130 362 c
+130 345.43145750507 116.56854249493 332 100 332 c
+83.43145750507 332 70 345.43145750507 70 362 c
+70 378.56854249493 83.43145750507 392 100 392 c
+f
+BT
+1 1 1 rg
+/Arial 14 Tf
+85 357 Td
+(2) Tj
+ET
+BT
+0 0 0 rg
+/Arial 16 Tf
+150 357 Td
+(Data Pipeline Failures) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+150 332 Td
+(Upstream data quality issues) Tj
+ET
+0 0 1 rg
+100 292 m
+116.56854249493 292 130 278.56854249493 130 262 c
+130 245.43145750507 116.56854249493 232 100 232 c
+83.43145750507 232 70 245.43145750507 70 262 c
+70 278.56854249493 83.43145750507 292 100 292 c
+f
+BT
+1 1 1 rg
+/Arial 14 Tf
+85 257 Td
+(3) Tj
+ET
+BT
+0 0 0 rg
+/Arial 16 Tf
+150 257 Td
+(Scalability) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+150 232 Td
+(Handling increasing load) Tj
+ET
+q
+1 0 0 1 500 412 cm
+0.9529411764705882 0.9568627450980393 0.9647058823529412 rg
+0 0 0 RG
+0 462 200 150 re
+BBT
+0 0 0 rg
+/Arial 14 Tf
+70 582 Td
+(ML System) Tj
+ET0 1 0 rg
+20 542 160 20 re
+fBT
+0 0 0 rg
+/Arial 10 Tf
+90 547 Td
+(Training) Tj
+ET1 1 0 rg
+20 512 160 20 re
+fBT
+0 0 0 rg
+/Arial 10 Tf
+85 517 Td
+(Validation) Tj
+ET1 0 0 rg
+20 482 160 20 re
+fBT
+0 0 0 rg
+/Arial 10 Tf
+80 487 Td
+(Production) Tj
+ETQ
+endstream
+endobj
+6 0 obj
+<<
+/Length 1161
+>>
+stream
+BT
+0 0 0 rg
+/Arial 16 Tf
+50 742 Td
+(Speaker Notes - Slide 2) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+50 692 Td
+(Detailed talking points:) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+50 662 Td
+(Model Drift:) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 642 Td
+(• Real-world example: recommendation system accuracy) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 622 Td
+(• Causes: changing user behavior, seasonal patterns) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 602 Td
+(• Solutions: continuous monitoring, automatic retraining) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+50 562 Td
+(Data Pipeline Failures:) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 542 Td
+(• Story: 3am incident at previous company) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 522 Td
+(• Impact: wrong predictions for 6 hours) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 502 Td
+(• Prevention: data validation, circuit breakers) Tj
+ET
+BT
+0 0 0 rg
+/Arial 12 Tf
+50 462 Td
+(Scalability:) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 442 Td
+(• Question for audience: "Who has seen 10x traffic spikes?") Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 422 Td
+(• Technical solutions: caching, model optimization) Tj
+ET
+BT
+0 0 0 rg
+/Arial 11 Tf
+50 402 Td
+(• Architecture patterns: microservices, async processing) Tj
+ET
+endstream
+endobj
+7 0 obj
+<<
+/Type /Page
+/Parent 11 0 R
+/MediaBox [0 0 792 612]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+>>
+>>
+/Contents 3 0 R
+>>
+endobj
+8 0 obj
+<<
+/Type /Page
+/Parent 11 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+>>
+>>
+/Contents 4 0 R
+>>
+endobj
+9 0 obj
+<<
+/Type /Page
+/Parent 11 0 R
+/MediaBox [0 0 792 612]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+>>
+>>
+/Contents 5 0 R
+>>
+endobj
+10 0 obj
+<<
+/Type /Page
+/Parent 11 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+>>
+>>
+/Contents 6 0 R
+>>
+endobj
+11 0 obj
+<<
+/Type /Pages
+/Kids [7 0 R 8 0 R 9 0 R 10 0 R]
+/Count 4
+>>
+endobj
+12 0 obj
+<<
+/Title (Machine Learning in Production)
+/Author (Dr. Jane Smith)
+/Subject (Tech Conference 2024)
+/Creator (hiccup-pdf)
+/Producer (hiccup-pdf)
+>>
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000009 00000 n 
+0000000059 00000 n 
+0000000129 00000 n 
+0000000501 00000 n 
+0000001819 00000 n 
+0000003563 00000 n 
+0000004775 00000 n 
+0000004905 00000 n 
+0000005035 00000 n 
+0000005165 00000 n 
+0000005296 00000 n 
+0000005373 00000 n 
+trailer
+<<
+/Size 13
+/Root 1 0 R
+/Info 12 0 R
+>>
+startxref
+5537
+%%EOF

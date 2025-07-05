@@ -1,0 +1,127 @@
+%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 9 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+3 0 obj
+<<
+/Length 65
+>>
+stream
+BT
+0 0 0 rg
+/Arial 12 Tf
+0 792 Td
+(Uses document defaults) Tj
+ET
+endstream
+endobj
+4 0 obj
+<<
+/Length 64
+>>
+stream
+BT
+0 0 0 rg
+/Arial 12 Tf
+0 792 Td
+(Landscape orientation) Tj
+ET
+endstream
+endobj
+5 0 obj
+<<
+/Length 58
+>>
+stream
+BT
+0 0 0 rg
+/Arial 12 Tf
+0 792 Td
+(Full bleed page) Tj
+ET
+endstream
+endobj
+6 0 obj
+<<
+/Type /Page
+/Parent 9 0 R
+/MediaBox [72 72 612 792]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+>>
+>>
+/Contents 3 0 R
+>>
+endobj
+7 0 obj
+<<
+/Type /Page
+/Parent 9 0 R
+/MediaBox [72 72 842 792]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+>>
+>>
+/Contents 4 0 R
+>>
+endobj
+8 0 obj
+<<
+/Type /Page
+/Parent 9 0 R
+/MediaBox [0 0 612 792]
+/Resources <<
+/Font <<
+/Arial 2 0 R
+>>
+>>
+/Contents 5 0 R
+>>
+endobj
+9 0 obj
+<<
+/Type /Pages
+/Kids [6 0 R 7 0 R 8 0 R]
+/Count 3
+>>
+endobj
+10 0 obj
+<<
+/Creator (hiccup-pdf)
+/Producer (hiccup-pdf)
+>>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000128 00000 n 
+0000000242 00000 n 
+0000000355 00000 n 
+0000000462 00000 n 
+0000000593 00000 n 
+0000000724 00000 n 
+0000000853 00000 n 
+0000000922 00000 n 
+trailer
+<<
+/Size 11
+/Root 1 0 R
+/Info 10 0 R
+>>
+startxref
+989
+%%EOF
