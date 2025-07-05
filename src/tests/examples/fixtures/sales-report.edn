@@ -1,0 +1,47 @@
+[:document {:title "Q4 2024 Sales Report"
+            :author "Sales Department"
+            :subject "Quarterly performance analysis"}
+ ;; Executive summary page
+ [:page {}
+  [:text {:x 50 :y 50 :font "Arial" :size 20} "Q4 2024 Sales Report"]
+  [:text {:x 50 :y 100 :font "Arial" :size 14} "Executive Summary"]
+  [:text {:x 50 :y 130 :font "Arial" :size 12} "• Total Revenue: $4.2M (+15% YoY)"]
+  [:text {:x 50 :y 150 :font "Arial" :size 12} "• New Customers: 1,247 (+22% YoY)"]
+  [:text {:x 50 :y 170 :font "Arial" :size 12} "• Customer Retention: 94.3%"]
+  
+  ;; Revenue chart (simplified)
+  [:rect {:x 50 :y 220 :width 400 :height 200 :stroke "#000000" :stroke-width 2}]
+  [:text {:x 225 :y 210 :font "Arial" :size 12} "Quarterly Revenue"]
+  [:rect {:x 80 :y 350 :width 40 :height 50 :fill "#0000ff"}]
+  [:rect {:x 150 :y 330 :width 40 :height 70 :fill "#0000ff"}]
+  [:rect {:x 220 :y 320 :width 40 :height 80 :fill "#0000ff"}]
+  [:rect {:x 290 :y 300 :width 40 :height 100 :fill "#0000ff"}]
+  [:text {:x 95 :y 470 :font "Arial" :size 10} "Q1"]
+  [:text {:x 165 :y 470 :font "Arial" :size 10} "Q2"]
+  [:text {:x 235 :y 470 :font "Arial" :size 10} "Q3"]
+  [:text {:x 305 :y 470 :font "Arial" :size 10} "Q4"]]
+ 
+ ;; Detailed metrics page
+ [:page {}
+  [:text {:x 50 :y 50 :font "Arial" :size 16} "Detailed Metrics"]
+  
+  ;; Customer acquisition table
+  [:text {:x 50 :y 100 :font "Arial" :size 14} "Customer Acquisition"]
+  [:rect {:x 50 :y 120 :width 300 :height 120 :stroke "#000000"}]
+  [:text {:x 60 :y 140 :font "Arial" :size 11} "Channel"]
+  [:text {:x 200 :y 140 :font "Arial" :size 11} "Customers"]
+  [:text {:x 60 :y 160 :font "Arial" :size 11} "Direct Sales"]
+  [:text {:x 220 :y 160 :font "Arial" :size 11} "456"]
+  [:text {:x 60 :y 180 :font "Arial" :size 11} "Online"]
+  [:text {:x 220 :y 180 :font "Arial" :size 11} "623"]
+  [:text {:x 60 :y 200 :font "Arial" :size 11} "Referrals"]
+  [:text {:x 220 :y 200 :font "Arial" :size 11} "168"]
+  
+  ;; Regional performance
+  [:text {:x 50 :y 280 :font "Arial" :size 14} "Regional Performance"]
+  [:circle {:cx 150 :cy 350 :r 60 :fill "#00ff00"}]
+  [:text {:x 130 :y 355 :font "Arial" :size 10} "North"]
+  [:circle {:cx 300 :cy 350 :r 45 :fill "#ffff00"}]
+  [:text {:x 285 :y 355 :font "Arial" :size 10} "South"]
+  [:circle {:cx 450 :cy 350 :r 50 :fill "#0000ff"}]
+  [:text {:x 435 :y 355 :font "Arial" :size 10} "West"]]]

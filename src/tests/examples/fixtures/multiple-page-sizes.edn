@@ -1,0 +1,15 @@
+[:document {:title "Mixed Format Document"}
+ ;; Standard letter page
+ [:page {:width 612 :height 792}
+  [:text {:x 50 :y 50 :font "Arial" :size 16} "Letter Size Page"]
+  [:rect {:x 50 :y 100 :width 512 :height 592 :stroke "#000000"}]]
+ 
+ ;; A4 portrait page
+ [:page {:width 595 :height 842}
+  [:text {:x 50 :y 50 :font "Arial" :size 16} "A4 Portrait Page"]
+  [:circle {:cx 297 :cy 421 :r 200 :stroke "#0000ff" :stroke-width 2}]]
+ 
+ ;; Custom landscape page
+ [:page {:width 800 :height 600}
+  [:text {:x 50 :y 50 :font "Arial" :size 16} "Custom Landscape Page"]
+  [:line {:x1 50 :y1 100 :x2 750 :y2 100 :stroke "#ff0000" :stroke-width 3}]]]

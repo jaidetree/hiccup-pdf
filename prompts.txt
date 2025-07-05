@@ -1,0 +1,11 @@
+Create a test script targeting nbb in src/tests/examples/run.cljs.
+- It should read EDN files containing hiccup trees specifying PDF documents from the relative fixtures folder
+- Extract all examples from @docs/examples.md and save them in the fixtures folder kebab cased. Each should define the document element, at least one page element, and their respective drawing elements.
+- It should define a namespace and a -main function so it can be invoked like `nbb -m tests.examples/run.cljs`
+- For each edn file in the fixtures folder it will perform a document transformation using the edn fixture as the input
+- Each transformed document should get saved to the out folder for manual inspection
+- The main function should take optional arguments specifying edn files to transform into docs for example `nbb -m tests.examples.run abc def` should transform only fixtures/abc.edn and fixtures/def.edn.
+- Add the out directory to .gitignore
+- Use the scripts/pdf2svg to validate the output pdf files.
+- The project is done when all example files
+- Commit changes when verified that it works

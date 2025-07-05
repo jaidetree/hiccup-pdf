@@ -1,2 +1,2 @@
-{:paths ["src/main" "src/test" "scripts"]
+{:paths ["src/main" "src/test" "src/tests" "scripts"]
  :deps {dev.jaide/hiccup-pdf {:local/root "."}}}

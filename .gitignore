@@ -6,3 +6,4 @@
 build/
 target
 .nrepl-port
+src/tests/examples/out/

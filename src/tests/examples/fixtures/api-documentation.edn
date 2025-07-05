@@ -1,0 +1,63 @@
+[:document {:title "API Reference Guide"
+            :author "Development Team"
+            :subject "REST API Documentation"}
+ ;; Title page
+ [:page {}
+  [:text {:x 200 :y 100 :font "Arial" :size 28} "API Reference"]
+  [:text {:x 250 :y 150 :font "Arial" :size 16} "Version 2.0"]
+  [:text {:x 225 :y 200 :font "Arial" :size 12} "Development Team"]
+  [:text {:x 240 :y 220 :font "Arial" :size 12} "March 2024"]
+  
+  ;; Decorative elements
+  [:rect {:x 100 :y 80 :width 400 :height 200 :stroke "#0000ff" :stroke-width 3}]
+  [:circle {:cx 300 :cy 350 :r 100 :stroke "#0000ff" :stroke-width 2}]]
+ 
+ ;; Endpoints page
+ [:page {}
+  [:text {:x 50 :y 50 :font "Arial" :size 20} "Endpoints"]
+  
+  ;; GET endpoint
+  [:rect {:x 50 :y 100 :width 500 :height 80 :fill "#f8f9fa" :stroke "#000000"}]
+  [:rect {:x 60 :y 110 :width 40 :height 20 :fill "#00ff00"}]
+  [:text {:x 70 :y 125 :font "Courier" :size 10} "GET"]
+  [:text {:x 120 :y 125 :font "Courier" :size 12} "/api/users"]
+  [:text {:x 60 :y 145 :font "Arial" :size 11} "Retrieve all users"]
+  [:text {:x 60 :y 165 :font "Arial" :size 10} "Returns: Array of user objects"]
+  
+  ;; POST endpoint
+  [:rect {:x 50 :y 200 :width 500 :height 80 :fill "#f8f9fa" :stroke "#000000"}]
+  [:rect {:x 60 :y 210 :width 50 :height 20 :fill "#0000ff"}]
+  [:text {:x 70 :y 225 :font "Courier" :size 10} "POST"]
+  [:text {:x 120 :y 225 :font "Courier" :size 12} "/api/users"]
+  [:text {:x 60 :y 245 :font "Arial" :size 11} "Create a new user"]
+  [:text {:x 60 :y 265 :font "Arial" :size 10} "Body: User object | Returns: Created user"]
+  
+  ;; Code example
+  [:text {:x 50 :y 320 :font "Arial" :size 14} "Example Request"]
+  [:rect {:x 50 :y 340 :width 500 :height 100 :fill "#2d3748" :stroke "#000000"}]
+  [:text {:x 60 :y 360 :font "Courier" :size 10 :fill "#ffffff"} "curl -X POST https://api.example.com/users \\"]
+  [:text {:x 60 :y 380 :font "Courier" :size 10 :fill "#ffffff"} "  -H \"Content-Type: application/json\" \\"]
+  [:text {:x 60 :y 400 :font "Courier" :size 10 :fill "#ffffff"} "  -d '{\"name\": \"John Doe\", \"email\": \"john@example.com\"}'"]
+  [:text {:x 60 :y 420 :font "Courier" :size 10 :fill "#ffffff"} ""]]
+ 
+ ;; Response formats page
+ [:page {}
+  [:text {:x 50 :y 50 :font "Arial" :size 20} "Response Formats"]
+  
+  ;; Success response
+  [:text {:x 50 :y 100 :font "Arial" :size 14} "Success Response (200 OK)"]
+  [:rect {:x 50 :y 120 :width 500 :height 80 :fill "#f0fff4" :stroke "#00ff00"}]
+  [:text {:x 60 :y 140 :font "Courier" :size 10} "{"]
+  [:text {:x 70 :y 155 :font "Courier" :size 10} "  \"status\": \"success\","]
+  [:text {:x 70 :y 170 :font "Courier" :size 10} "  \"data\": { ... },"]
+  [:text {:x 70 :y 185 :font "Courier" :size 10} "  \"message\": \"Operation completed\""]
+  [:text {:x 60 :y 195 :font "Courier" :size 10} "}"]
+  
+  ;; Error response
+  [:text {:x 50 :y 230 :font "Arial" :size 14} "Error Response (400+ status)"]
+  [:rect {:x 50 :y 250 :width 500 :height 80 :fill "#fff5f5" :stroke "#ff0000"}]
+  [:text {:x 60 :y 270 :font "Courier" :size 10} "{"]
+  [:text {:x 70 :y 285 :font "Courier" :size 10} "  \"status\": \"error\","]
+  [:text {:x 70 :y 300 :font "Courier" :size 10} "  \"error\": \"Validation failed\","]
+  [:text {:x 70 :y 315 :font "Courier" :size 10} "  \"details\": [ ... ]"]
+  [:text {:x 60 :y 325 :font "Courier" :size 10} "}"]]]

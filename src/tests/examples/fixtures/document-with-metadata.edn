@@ -1,0 +1,9 @@
+[:document {:title "Technical Report"
+            :author "Engineering Team"
+            :subject "System Performance Analysis"
+            :keywords "performance, analysis, metrics"
+            :creator "hiccup-pdf v1.0"
+            :producer "Company Analytics"}
+ [:page {}
+  [:text {:x 50 :y 50 :font "Arial" :size 16} "Technical Report"]
+  [:text {:x 50 :y 100 :font "Arial" :size 12} "Generated with hiccup-pdf"]]]

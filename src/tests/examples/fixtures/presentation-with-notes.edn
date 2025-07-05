@@ -1,0 +1,84 @@
+[:document {:title "Machine Learning in Production"
+            :author "Dr. Jane Smith"
+            :subject "Tech Conference 2024"}
+ ;; Slide 1 - Title slide (16:9 aspect ratio)
+ [:page {:width 792 :height 612}
+  [:rect {:x 0 :y 0 :width 792 :height 612 :fill "#1e3a8a"}]
+  [:text {:x 200 :y 200 :font "Arial" :size 36 :fill "#ffffff"} "Machine Learning"]
+  [:text {:x 240 :y 250 :font "Arial" :size 36 :fill "#ffffff"} "in Production"]
+  [:text {:x 300 :y 350 :font "Arial" :size 18 :fill "#ffffff"} "Dr. Jane Smith"]
+  [:text {:x 280 :y 380 :font "Arial" :size 14 :fill "#ffffff"} "Tech Conference 2024"]]
+ 
+ ;; Speaker notes for slide 1 (standard letter)
+ [:page {:width 612 :height 792}
+  [:text {:x 50 :y 50 :font "Arial" :size 16} "Speaker Notes - Slide 1"]
+  [:text {:x 50 :y 100 :font "Arial" :size 12} "Introduction points:"]
+  [:text {:x 50 :y 130 :font "Arial" :size 11} "• Welcome audience and introduce topic"]
+  [:text {:x 50 :y 150 :font "Arial" :size 11} "• Brief overview of ML challenges in production"]
+  [:text {:x 50 :y 170 :font "Arial" :size 11} "• Agenda: models, monitoring, scaling, best practices"]
+  [:text {:x 50 :y 190 :font "Arial" :size 11} "• Personal experience: 5 years ML engineering"]
+  
+  [:text {:x 50 :y 240 :font "Arial" :size 12} "Key statistics to mention:"]
+  [:text {:x 50 :y 270 :font "Arial" :size 11} "• 85% of ML models never make it to production"]
+  [:text {:x 50 :y 290 :font "Arial" :size 11} "• Average time from model to production: 8 months"]
+  [:text {:x 50 :y 310 :font "Arial" :size 11} "• 60% of companies struggle with model monitoring"]
+  
+  [:rect {:x 50 :y 350 :width 500 :height 100 :fill "#fef3c7" :stroke "#ffa500"}]
+  [:text {:x 60 :y 370 :font "Arial" :size 11} "💡 Timing: 3 minutes"]
+  [:text {:x 60 :y 390 :font "Arial" :size 11} "🎯 Goal: Set context and engage audience"]
+  [:text {:x 60 :y 410 :font "Arial" :size 11} "⚠️  Don't: Get too technical in introduction"]
+  [:text {:x 60 :y 430 :font "Arial" :size 11} "✅ Do: Use relatable examples and ask questions"]]
+ 
+ ;; Slide 2 - Content slide
+ [:page {:width 792 :height 612}
+  [:rect {:x 0 :y 0 :width 792 :height 612 :fill "#ffffff"}]
+  [:text {:x 50 :y 50 :font "Arial" :size 24} "Challenges in ML Production"]
+  
+  ;; Challenge 1
+  [:circle {:cx 100 :cy 150 :r 30 :fill "#ff0000"}]
+  [:text {:x 85 :y 155 :font "Arial" :size 14 :fill "#ffffff"} "1"]
+  [:text {:x 150 :y 155 :font "Arial" :size 16} "Model Drift"]
+  [:text {:x 150 :y 180 :font "Arial" :size 12} "Performance degrades over time"]
+  
+  ;; Challenge 2
+  [:circle {:cx 100 :cy 250 :r 30 :fill "#ffa500"}]
+  [:text {:x 85 :y 255 :font "Arial" :size 14 :fill "#ffffff"} "2"]
+  [:text {:x 150 :y 255 :font "Arial" :size 16} "Data Pipeline Failures"]
+  [:text {:x 150 :y 280 :font "Arial" :size 12} "Upstream data quality issues"]
+  
+  ;; Challenge 3
+  [:circle {:cx 100 :cy 350 :r 30 :fill "#0000ff"}]
+  [:text {:x 85 :y 355 :font "Arial" :size 14 :fill "#ffffff"} "3"]
+  [:text {:x 150 :y 355 :font "Arial" :size 16} "Scalability"]
+  [:text {:x 150 :y 380 :font "Arial" :size 12} "Handling increasing load"]
+  
+  ;; Visual element
+  [:g {:transforms [[:translate [500 200]]]}
+   [:rect {:x 0 :y 0 :width 200 :height 150 :fill "#f3f4f6" :stroke "#000000"}]
+   [:text {:x 70 :y 30 :font "Arial" :size 14} "ML System"]
+   [:rect {:x 20 :y 50 :width 160 :height 20 :fill "#00ff00"}]
+   [:text {:x 90 :y 65 :font "Arial" :size 10} "Training"]
+   [:rect {:x 20 :y 80 :width 160 :height 20 :fill "#ffff00"}]
+   [:text {:x 85 :y 95 :font "Arial" :size 10} "Validation"]
+   [:rect {:x 20 :y 110 :width 160 :height 20 :fill "#ff0000"}]
+   [:text {:x 80 :y 125 :font "Arial" :size 10} "Production"]]]
+ 
+ ;; Speaker notes for slide 2
+ [:page {:width 612 :height 792}
+  [:text {:x 50 :y 50 :font "Arial" :size 16} "Speaker Notes - Slide 2"]
+  [:text {:x 50 :y 100 :font "Arial" :size 12} "Detailed talking points:"]
+  
+  [:text {:x 50 :y 130 :font "Arial" :size 12} "Model Drift:"]
+  [:text {:x 50 :y 150 :font "Arial" :size 11} "• Real-world example: recommendation system accuracy"]
+  [:text {:x 50 :y 170 :font "Arial" :size 11} "• Causes: changing user behavior, seasonal patterns"]
+  [:text {:x 50 :y 190 :font "Arial" :size 11} "• Solutions: continuous monitoring, automatic retraining"]
+  
+  [:text {:x 50 :y 230 :font "Arial" :size 12} "Data Pipeline Failures:"]
+  [:text {:x 50 :y 250 :font "Arial" :size 11} "• Story: 3am incident at previous company"]
+  [:text {:x 50 :y 270 :font "Arial" :size 11} "• Impact: wrong predictions for 6 hours"]
+  [:text {:x 50 :y 290 :font "Arial" :size 11} "• Prevention: data validation, circuit breakers"]
+  
+  [:text {:x 50 :y 330 :font "Arial" :size 12} "Scalability:"]
+  [:text {:x 50 :y 350 :font "Arial" :size 11} "• Question for audience: \"Who has seen 10x traffic spikes?\""]
+  [:text {:x 50 :y 370 :font "Arial" :size 11} "• Technical solutions: caching, model optimization"]
+  [:text {:x 50 :y 390 :font "Arial" :size 11} "• Architecture patterns: microservices, async processing"]]]

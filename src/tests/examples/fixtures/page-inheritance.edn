@@ -1,0 +1,12 @@
+[:document {:width 612 :height 792 :margins [72 72 72 72]}
+ ;; Inherits all document settings
+ [:page {}
+  [:text {:x 0 :y 0 :font "Arial" :size 12} "Uses document defaults"]]
+ 
+ ;; Override just the width
+ [:page {:width 842}
+  [:text {:x 0 :y 0 :font "Arial" :size 12} "Landscape orientation"]]
+ 
+ ;; Override margins only
+ [:page {:margins [0 0 0 0]}
+  [:text {:x 0 :y 0 :font "Arial" :size 12} "Full bleed page"]]]

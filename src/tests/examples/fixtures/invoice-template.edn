@@ -1,0 +1,41 @@
+[:document {:title "Invoice #INV-2024-001"
+            :author "ABC Company"
+            :subject "Invoice for services rendered"}
+ [:page {}
+  ;; Header
+  [:text {:x 50 :y 50 :font "Arial" :size 24} "INVOICE"]
+  [:text {:x 400 :y 50 :font "Arial" :size 12} "Invoice #INV-2024-001"]
+  [:text {:x 400 :y 70 :font "Arial" :size 12} "Date: March 15, 2024"]
+  
+  ;; Company info
+  [:text {:x 50 :y 100 :font "Arial" :size 14} "ABC Company"]
+  [:text {:x 50 :y 120 :font "Arial" :size 12} "123 Business St"]
+  [:text {:x 50 :y 140 :font "Arial" :size 12} "City, ST 12345"]
+  
+  ;; Client info
+  [:text {:x 350 :y 100 :font "Arial" :size 14} "Bill To:"]
+  [:text {:x 350 :y 120 :font "Arial" :size 12} "XYZ Corporation"]
+  [:text {:x 350 :y 140 :font "Arial" :size 12} "456 Client Ave"]
+  [:text {:x 350 :y 160 :font "Arial" :size 12} "Town, ST 67890"]
+  
+  ;; Table header
+  [:rect {:x 50 :y 200 :width 500 :height 30 :fill "#f0f0f0" :stroke "#000000"}]
+  [:text {:x 60 :y 220 :font "Arial" :size 12} "Description"]
+  [:text {:x 350 :y 220 :font "Arial" :size 12} "Quantity"]
+  [:text {:x 450 :y 220 :font "Arial" :size 12} "Rate"]
+  [:text {:x 500 :y 220 :font "Arial" :size 12} "Amount"]
+  
+  ;; Table rows
+  [:rect {:x 50 :y 230 :width 500 :height 25 :stroke "#000000"}]
+  [:text {:x 60 :y 250 :font "Arial" :size 11} "Web Development Services"]
+  [:text {:x 370 :y 250 :font "Arial" :size 11} "1"]
+  [:text {:x 450 :y 250 :font "Arial" :size 11} "$2,500"]
+  [:text {:x 500 :y 250 :font "Arial" :size 11} "$2,500"]
+  
+  ;; Total
+  [:rect {:x 400 :y 280 :width 150 :height 25 :fill "#e6f3ff" :stroke "#000000"}]
+  [:text {:x 410 :y 300 :font "Arial" :size 12} "Total: $2,500.00"]
+  
+  ;; Footer
+  [:text {:x 50 :y 350 :font "Arial" :size 10} "Thank you for your business!"]
+  [:text {:x 50 :y 370 :font "Arial" :size 10} "Payment due within 30 days."]]]
