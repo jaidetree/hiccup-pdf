@@ -596,4 +596,282 @@
     (let [cache (images/create-image-cache)]
       ;; Should handle nil gracefully
       (is (nil? (images/cache-get cache nil)))
-      (is (= 1 (:misses (:stats @cache))))))))
+      (is (= 1 (:misses (:stats @cache))))))
+
+;; Error Handling and Fallback Strategy Tests
+
+(deftest test-validate-image-data
+  (testing "Valid PNG image data"
+    (let [mock-buffer (js/Buffer.alloc 1000)]
+      ;; Write PNG signature
+      (.writeUInt32BE mock-buffer 0x89504E47 0)
+      (.writeUInt32BE mock-buffer 0x0D0A1A0A 4)
+      
+      (let [image-data {:buffer mock-buffer :width 72 :height 72 :filename "test.png"}
+            result (images/validate-image-data image-data)]
+        (is (:valid? result))
+        (is (empty? (:errors result)))
+        (is (= 1000 (get-in result [:info :size])))
+        (is (= "PNG" (get-in result [:info :format]))))))
+  
+  (testing "Invalid PNG signature"
+    (let [mock-buffer (js/Buffer.from "not a png file")
+          image-data {:buffer mock-buffer :width 72 :height 72}
+          result (images/validate-image-data image-data)]
+      (is (not (:valid? result)))
+      (is (some #(clojure.string/includes? % "Invalid PNG signature") (:errors result)))))
+  
+  (testing "Missing buffer"
+    (let [image-data {:width 72 :height 72}
+          result (images/validate-image-data image-data)]
+      (is (not (:valid? result)))
+      (is (some #(clojure.string/includes? % "Missing image buffer") (:errors result)))))
+  
+  (testing "Buffer too small"
+    (let [small-buffer (js/Buffer.alloc 50)
+          image-data {:buffer small-buffer :width 72 :height 72}
+          result (images/validate-image-data image-data)]
+      (is (not (:valid? result)))
+      (is (some #(clojure.string/includes? % "too small") (:errors result)))))
+  
+  (testing "Validation warnings"
+    (let [mock-buffer (js/Buffer.alloc (* 2 1024 1024))]  ; 2MB
+      ;; Write PNG signature
+      (.writeUInt32BE mock-buffer 0x89504E47 0)
+      (.writeUInt32BE mock-buffer 0x0D0A1A0A 4)
+      
+      (let [image-data {:buffer mock-buffer :width 128 :height 64 :filename "large.png"}  ; Non-square, non-standard size
+            result (images/validate-image-data image-data)]
+        (is (:valid? result))
+        (is (>= (count (:warnings result)) 2))  ; Should have warnings for size and dimensions
+        (is (some #(clojure.string/includes? % "Large image") (:warnings result)))
+        (is (some #(clojure.string/includes? % "Non-square") (:warnings result)))))))
+
+(deftest test-fallback-strategies
+  (testing "Hex string fallback"
+    (let [result (images/fallback-to-hex "💡")]
+      (is (= :hex-string (:type result)))
+      (is (:success result))
+      (is (string? (:content result)))
+      (is (.startsWith (:content result) "<"))
+      (is (.endsWith (:content result) ">"))
+      (is (contains? result :fallback-reason))))
+  
+  (testing "Placeholder fallback"
+    (let [result (images/fallback-to-placeholder "💡")]
+      (is (= :placeholder (:type result)))
+      (is (:success result))
+      (is (= "[💡]" (:content result)))
+      (is (contains? result :fallback-reason))))
+  
+  (testing "Skip fallback"
+    (let [result (images/fallback-to-skip "💡")]
+      (is (= :skip (:type result)))
+      (is (:success result))
+      (is (= "" (:content result)))
+      (is (contains? result :fallback-reason))))
+  
+  (testing "Hex encoding for different emoji"
+    (let [result-lightbulb (images/fallback-to-hex "💡")
+          result-target (images/fallback-to-hex "🎯")]
+      (is (not= (:content result-lightbulb) (:content result-target)))
+      (is (every? #(.startsWith (:content %) "<") [result-lightbulb result-target]))
+      (is (every? #(.endsWith (:content %) ">") [result-lightbulb result-target]))))
+  
+  (testing "Hex encoding for ASCII text"
+    (let [result (images/fallback-to-hex "ABC")]
+      (is (= :hex-string (:type result)))
+      (is (string? (:content result)))
+      ;; Should encode ASCII characters properly
+      (is (.includes (:content result) "41"))  ; 'A' = 0x41
+      (is (.includes (:content result) "42"))  ; 'B' = 0x42
+      (is (.includes (:content result) "43")))))  ; 'C' = 0x43
+
+(deftest test-handle-image-error
+  (testing "Hex string error handling"
+    (let [result (images/handle-image-error "💡" "Test error" :hex-string {:logging? false})]
+      (is (= :hex-string (:type result)))
+      (is (:success result))
+      (is (contains? result :fallback-reason))))
+  
+  (testing "Placeholder error handling"
+    (let [result (images/handle-image-error "💡" "Test error" :placeholder {:logging? false})]
+      (is (= :placeholder (:type result)))
+      (is (:success result))
+      (is (= "[💡]" (:content result)))))
+  
+  (testing "Skip error handling"
+    (let [result (images/handle-image-error "💡" "Test error" :skip {:logging? false})]
+      (is (= :skip (:type result)))
+      (is (:success result))
+      (is (= "" (:content result)))))
+  
+  (testing "Error strategy throws exception"
+    (is (thrown? js/Error
+                 (images/handle-image-error "💡" "Test error" :error {:logging? false}))))
+  
+  (testing "Invalid strategy throws exception"
+    (is (thrown? js/Error
+                 (images/handle-image-error "💡" "Test error" :invalid {:logging? false}))))
+  
+  (testing "Error message variations"
+    (let [result1 (images/handle-image-error "💡" "String error" :placeholder {:logging? false})
+          result2 (images/handle-image-error "💡" {:error "Map error"} :placeholder {:logging? false})]
+      (is (:success result1))
+      (is (:success result2)))))
+
+(deftest test-emoji-image-with-fallback
+  (testing "Successful image loading"
+    (let [cache (images/create-image-cache)
+          result (images/emoji-image-with-fallback cache "💡" {:logging? false})]
+      (is (:success result))
+      (is (= :image (:type result)))
+      (is (contains? result :buffer))))
+  
+  (testing "Failed loading with hex fallback"
+    (let [cache (images/create-image-cache)
+          result (images/emoji-image-with-fallback cache "nonexistent" {:fallback-strategy :hex-string :logging? false})]
+      (is (:success result))
+      (is (= :hex-string (:type result)))
+      (is (contains? result :content))
+      (is (contains? result :fallback-reason))))
+  
+  (testing "Failed loading with placeholder fallback"
+    (let [cache (images/create-image-cache)
+          result (images/emoji-image-with-fallback cache "nonexistent" {:fallback-strategy :placeholder :logging? false})]
+      (is (:success result))
+      (is (= :placeholder (:type result)))
+      (is (= "[nonexistent]" (:content result)))))
+  
+  (testing "Failed loading with skip fallback"
+    (let [cache (images/create-image-cache)
+          result (images/emoji-image-with-fallback cache "nonexistent" {:fallback-strategy :skip :logging? false})]
+      (is (:success result))
+      (is (= :skip (:type result)))
+      (is (= "" (:content result)))))
+  
+  (testing "Failed loading with error strategy"
+    (let [cache (images/create-image-cache)]
+      (is (thrown? js/Error
+                   (images/emoji-image-with-fallback cache "nonexistent" {:fallback-strategy :error :logging? false})))))
+  
+  (testing "Loading without cache"
+    (let [result (images/emoji-image-with-fallback nil "💡" {:logging? false})]
+      (is (:success result))
+      (is (= :image (:type result)))))
+  
+  (testing "Validation disabled"
+    (let [cache (images/create-image-cache)
+          result (images/emoji-image-with-fallback cache "💡" {:validation? false :logging? false})]
+      (is (:success result))
+      (is (= :image (:type result)))))
+  
+  (testing "Default options"
+    (let [cache (images/create-image-cache)
+          result (images/emoji-image-with-fallback cache "💡")]
+      (is (:success result))
+      (is (= :image (:type result))))))
+
+(deftest test-batch-load-with-fallback
+  (testing "Batch loading with mixed success/failure"
+    (let [cache (images/create-image-cache)
+          emoji-list ["💡" "🎯" "nonexistent1" "nonexistent2"]
+          results (images/batch-load-with-fallback cache emoji-list {:fallback-strategy :placeholder :logging? false})]
+      
+      ;; Should have result for each emoji
+      (is (= 4 (count results)))
+      (is (every? #(contains? results %) emoji-list))
+      
+      ;; Check successful loads
+      (let [lightbulb-result (get results "💡")
+            target-result (get results "🎯")]
+        (is (= :image (:type lightbulb-result)))
+        (is (= :image (:type target-result)))
+        (is (:success lightbulb-result))
+        (is (:success target-result)))
+      
+      ;; Check fallback results
+      (let [nonexistent1-result (get results "nonexistent1")
+            nonexistent2-result (get results "nonexistent2")]
+        (is (= :placeholder (:type nonexistent1-result)))
+        (is (= :placeholder (:type nonexistent2-result)))
+        (is (= "[nonexistent1]" (:content nonexistent1-result)))
+        (is (= "[nonexistent2]" (:content nonexistent2-result))))))
+  
+  (testing "Batch loading with all successes"
+    (let [cache (images/create-image-cache)
+          emoji-list ["💡" "🎯" "✅"]
+          results (images/batch-load-with-fallback cache emoji-list {:logging? false})]
+      
+      (is (= 3 (count results)))
+      (is (every? #(= :image (:type (get results %))) emoji-list))
+      (is (every? #(:success (get results %)) emoji-list))))
+  
+  (testing "Empty emoji list"
+    (let [cache (images/create-image-cache)
+          results (images/batch-load-with-fallback cache [] {:logging? false})]
+      (is (= 0 (count results))))))
+
+(deftest test-fallback-performance-info
+  (testing "Performance information structure"
+    (let [perf-info (images/fallback-performance-info)]
+      (is (map? perf-info))
+      (is (contains? perf-info :hex-string))
+      (is (contains? perf-info :placeholder))
+      (is (contains? perf-info :skip))
+      (is (contains? perf-info :error))
+      
+      ;; Check each strategy has required fields
+      (doseq [strategy [:hex-string :placeholder :skip :error]]
+        (let [strategy-info (get perf-info strategy)]
+          (is (contains? strategy-info :speed))
+          (is (contains? strategy-info :compatibility))
+          (is (contains? strategy-info :pdf-size-impact))
+          (is (contains? strategy-info :description))
+          (is (string? (:description strategy-info))))))))
+
+(deftest test-error-handling-integration
+  (testing "Error handling with cache integration"
+    (let [cache (images/create-image-cache {:max-size 2})]
+      ;; Load successful emoji first
+      (let [success-result (images/emoji-image-with-fallback cache "💡" {:logging? false})]
+        (is (= :image (:type success-result))))
+      
+      ;; Then try failed emoji
+      (let [fail-result (images/emoji-image-with-fallback cache "nonexistent" {:fallback-strategy :hex-string :logging? false})]
+        (is (= :hex-string (:type fail-result))))
+      
+      ;; Cache should only contain successful load
+      (is (= 1 (count (:items @cache))))))
+  
+  (testing "Performance comparison: success vs fallback"
+    (let [cache (images/create-image-cache)]
+      ;; Time successful load
+      (let [start-success (.now js/Date)
+            _ (images/emoji-image-with-fallback cache "💡" {:logging? false})
+            end-success (.now js/Date)
+            success-time (- end-success start-success)]
+        
+        ;; Time fallback load
+        (let [start-fallback (.now js/Date)
+              _ (images/emoji-image-with-fallback cache "nonexistent" {:fallback-strategy :hex-string :logging? false})
+              end-fallback (.now js/Date)
+              fallback-time (- end-fallback start-fallback)]
+          
+          ;; Both should complete reasonably quickly
+          (is (< success-time 100))   ; Should be fast
+          (is (< fallback-time 50))   ; Fallback should be even faster
+          (is (>= success-time 0))    ; Sanity check
+          (is (>= fallback-time 0)))))) ; Sanity check
+  
+  (testing "Memory cleanup after errors"
+    (let [cache (images/create-image-cache {:max-size 10})
+          initial-memory (:memory-usage (:stats @cache))]
+      
+      ;; Try loading multiple non-existent emoji
+      (doseq [i (range 5)]
+        (images/emoji-image-with-fallback cache (str "nonexistent" i) {:fallback-strategy :skip :logging? false}))
+      
+      ;; Memory usage should not increase (failed loads not cached)
+      (is (= initial-memory (:memory-usage (:stats @cache))))
+      (is (= 0 (count (:items @cache)))))))))

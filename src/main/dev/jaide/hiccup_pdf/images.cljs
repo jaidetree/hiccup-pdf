@@ -404,3 +404,305 @@
           file-result)
         ;; Failed to load from file system
         file-result))))
+
+;; Error Handling and Fallback Strategies
+
+(def ^:private fallback-strategies
+  "Available fallback strategies for emoji image loading failures"
+  #{:hex-string :placeholder :skip :error})
+
+(defn validate-image-data
+  "Enhanced PNG data validation for loaded images.
+  
+  Performs comprehensive checks on loaded PNG data including file signature,
+  size constraints, and basic integrity validation.
+  
+  Args:
+    image-data: Map with :buffer, :width, :height, :filename
+    
+  Returns:
+    Map with validation results:
+    {:valid? boolean :errors [error-strings] :warnings [warning-strings] :info map}"
+  [image-data]
+  (let [buffer (:buffer image-data)
+        errors []
+        warnings []
+        info {}]
+    (try
+      (cond
+        ;; No buffer provided
+        (not buffer)
+        {:valid? false 
+         :errors ["Missing image buffer data"]
+         :warnings warnings
+         :info info}
+        
+        ;; Buffer too small
+        (< (.-length buffer) 100)
+        {:valid? false
+         :errors ["Image data too small to be valid PNG"]
+         :warnings warnings
+         :info (assoc info :size (.-length buffer))}
+        
+        ;; Check PNG signature
+        (not (and (>= (.-length buffer) 8)
+                  (= (.readUInt32BE buffer 0) 0x89504E47)
+                  (= (.readUInt32BE buffer 4) 0x0D0A1A0A)))
+        {:valid? false
+         :errors ["Invalid PNG file signature"]
+         :warnings warnings
+         :info (assoc info :size (.-length buffer) :format "unknown")}
+        
+        ;; Basic validation passed
+        :else
+        (let [size (.-length buffer)
+              warnings (cond-> warnings
+                         (> size (* 1024 1024)) (conj "Large image file (>1MB) may impact performance")
+                         (not= (:width image-data) (:height image-data)) (conj "Non-square image may not display correctly")
+                         (not= (:width image-data) 72) (conj "Non-standard size (expected 72x72)"))]
+          {:valid? true
+           :errors []
+           :warnings warnings
+           :info (assoc info :size size :format "PNG" :dimensions [(:width image-data) (:height image-data)])}))
+      
+      (catch js/Error e
+        {:valid? false 
+         :errors [(str "Validation error: " (.-message e))]
+         :warnings warnings
+         :info info}))))
+
+(defn ^:private simple-hex-encode
+  "Simple hex encoding for emoji characters to avoid circular dependencies.
+  
+  Args:
+    text: String to encode
+    
+  Returns:
+    String with hex encoding format"
+  [text]
+  (if (empty? text)
+    "()"
+    ;; Use simple hex encoding for Unicode characters
+    (let [hex-bytes (loop [i 0
+                           bytes []]
+                      (if (>= i (count text))
+                        bytes
+                        (let [code (.charCodeAt text i)]
+                          (cond
+                            ;; Handle surrogate pairs for emoji
+                            (and (>= code 55296) (<= code 56319) ; High surrogate
+                                 (< (+ i 1) (count text)))
+                            (let [low-surrogate (.charCodeAt text (+ i 1))]
+                              (if (and (>= low-surrogate 56320) (<= low-surrogate 57343)) ; Low surrogate
+                                ;; Valid surrogate pair - use mapping for specific emoji
+                                (let [emoji-mapping (cond
+                                                      ;; Lightbulb emoji 💡
+                                                      (and (= code 55357) (= low-surrogate 56481)) [61 161]
+                                                      ;; Target emoji 🎯  
+                                                      (and (= code 55356) (= low-surrogate 57263)) [60 175]
+                                                      ;; Check mark ✅
+                                                      (and (= code 55357) (= low-surrogate 56581)) [39 5]
+                                                      ;; Warning ⚠
+                                                      (= code 9888) [38 160]
+                                                      ;; Default fallback
+                                                      :else [63 63])]
+                                  (recur (+ i 2) (concat bytes emoji-mapping)))
+                                (recur (+ i 1) (concat bytes [63]))))
+                            
+                            ;; Single character Unicode
+                            (> code 127)
+                            (recur (+ i 1) (concat bytes [(bit-shift-right code 8) (bit-and code 255)]))
+                            
+                            ;; ASCII character
+                            :else
+                            (recur (+ i 1) (concat bytes [code]))))))
+          hex-string (apply str (map #(let [hex (.toString % 16)]
+                                         (if (= 1 (count hex))
+                                           (str "0" hex)
+                                           hex)) hex-bytes))]
+      (str "<" hex-string ">"))))
+
+(defn fallback-to-hex
+  "Falls back to hex string encoding for emoji.
+  
+  Uses simple hex string encoding for emoji characters compatible with PDF text rendering.
+  
+  Args:
+    emoji-char: String containing emoji character
+    
+  Returns:
+    Map with fallback data:
+    {:type :hex-string :content string :success true}"
+  [emoji-char]
+  {:type :hex-string 
+   :content (simple-hex-encode emoji-char)
+   :success true
+   :fallback-reason "Image not available, using hex encoding"})
+
+(defn fallback-to-placeholder
+  "Creates placeholder text like '[💡]' for missing emoji images.
+  
+  Args:
+    emoji-char: String containing emoji character
+    
+  Returns:
+    Map with fallback data:
+    {:type :placeholder :content string :success true}"
+  [emoji-char]
+  {:type :placeholder
+   :content (str "[" emoji-char "]")
+   :success true
+   :fallback-reason "Image not available, using placeholder text"})
+
+(defn fallback-to-skip
+  "Skips emoji entirely by returning empty string.
+  
+  Args:
+    emoji-char: String containing emoji character
+    
+  Returns:
+    Map with fallback data:
+    {:type :skip :content string :success true}"
+  [emoji-char]
+  {:type :skip
+   :content ""
+   :success true
+   :fallback-reason "Image not available, skipping emoji"})
+
+(defn handle-image-error
+  "Centralized error handling with configurable fallback strategies.
+  
+  Processes image loading errors and applies appropriate fallback strategy.
+  Logs warnings but ensures document generation continues.
+  
+  Args:
+    emoji-char: String containing emoji character
+    error: Original error message or map
+    strategy: Fallback strategy keyword (:hex-string, :placeholder, :skip, :error)
+    options: Optional map with :logging? (default true)
+    
+  Returns:
+    Map with fallback result or throws exception for :error strategy"
+  [emoji-char error strategy & [options]]
+  (let [logging? (get options :logging? true)
+        error-msg (if (string? error) error (str error))]
+    
+    ;; Log warning if enabled
+    (when logging?
+      (println (str "WARNING: Emoji image loading failed for '" emoji-char "': " error-msg)))
+    
+    ;; Validate strategy
+    (when-not (contains? fallback-strategies strategy)
+      (throw (js/Error. (str "Invalid fallback strategy: " strategy ". Must be one of: " fallback-strategies))))
+    
+    ;; Apply fallback strategy
+    (case strategy
+      :hex-string (fallback-to-hex emoji-char)
+      :placeholder (fallback-to-placeholder emoji-char)
+      :skip (fallback-to-skip emoji-char)
+      :error (throw (js/Error. (str "Emoji image loading failed for '" emoji-char "': " error-msg))))))
+
+(defn emoji-image-with-fallback
+  "Main function that attempts image loading with graceful fallback.
+  
+  Tries to load emoji image with caching, validates the result, and falls back
+  to alternative strategies if loading fails. Ensures document generation
+  continues even when images are unavailable.
+  
+  Args:
+    cache: Atom containing cache state (optional, if nil uses direct loading)
+    emoji-char: String containing emoji character
+    options: Map with configuration:
+             :fallback-strategy - :hex-string (default), :placeholder, :skip, :error
+             :validation? - Enable/disable image validation (default true)
+             :logging? - Enable/disable error logging (default true)
+    
+  Returns:
+    Map with image data or fallback result:
+    Success: {:buffer Buffer :width N :height N :success true :filename string :type :image}
+    Fallback: {:type :hex-string/:placeholder/:skip :content string :success true :fallback-reason string}"
+  [cache emoji-char & [options]]
+  (let [opts (merge {:fallback-strategy :hex-string
+                     :validation? true
+                     :logging? true} options)
+        strategy (:fallback-strategy opts)
+        validation? (:validation? opts)
+        logging? (:logging? opts)]
+    
+    (try
+      ;; Attempt to load image (with or without cache)
+      (let [load-result (if cache
+                          (load-emoji-image-cached cache emoji-char)
+                          (load-emoji-image emoji-char))]
+        
+        (if (:success load-result)
+          ;; Image loaded successfully - validate if requested
+          (if validation?
+            (let [validation (validate-image-data load-result)]
+              (if (:valid? validation)
+                ;; Valid image - return with image type
+                (assoc load-result :type :image)
+                ;; Invalid image - fall back
+                (handle-image-error emoji-char 
+                                    (str "Image validation failed: " (first (:errors validation)))
+                                    strategy
+                                    {:logging? logging?})))
+            ;; No validation - return directly
+            (assoc load-result :type :image))
+          
+          ;; Image loading failed - fall back
+          (handle-image-error emoji-char 
+                              (or (:error load-result) "Unknown loading error")
+                              strategy
+                              {:logging? logging?})))
+      
+      (catch js/Error e
+        ;; Unexpected error during processing - fall back
+        (handle-image-error emoji-char 
+                            (str "Unexpected error: " (.-message e))
+                            strategy
+                            {:logging? logging?})))))
+
+(defn batch-load-with-fallback
+  "Efficiently loads multiple emoji images with fallback handling.
+  
+  Processes a collection of emoji characters, loading images where possible
+  and applying consistent fallback strategies for failures.
+  
+  Args:
+    cache: Atom containing cache state
+    emoji-chars: Collection of emoji character strings
+    options: Same options as emoji-image-with-fallback
+    
+  Returns:
+    Map from emoji character to result map"
+  [cache emoji-chars & [options]]
+  (into {} (map (fn [emoji-char]
+                  [emoji-char (emoji-image-with-fallback cache emoji-char options)])
+                emoji-chars)))
+
+(defn fallback-performance-info
+  "Returns performance characteristics of different fallback strategies.
+  
+  Provides guidance for choosing appropriate fallback strategies based on
+  performance requirements and document generation constraints.
+  
+  Returns:
+    Map with performance info for each strategy"
+  []
+  {:hex-string {:speed :fast
+                :compatibility :high
+                :pdf-size-impact :minimal
+                :description "Uses existing hex encoding, fastest fallback"}
+   :placeholder {:speed :fast
+                 :compatibility :high
+                 :pdf-size-impact :minimal
+                 :description "Simple text placeholder, readable and fast"}
+   :skip {:speed :fastest
+          :compatibility :high
+          :pdf-size-impact :none
+          :description "No rendering, smallest PDF size"}
+   :error {:speed :na
+           :compatibility :na
+           :pdf-size-impact :na
+           :description "Stops processing, for debugging only"}})
