@@ -6,3 +6,4 @@
 .shadow-cljs
 build/
 target
+react-pdf/
