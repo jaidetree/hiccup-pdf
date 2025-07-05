@@ -706,3 +706,278 @@
            :compatibility :na
            :pdf-size-impact :na
            :description "Stops processing, for debugging only"}})
+
+;; PDF Image Object Generation
+
+(def ^:private pdf-object-counter
+  "Atom for generating unique PDF object numbers starting from 1000"
+  (atom 1000))
+
+(def ^:private image-reference-counter
+  "Atom for generating unique image reference names (Em1, Em2, etc.)"
+  (atom 0))
+
+(defn create-resource-reference
+  "Generates unique image references for PDF resources.
+  
+  Creates sequential references like Em1, Em2, Em3, etc. for use in
+  PDF resource dictionaries and content streams.
+  
+  Returns:
+    String reference name (e.g., \"Em1\", \"Em2\")"
+  []
+  (let [ref-num (swap! image-reference-counter inc)]
+    (str "Em" ref-num)))
+
+(defn calculate-image-transform
+  "Computes scaling and positioning for font size matching.
+  
+  Calculates the transformation matrix needed to scale a 72x72 source image
+  to match the specified font size, with proper baseline alignment.
+  
+  Args:
+    font-size: Target font size in points (8-72)
+    baseline-offset: Optional baseline adjustment ratio (default 0.2)
+    
+  Returns:
+    Map with transformation data:
+    {:scale-x N :scale-y N :offset-x 0 :offset-y N :matrix [a b c d e f]}"
+  [font-size & [baseline-offset]]
+  (let [offset-ratio (or baseline-offset 0.2)
+        ;; Scale from 72x72 source to font size
+        scale-factor (/ font-size 72.0)
+        ;; Baseline offset (negative because PDF coordinates are bottom-up)
+        y-offset (* font-size offset-ratio -1)]
+    {:scale-x scale-factor
+     :scale-y scale-factor
+     :offset-x 0
+     :offset-y y-offset
+     ;; PDF transformation matrix [a b c d e f] for scaling and translation
+     :matrix [scale-factor 0 0 scale-factor 0 y-offset]}))
+
+(defn ^:private encode-pdf-stream-data
+  "Encodes binary data for PDF stream content.
+  
+  Args:
+    buffer: Node.js Buffer containing binary data
+    
+  Returns:
+    String with encoded data suitable for PDF stream"
+  [buffer]
+  (if buffer
+    ;; Convert buffer to binary string for PDF stream
+    (let [length (.-length buffer)
+          bytes (loop [i 0 result []]
+                  (if (>= i length)
+                    result
+                    (recur (inc i) (conj result (.readUInt8 buffer i)))))]
+      ;; Return as binary string
+      (apply str (map char bytes)))
+    ""))
+
+(defn png-to-pdf-object
+  "Converts PNG buffer to PDF XObject stream.
+  
+  Generates a complete PDF XObject definition suitable for embedding
+  in PDF documents. Uses FlateDecode filter for PNG compression.
+  
+  Args:
+    png-buffer: Node.js Buffer containing PNG data
+    width: Image width in pixels (typically 72)
+    height: Image height in pixels (typically 72)
+    object-number: PDF object number for cross-references
+    
+  Returns:
+    String containing complete PDF XObject definition"
+  [png-buffer width height object-number]
+  (let [stream-data (encode-pdf-stream-data png-buffer)
+        stream-length (count stream-data)]
+    (str object-number " 0 obj\n"
+         "<<\n"
+         "/Type /XObject\n"
+         "/Subtype /Image\n"
+         "/Width " width "\n"
+         "/Height " height "\n"
+         "/ColorSpace /DeviceRGB\n"
+         "/BitsPerComponent 8\n"
+         "/Filter /FlateDecode\n"
+         "/Length " stream-length "\n"
+         ">>\n"
+         "stream\n"
+         stream-data
+         "\nendstream\n"
+         "endobj\n")))
+
+(defn generate-image-xobject
+  "Creates complete PDF image object with headers and reference.
+  
+  Combines PNG data processing with PDF object generation to create
+  a complete XObject suitable for PDF document embedding.
+  
+  Args:
+    image-data: Map with :buffer, :width, :height, :filename
+    reference-name: Optional resource reference name (auto-generated if nil)
+    object-number: Optional PDF object number (auto-generated if nil)
+    
+  Returns:
+    Map with XObject data:
+    {:object-number N :reference-name string :pdf-object string :success boolean}"
+  [image-data & [reference-name object-number]]
+  (try
+    (let [buffer (:buffer image-data)
+          width (or (:width image-data) 72)
+          height (or (:height image-data) 72)
+          ref-name (or reference-name (create-resource-reference))
+          obj-num (or object-number (swap! pdf-object-counter inc))]
+      
+      (if buffer
+        (let [pdf-object (png-to-pdf-object buffer width height obj-num)]
+          {:object-number obj-num
+           :reference-name ref-name
+           :pdf-object pdf-object
+           :width width
+           :height height
+           :success true})
+        {:success false
+         :error "Missing image buffer data"}))
+    
+    (catch js/Error e
+      {:success false
+       :error (str "XObject generation failed: " (.-message e))})))
+
+(defn batch-generate-xobjects
+  "Efficiently generates PDF XObjects for multiple images.
+  
+  Processes a collection of image data maps and generates corresponding
+  PDF XObjects with sequential numbering and unique references.
+  
+  Args:
+    image-data-list: Collection of image data maps
+    starting-object-number: Optional starting object number (auto-generated if nil)
+    
+  Returns:
+    Vector of XObject result maps"
+  [image-data-list & [starting-object-number]]
+  (let [start-num (or starting-object-number (swap! pdf-object-counter inc))]
+    (map-indexed
+     (fn [idx image-data]
+       (generate-image-xobject image-data nil (+ start-num idx)))
+     image-data-list)))
+
+(defn create-resource-dictionary-entry
+  "Creates resource dictionary entry for image XObjects.
+  
+  Generates the PDF resource dictionary syntax for referencing
+  image XObjects in page content streams.
+  
+  Args:
+    xobject-refs: Collection of XObject reference maps with :reference-name and :object-number
+    
+  Returns:
+    String with PDF resource dictionary XObject entries"
+  [xobject-refs]
+  (if (empty? xobject-refs)
+    ""
+    (let [entries (map (fn [ref]
+                         (str "/" (:reference-name ref) " " (:object-number ref) " 0 R"))
+                       xobject-refs)]
+      (str "/XObject <<\n"
+           (clojure.string/join "\n" entries) "\n"
+           ">>"))))
+
+(defn generate-image-draw-operators
+  "Generates PDF operators for drawing an image XObject.
+  
+  Creates the PDF content stream operators needed to draw an image
+  at a specific position with appropriate scaling and positioning.
+  
+  Args:
+    reference-name: XObject reference name (e.g., \"Em1\")
+    x: X position in PDF coordinates
+    y: Y position in PDF coordinates  
+    font-size: Font size for scaling calculations
+    baseline-offset: Optional baseline adjustment (default 0.2)
+    
+  Returns:
+    String with PDF drawing operators"
+  [reference-name x y font-size & [baseline-offset]]
+  (let [transform (calculate-image-transform font-size baseline-offset)
+        matrix (:matrix transform)
+        [scale-x _ _ scale-y tx ty] matrix
+        final-x (+ x tx)
+        final-y (+ y ty)]
+    (str "q\n"  ; Save graphics state
+         scale-x " 0 0 " scale-y " " final-x " " final-y " cm\n"  ; Transform matrix
+         "/" reference-name " Do\n"  ; Draw XObject
+         "Q\n")))  ; Restore graphics state
+
+(defn validate-pdf-xobject
+  "Validates generated PDF XObject syntax.
+  
+  Performs basic syntax validation on generated PDF XObject strings
+  to ensure compliance with PDF specification.
+  
+  Args:
+    pdf-object: String containing PDF XObject definition
+    
+  Returns:
+    Map with validation results:
+    {:valid? boolean :errors [error-strings] :warnings [warning-strings]}"
+  [pdf-object]
+  (let [errors []
+        warnings []]
+    (try
+      (cond
+        ;; Check basic structure
+        (not (string? pdf-object))
+        {:valid? false 
+         :errors ["PDF object must be a string"]
+         :warnings warnings}
+        
+        (empty? pdf-object)
+        {:valid? false
+         :errors ["PDF object cannot be empty"]
+         :warnings warnings}
+        
+        ;; Check required elements
+        (not (re-find #"\d+ 0 obj" pdf-object))
+        {:valid? false
+         :errors ["Missing object header"]
+         :warnings warnings}
+        
+        (not (re-find #"/Type /XObject" pdf-object))
+        {:valid? false
+         :errors ["Missing XObject type declaration"]
+         :warnings warnings}
+        
+        (not (re-find #"/Subtype /Image" pdf-object))
+        {:valid? false
+         :errors ["Missing Image subtype declaration"]
+         :warnings warnings}
+        
+        (not (re-find #"stream\n.*\nendstream" pdf-object))
+        {:valid? false
+         :errors ["Missing or malformed stream data"]
+         :warnings warnings}
+        
+        (not (re-find #"endobj" pdf-object))
+        {:valid? false
+         :errors ["Missing object terminator"]
+         :warnings warnings}
+        
+        ;; Basic validation passed
+        :else
+        (let [warnings (cond-> warnings
+                         (not (re-find #"/Length \d+" pdf-object)) 
+                         (conj "Missing explicit length declaration")
+                         
+                         (not (re-find #"/Filter /" pdf-object))
+                         (conj "Missing filter specification"))]
+          {:valid? true
+           :errors []
+           :warnings warnings}))
+      
+      (catch js/Error e
+        {:valid? false
+         :errors [(str "Validation error: " (.-message e))]
+         :warnings warnings}))))

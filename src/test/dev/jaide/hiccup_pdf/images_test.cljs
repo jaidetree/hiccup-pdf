@@ -874,4 +874,358 @@
       
       ;; Memory usage should not increase (failed loads not cached)
       (is (= initial-memory (:memory-usage (:stats @cache))))
-      (is (= 0 (count (:items @cache)))))))))
+      (is (= 0 (count (:items @cache))))))
+
+;; PDF Image Object Generation Tests
+
+(deftest test-create-resource-reference
+  (testing "Unique reference generation"
+    (let [ref1 (images/create-resource-reference)
+          ref2 (images/create-resource-reference)
+          ref3 (images/create-resource-reference)]
+      (is (string? ref1))
+      (is (string? ref2))
+      (is (string? ref3))
+      (is (.startsWith ref1 "Em"))
+      (is (.startsWith ref2 "Em"))
+      (is (.startsWith ref3 "Em"))
+      ;; Should be unique
+      (is (not= ref1 ref2))
+      (is (not= ref2 ref3))
+      (is (not= ref1 ref3))))
+  
+  (testing "Reference format"
+    (let [ref (images/create-resource-reference)]
+      (is (re-matches #"Em\d+" ref)))))
+
+(deftest test-calculate-image-transform
+  (testing "Basic font size scaling"
+    (let [transform (images/calculate-image-transform 12)]
+      (is (contains? transform :scale-x))
+      (is (contains? transform :scale-y))
+      (is (contains? transform :offset-x))
+      (is (contains? transform :offset-y))
+      (is (contains? transform :matrix))
+      
+      ;; 12pt font size should scale 72x72 to 12x12
+      (is (< (Math/abs (- (:scale-x transform) (/ 12 72.0))) 0.001))
+      (is (< (Math/abs (- (:scale-y transform) (/ 12 72.0))) 0.001))
+      (is (= 0 (:offset-x transform)))
+      ;; Baseline offset should be negative (PDF coords)
+      (is (< (:offset-y transform) 0))))
+  
+  (testing "Different font sizes"
+    (let [transform-8 (images/calculate-image-transform 8)
+          transform-24 (images/calculate-image-transform 24)
+          transform-72 (images/calculate-image-transform 72)]
+      
+      ;; Check scaling factors
+      (is (< (Math/abs (- (:scale-x transform-8) (/ 8 72.0))) 0.001))
+      (is (< (Math/abs (- (:scale-x transform-24) (/ 24 72.0))) 0.001))
+      (is (< (Math/abs (- (:scale-x transform-72) 1.0)) 0.001))
+      
+      ;; Check matrix format [a b c d e f]
+      (doseq [transform [transform-8 transform-24 transform-72]]
+        (is (= 6 (count (:matrix transform)))))))
+  
+  (testing "Custom baseline offset"
+    (let [transform-default (images/calculate-image-transform 12)
+          transform-custom (images/calculate-image-transform 12 0.5)]
+      
+      ;; Custom offset should be different
+      (is (not= (:offset-y transform-default) (:offset-y transform-custom)))
+      ;; Custom should be larger magnitude (more negative)
+      (is (< (:offset-y transform-custom) (:offset-y transform-default)))))
+
+(deftest test-png-to-pdf-object
+  (testing "Basic PDF object generation"
+    (let [mock-buffer (js/Buffer.from "mock png data")
+          pdf-object (images/png-to-pdf-object mock-buffer 72 72 1001)]
+      
+      (is (string? pdf-object))
+      (is (.includes pdf-object "1001 0 obj"))
+      (is (.includes pdf-object "/Type /XObject"))
+      (is (.includes pdf-object "/Subtype /Image"))
+      (is (.includes pdf-object "/Width 72"))
+      (is (.includes pdf-object "/Height 72"))
+      (is (.includes pdf-object "/ColorSpace /DeviceRGB"))
+      (is (.includes pdf-object "/BitsPerComponent 8"))
+      (is (.includes pdf-object "/Filter /FlateDecode"))
+      (is (.includes pdf-object "stream"))
+      (is (.includes pdf-object "endstream"))
+      (is (.includes pdf-object "endobj"))))
+  
+  (testing "Length calculation"
+    (let [short-buffer (js/Buffer.from "short")
+          long-buffer (js/Buffer.from "this is a much longer buffer content")
+          pdf-short (images/png-to-pdf-object short-buffer 72 72 1002)
+          pdf-long (images/png-to-pdf-object long-buffer 72 72 1003)]
+      
+      ;; Should include length declarations
+      (is (re-find #"/Length \d+" pdf-short))
+      (is (re-find #"/Length \d+" pdf-long))
+      
+      ;; Longer buffer should have larger length
+      (let [short-length (-> (re-find #"/Length (\d+)" pdf-short) second js/parseInt)
+            long-length (-> (re-find #"/Length (\d+)" pdf-long) second js/parseInt)]
+        (is (< short-length long-length)))))
+  
+  (testing "Different dimensions"
+    (let [buffer (js/Buffer.from "test data")
+          pdf-square (images/png-to-pdf-object buffer 72 72 1004)
+          pdf-rect (images/png-to-pdf-object buffer 100 50 1005)]
+      
+      (is (.includes pdf-square "/Width 72"))
+      (is (.includes pdf-square "/Height 72"))
+      (is (.includes pdf-rect "/Width 100"))
+      (is (.includes pdf-rect "/Height 50")))))
+
+(deftest test-generate-image-xobject
+  (testing "Successful XObject generation"
+    (let [mock-buffer (js/Buffer.from "mock png data")
+          image-data {:buffer mock-buffer :width 72 :height 72 :filename "test.png"}
+          result (images/generate-image-xobject image-data)]
+      
+      (is (:success result))
+      (is (contains? result :object-number))
+      (is (contains? result :reference-name))
+      (is (contains? result :pdf-object))
+      (is (contains? result :width))
+      (is (contains? result :height))
+      
+      (is (pos? (:object-number result)))
+      (is (.startsWith (:reference-name result) "Em"))
+      (is (string? (:pdf-object result)))
+      (is (= 72 (:width result)))
+      (is (= 72 (:height result)))))
+  
+  (testing "Custom reference and object number"
+    (let [mock-buffer (js/Buffer.from "test data")
+          image-data {:buffer mock-buffer :width 72 :height 72}
+          result (images/generate-image-xobject image-data "CustomRef" 2000)]
+      
+      (is (:success result))
+      (is (= "CustomRef" (:reference-name result)))
+      (is (= 2000 (:object-number result)))
+      (is (.includes (:pdf-object result) "2000 0 obj"))))
+  
+  (testing "Missing buffer error"
+    (let [image-data {:width 72 :height 72}
+          result (images/generate-image-xobject image-data)]
+      
+      (is (not (:success result)))
+      (is (contains? result :error))
+      (is (.includes (:error result) "Missing image buffer"))))
+  
+  (testing "Default dimensions"
+    (let [mock-buffer (js/Buffer.from "test")
+          image-data {:buffer mock-buffer}  ; No width/height specified
+          result (images/generate-image-xobject image-data)]
+      
+      (is (:success result))
+      (is (= 72 (:width result)))    ; Should default to 72
+      (is (= 72 (:height result))))))
+
+(deftest test-batch-generate-xobjects
+  (testing "Multiple XObject generation"
+    (let [image-data-list [{:buffer (js/Buffer.from "data1") :width 72 :height 72}
+                           {:buffer (js/Buffer.from "data2") :width 64 :height 64}
+                           {:buffer (js/Buffer.from "data3") :width 48 :height 48}]
+          results (images/batch-generate-xobjects image-data-list)]
+      
+      (is (= 3 (count results)))
+      (is (every? :success results))
+      
+      ;; Check sequential object numbering
+      (let [obj-nums (map :object-number results)]
+        (is (apply < obj-nums)))  ; Should be in ascending order
+      
+      ;; Check unique references
+      (let [ref-names (map :reference-name results)]
+        (is (= 3 (count (set ref-names)))))  ; All unique
+      
+      ;; Check dimensions preserved
+      (is (= 72 (:width (first results))))
+      (is (= 64 (:width (second results))))
+      (is (= 48 (:width (nth results 2))))))
+  
+  (testing "Custom starting object number"
+    (let [image-data-list [{:buffer (js/Buffer.from "test1")}
+                           {:buffer (js/Buffer.from "test2")}]
+          results (images/batch-generate-xobjects image-data-list 5000)]
+      
+      (is (= 2 (count results)))
+      (is (= 5000 (:object-number (first results))))
+      (is (= 5001 (:object-number (second results))))))
+  
+  (testing "Empty list"
+    (let [results (images/batch-generate-xobjects [])]
+      (is (= 0 (count results))))))
+
+(deftest test-create-resource-dictionary-entry
+  (testing "Single XObject reference"
+    (let [xobject-refs [{:reference-name "Em1" :object-number 1001}]
+          entry (images/create-resource-dictionary-entry xobject-refs)]
+      
+      (is (string? entry))
+      (is (.includes entry "/XObject <<"))
+      (is (.includes entry "/Em1 1001 0 R"))
+      (is (.includes entry ">>")))))
+  
+  (testing "Multiple XObject references"
+    (let [xobject-refs [{:reference-name "Em1" :object-number 1001}
+                        {:reference-name "Em2" :object-number 1002}
+                        {:reference-name "Em3" :object-number 1003}]
+          entry (images/create-resource-dictionary-entry xobject-refs)]
+      
+      (is (.includes entry "/Em1 1001 0 R"))
+      (is (.includes entry "/Em2 1002 0 R"))
+      (is (.includes entry "/Em3 1003 0 R"))))
+  
+  (testing "Empty references"
+    (let [entry (images/create-resource-dictionary-entry [])]
+      (is (= "" entry)))))
+
+(deftest test-generate-image-draw-operators
+  (testing "Basic draw operators"
+    (let [operators (images/generate-image-draw-operators "Em1" 100 200 12)]
+      
+      (is (string? operators))
+      (is (.includes operators "q"))        ; Save state
+      (is (.includes operators "cm"))       ; Transform matrix
+      (is (.includes operators "/Em1 Do"))  ; Draw command
+      (is (.includes operators "Q"))        ; Restore state
+      
+      ;; Should include transformation matrix
+      (is (re-find #"[\d\.]+ 0 0 [\d\.]+ [\d\.]+ [\d\.]+ cm" operators))))
+  
+  (testing "Different font sizes"
+    (let [ops-12 (images/generate-image-draw-operators "Em1" 0 0 12)
+          ops-24 (images/generate-image-draw-operators "Em1" 0 0 24)]
+      
+      ;; Different font sizes should produce different transformations
+      (is (not= ops-12 ops-24))
+      (is (.includes ops-12 "/Em1 Do"))
+      (is (.includes ops-24 "/Em1 Do"))))
+  
+  (testing "Position handling"
+    (let [ops-origin (images/generate-image-draw-operators "Em1" 0 0 12)
+          ops-offset (images/generate-image-draw-operators "Em1" 50 100 12)]
+      
+      ;; Different positions should produce different operators
+      (is (not= ops-origin ops-offset))
+      
+      ;; Both should reference same XObject
+      (is (.includes ops-origin "/Em1 Do"))
+      (is (.includes ops-offset "/Em1 Do"))))
+  
+  (testing "Custom baseline offset"
+    (let [ops-default (images/generate-image-draw-operators "Em1" 0 0 12)
+          ops-custom (images/generate-image-draw-operators "Em1" 0 0 12 0.5)]
+      
+      ;; Different baseline offsets should produce different transformations
+      (is (not= ops-default ops-custom)))))
+
+(deftest test-validate-pdf-xobject
+  (testing "Valid PDF XObject"
+    (let [mock-buffer (js/Buffer.from "test data")
+          pdf-object (images/png-to-pdf-object mock-buffer 72 72 1001)
+          validation (images/validate-pdf-xobject pdf-object)]
+      
+      (is (:valid? validation))
+      (is (empty? (:errors validation)))))
+  
+  (testing "Invalid PDF objects"
+    ;; Empty object
+    (let [validation-empty (images/validate-pdf-xobject "")]
+      (is (not (:valid? validation-empty)))
+      (is (some #(.includes % "cannot be empty") (:errors validation-empty))))
+    
+    ;; Non-string input
+    (let [validation-nil (images/validate-pdf-xobject nil)]
+      (is (not (:valid? validation-nil)))
+      (is (some #(.includes % "must be a string") (:errors validation-nil))))
+    
+    ;; Missing object header
+    (let [validation-no-header (images/validate-pdf-xobject "not a pdf object")]
+      (is (not (:valid? validation-no-header)))
+      (is (some #(.includes % "Missing object header") (:errors validation-no-header)))))
+  
+  (testing "Malformed XObject elements"
+    ;; Missing Type
+    (let [partial-obj "1001 0 obj\n<<\n/Subtype /Image\n>>\nstream\ndata\nendstream\nendobj"
+          validation (images/validate-pdf-xobject partial-obj)]
+      (is (not (:valid? validation)))
+      (is (some #(.includes % "Missing XObject type") (:errors validation))))
+    
+    ;; Missing stream
+    (let [no-stream "1001 0 obj\n<<\n/Type /XObject\n/Subtype /Image\n>>\nendobj"
+          validation (images/validate-pdf-xobject no-stream)]
+      (is (not (:valid? validation)))
+      (is (some #(.includes % "Missing or malformed stream") (:errors validation)))))
+  
+  (testing "Validation warnings"
+    (let [minimal-obj "1001 0 obj\n<<\n/Type /XObject\n/Subtype /Image\n>>\nstream\ndata\nendstream\nendobj"
+          validation (images/validate-pdf-xobject minimal-obj)]
+      
+      ;; Should be valid but have warnings
+      (is (:valid? validation))
+      (is (> (count (:warnings validation)) 0)))))
+
+(deftest test-pdf-xobject-integration
+  (testing "End-to-end XObject generation"
+    (let [cache (images/create-image-cache)
+          ;; Load actual emoji image
+          emoji-result (images/emoji-image-with-fallback cache "💡" {:logging? false})]
+      
+      (when (= :image (:type emoji-result))
+        ;; Generate XObject from loaded image
+        (let [xobject-result (images/generate-image-xobject emoji-result)
+              pdf-object (:pdf-object xobject-result)]
+          
+          (is (:success xobject-result))
+          (is (string? pdf-object))
+          
+          ;; Validate generated PDF object
+          (let [validation (images/validate-pdf-xobject pdf-object)]
+            (is (:valid? validation)))
+          
+          ;; Generate draw operators
+          (let [draw-ops (images/generate-image-draw-operators 
+                          (:reference-name xobject-result) 100 200 14)]
+            (is (string? draw-ops))
+            (is (.includes draw-ops (:reference-name xobject-result))))))))
+  
+  (testing "Resource dictionary generation"
+    (let [cache (images/create-image-cache)
+          emoji-list ["💡" "🎯"]
+          emoji-results (map #(images/emoji-image-with-fallback cache % {:logging? false}) emoji-list)
+          image-results (filter #(= :image (:type %)) emoji-results)]
+      
+      (when (= 2 (count image-results))
+        ;; Generate XObjects for all images
+        (let [xobject-results (map images/generate-image-xobject image-results)
+              resource-entry (images/create-resource-dictionary-entry xobject-results)]
+          
+          (is (every? :success xobject-results))
+          (is (string? resource-entry))
+          (is (.includes resource-entry "/XObject <<"))
+          
+          ;; Should reference all generated XObjects
+          (doseq [xobj xobject-results]
+            (is (.includes resource-entry (:reference-name xobj))))))))
+  
+  (testing "Scaling and positioning calculations"
+    (let [font-sizes [8 12 16 24 36 72]]
+      
+      ;; Test scaling for different font sizes
+      (doseq [size font-sizes]
+        (let [transform (images/calculate-image-transform size)
+              expected-scale (/ size 72.0)]
+          
+          ;; Scale should match font size ratio
+          (is (< (Math/abs (- (:scale-x transform) expected-scale)) 0.001))
+          (is (< (Math/abs (- (:scale-y transform) expected-scale)) 0.001))
+          
+          ;; Matrix should be valid
+          (is (= 6 (count (:matrix transform))))))))))))
