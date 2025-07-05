@@ -6,4 +6,5 @@
 .shadow-cljs
 build/
 src/test/examples/out/
+src/test/e2e/out/
 target
