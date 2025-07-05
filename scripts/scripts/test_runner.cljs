@@ -9,9 +9,11 @@
     dev.jaide.hiccup-pdf.validation-test
     dev.jaide.hiccup-pdf.document-test])
 
-(defn run-all-tests []
+(defn run-all-tests
+  []
   (apply run-tests tests))
 
 (defn -main
   []
   (run-all-tests))
+
