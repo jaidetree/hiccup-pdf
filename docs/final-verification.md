@@ -137,9 +137,9 @@ This document provides a comprehensive verification that all specification requi
 
 ### Documentation
 - [x] **README.md**: Quick start, features, installation, examples
-- [x] **API.md**: Complete API reference with all elements
-- [x] **EXAMPLES.md**: Real-world usage examples
-- [x] **PERFORMANCE.md**: Performance characteristics and optimization
+- [x] **api.md**: Complete API reference with all elements
+- [x] **examples.md**: Real-world usage examples
+- [x] **performance.md**: Performance characteristics and optimization
 - [x] **CLAUDE.md**: Development environment and architecture notes
 
 ## ✅ Performance Verification

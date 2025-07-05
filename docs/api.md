@@ -12,8 +12,8 @@ Add to your `nbb.edn`:
 
 ## See Also
 
-- **[Document Generation Guide](DOCUMENT_GUIDE.md)** - Comprehensive guide for PDF document creation with examples and best practices
-- **[Examples](EXAMPLES.md)** - Real-world examples including business documents and technical documentation
+- **[Document Generation Guide](document-guide.md)** - Comprehensive guide for PDF document creation with examples and best practices
+- **[Examples](examples.md)** - Real-world examples including business documents and technical documentation
 
 ## Quick Start
 

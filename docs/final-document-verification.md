@@ -225,9 +225,9 @@ Relative positioning preserved ✅ Verified
 ## Documentation Verification ✅
 
 ### Comprehensive Documentation Suite
-- ✅ **API.md**: Complete API reference for both functions
-- ✅ **DOCUMENT_GUIDE.md**: Comprehensive document generation guide
-- ✅ **EXAMPLES.md**: Real-world examples and use cases
+- ✅ **api.md**: Complete API reference for both functions
+- ✅ **document-guide.md**: Comprehensive document generation guide
+- ✅ **examples.md**: Real-world examples and use cases
 - ✅ **README.md**: Quick start and feature overview
 - ✅ **CLAUDE.md**: Development environment and architecture
 
