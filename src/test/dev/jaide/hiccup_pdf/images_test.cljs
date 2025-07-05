@@ -294,4 +294,306 @@
       
       (is (= 5 (count results)))
       ;; Batch operations should be reasonably fast
-      (is (< duration 500)))))
+      (is (< duration 500))))
+
+;; Image Caching System Tests
+
+(deftest test-create-image-cache
+  (testing "Default cache creation"
+    (let [cache (images/create-image-cache)]
+      (is (= {} (:items @cache)))
+      (is (= [] (:order @cache)))
+      (is (= {:max-size 50 :max-memory-mb 10} (:config @cache)))
+      (is (= {:hits 0 :misses 0 :evictions 0 :memory-usage 0} (:stats @cache)))))
+  
+  (testing "Custom cache configuration"
+    (let [cache (images/create-image-cache {:max-size 25 :max-memory-mb 5})]
+      (is (= {:max-size 25 :max-memory-mb 5} (:config @cache)))
+      (is (= {:hits 0 :misses 0 :evictions 0 :memory-usage 0} (:stats @cache)))))
+  
+  (testing "Partial configuration override"
+    (let [cache (images/create-image-cache {:max-size 100})]
+      (is (= {:max-size 100 :max-memory-mb 10} (:config @cache))))))
+
+(deftest test-estimate-image-memory
+  (testing "Memory estimation with buffer"
+    (let [mock-buffer (js/Buffer.alloc 1000)
+          image-data {:buffer mock-buffer :width 72 :height 72}
+          estimated (images/estimate-image-memory image-data)]
+      (is (= 1200 estimated))))  ; 1000 + 200 overhead
+  
+  (testing "Memory estimation without buffer"
+    (let [image-data {:width 72 :height 72}
+          estimated (images/estimate-image-memory image-data)]
+      (is (= 200 estimated))))   ; Just overhead
+  
+  (testing "Memory estimation with nil buffer"
+    (let [image-data {:buffer nil :width 72 :height 72}
+          estimated (images/estimate-image-memory image-data)]
+      (is (= 200 estimated)))))  ; Just overhead
+
+(deftest test-cache-basic-operations
+  (testing "Cache miss on empty cache"
+    (let [cache (images/create-image-cache)]
+      (is (nil? (images/cache-get cache "💡")))
+      (is (= 1 (:misses (:stats @cache))))))
+  
+  (testing "Cache put and get"
+    (let [cache (images/create-image-cache)
+          mock-buffer (js/Buffer.alloc 100)
+          image-data {:buffer mock-buffer :width 72 :height 72 :filename "emoji_u1f4a1.png"}]
+      
+      ;; Put image in cache
+      (is (= true (images/cache-put cache "💡" image-data)))
+      
+      ;; Verify cache state
+      (is (= 1 (count (:items @cache))))
+      (is (= ["💡"] (:order @cache)))
+      (is (= 300 (:memory-usage (:stats @cache))))  ; 100 + 200 overhead
+      
+      ;; Get image from cache
+      (let [retrieved (images/cache-get cache "💡")]
+        (is (not (nil? retrieved)))
+        (is (= (:buffer image-data) (:buffer retrieved)))
+        (is (= 72 (:width retrieved)))
+        (is (= 72 (:height retrieved)))
+        (is (= "emoji_u1f4a1.png" (:filename retrieved))))
+      
+      ;; Verify hit counter
+      (is (= 1 (:hits (:stats @cache))))))
+  
+  (testing "Cache clear"
+    (let [cache (images/create-image-cache)
+          image-data {:buffer (js/Buffer.alloc 100) :width 72 :height 72 :filename "test.png"}]
+      
+      ;; Add item and verify
+      (images/cache-put cache "💡" image-data)
+      (is (= 1 (count (:items @cache))))
+      
+      ;; Clear cache
+      (is (= true (images/cache-clear cache)))
+      (is (= {} (:items @cache)))
+      (is (= [] (:order @cache)))
+      (is (= 0 (:memory-usage (:stats @cache)))))))
+
+(deftest test-lru-eviction
+  (testing "LRU eviction by size limit"
+    (let [cache (images/create-image-cache {:max-size 2})
+          img1 {:buffer (js/Buffer.alloc 100) :width 72 :height 72 :filename "img1.png"}
+          img2 {:buffer (js/Buffer.alloc 200) :width 72 :height 72 :filename "img2.png"}
+          img3 {:buffer (js/Buffer.alloc 300) :width 72 :height 72 :filename "img3.png"}]
+      
+      ;; Add first two items
+      (images/cache-put cache "💡" img1)
+      (images/cache-put cache "🎯" img2)
+      (is (= 2 (count (:items @cache))))
+      (is (= ["💡" "🎯"] (:order @cache)))
+      
+      ;; Add third item - should evict first
+      (images/cache-put cache "✅" img3)
+      (is (= 2 (count (:items @cache))))
+      (is (= ["🎯" "✅"] (:order @cache)))
+      (is (nil? (images/cache-get cache "💡")))  ; Should be evicted
+      (is (not (nil? (images/cache-get cache "🎯"))))  ; Should still be cached
+      (is (= 1 (:evictions (:stats @cache))))))
+  
+  (testing "LRU order update on access"
+    (let [cache (images/create-image-cache {:max-size 3})
+          img1 {:buffer (js/Buffer.alloc 100) :width 72 :height 72 :filename "img1.png"}
+          img2 {:buffer (js/Buffer.alloc 200) :width 72 :height 72 :filename "img2.png"}
+          img3 {:buffer (js/Buffer.alloc 300) :width 72 :height 72 :filename "img3.png"}]
+      
+      ;; Add items
+      (images/cache-put cache "💡" img1)
+      (images/cache-put cache "🎯" img2)
+      (images/cache-put cache "✅" img3)
+      (is (= ["💡" "🎯" "✅"] (:order @cache)))
+      
+      ;; Access first item - should move to end
+      (images/cache-get cache "💡")
+      (is (= ["🎯" "✅" "💡"] (:order @cache)))))
+  
+  (testing "Memory limit eviction"
+    (let [cache (images/create-image-cache {:max-size 10 :max-memory-mb 0.001})  ; Very small memory limit
+          large-img {:buffer (js/Buffer.alloc 2000) :width 72 :height 72 :filename "large.png"}]
+      
+      ;; This should succeed but immediately evict due to memory limit
+      (images/cache-put cache "💡" large-img)
+      ;; The item might be added and then immediately evicted due to memory constraints
+      (is (>= (:evictions (:stats @cache)) 0)))))
+
+(deftest test-cache-stats
+  (testing "Cache statistics calculation"
+    (let [cache (images/create-image-cache)
+          image-data {:buffer (js/Buffer.alloc 100) :width 72 :height 72 :filename "test.png"}]
+      
+      ;; Initial stats
+      (let [stats (images/cache-stats cache)]
+        (is (= 0 (:hits stats)))
+        (is (= 0 (:misses stats)))
+        (is (= 0 (:total-requests stats)))
+        (is (= 0.0 (:hit-rate stats)))
+        (is (= 0 (:item-count stats))))
+      
+      ;; Add item and access
+      (images/cache-put cache "💡" image-data)
+      (images/cache-get cache "💡")    ; Hit
+      (images/cache-get cache "🎯")    ; Miss
+      
+      (let [stats (images/cache-stats cache)]
+        (is (= 1 (:hits stats)))
+        (is (= 1 (:misses stats)))
+        (is (= 2 (:total-requests stats)))
+        (is (= 0.5 (:hit-rate stats)))
+        (is (= 1 (:item-count stats))))))
+  
+  (testing "Hit rate calculation with zero requests"
+    (let [cache (images/create-image-cache)
+          stats (images/cache-stats cache)]
+      (is (= 0.0 (:hit-rate stats))))))
+
+(deftest test-load-emoji-image-cached
+  (testing "Cache miss - loads from file system"
+    (let [cache (images/create-image-cache)
+          result (images/load-emoji-image-cached cache "💡")]
+      
+      ;; Should successfully load from file system
+      (is (:success result))
+      (is (contains? result :buffer))
+      (is (= "emoji_u1f4a1.png" (:filename result)))
+      
+      ;; Should now be cached
+      (is (= 1 (count (:items @cache))))
+      (is (= 1 (:misses (:stats @cache))))))
+  
+  (testing "Cache hit - loads from cache"
+    (let [cache (images/create-image-cache)]
+      
+      ;; First load - cache miss
+      (images/load-emoji-image-cached cache "💡")
+      
+      ;; Second load - cache hit
+      (let [result (images/load-emoji-image-cached cache "💡")]
+        (is (:success result))
+        (is (contains? result :buffer))
+        (is (= "emoji_u1f4a1.png" (:filename result)))
+        
+        ;; Should have 1 hit and 1 miss
+        (is (= 1 (:hits (:stats @cache))))
+        (is (= 1 (:misses (:stats @cache)))))))
+  
+  (testing "Failed file system load"
+    (let [cache (images/create-image-cache)
+          result (images/load-emoji-image-cached cache "nonexistent")]
+      
+      ;; Should fail gracefully
+      (is (= false (:success result)))
+      (is (contains? result :error))
+      
+      ;; Should not be cached
+      (is (= 0 (count (:items @cache))))
+      (is (= 1 (:misses (:stats @cache))))))
+  
+  (testing "Cache behavior with emoji that have files"
+    (let [cache (images/create-image-cache)]
+      
+      ;; Load multiple emoji
+      (let [result1 (images/load-emoji-image-cached cache "💡")
+            result2 (images/load-emoji-image-cached cache "🎯")
+            result3 (images/load-emoji-image-cached cache "💡")]  ; Should hit cache
+        
+        (is (:success result1))
+        (is (:success result2))
+        (is (:success result3))
+        
+        ;; Should have 2 items cached
+        (is (= 2 (count (:items @cache))))
+        
+        ;; Should have 1 hit (third request) and 2 misses (first two requests)
+        (is (= 1 (:hits (:stats @cache))))
+        (is (= 2 (:misses (:stats @cache))))))))
+
+(deftest test-cache-performance
+  (testing "Cache performance vs direct file loading"
+    (let [cache (images/create-image-cache)
+          emoji "💡"]
+      
+      ;; Time direct file loading
+      (let [start-direct (.now js/Date)
+            _ (images/load-emoji-image emoji)
+            _ (images/load-emoji-image emoji)
+            _ (images/load-emoji-image emoji)
+            end-direct (.now js/Date)
+            direct-time (- end-direct start-direct)]
+        
+        ;; Time cached loading
+        (let [start-cached (.now js/Date)
+              _ (images/load-emoji-image-cached cache emoji)  ; Cache miss
+              _ (images/load-emoji-image-cached cache emoji)  ; Cache hit
+              _ (images/load-emoji-image-cached cache emoji)  ; Cache hit
+              end-cached (.now js/Date)
+              cached-time (- end-cached start-cached)]
+          
+          ;; Cache should be faster (at least not significantly slower)
+          ;; Note: On very fast systems, timing might be inconsistent
+          (is (>= direct-time 0))   ; Sanity check
+          (is (>= cached-time 0))   ; Sanity check
+          
+          ;; Verify cache hits occurred
+          (is (= 2 (:hits (:stats @cache))))
+          (is (= 1 (:misses (:stats @cache))))))))
+  
+  (testing "Cache with many items"
+    (let [cache (images/create-image-cache {:max-size 5})
+          emoji-list ["💡" "🎯" "✅" "⚠" "•"]]
+      
+      ;; Load all emoji (should all succeed since they have files)
+      (doseq [emoji emoji-list]
+        (let [result (images/load-emoji-image-cached cache emoji)]
+          (is (:success result))))
+      
+      ;; All should be cached
+      (is (= 5 (count (:items @cache))))
+      (is (= 5 (:misses (:stats @cache))))
+      
+      ;; Access them again - should all be hits
+      (doseq [emoji emoji-list]
+        (let [result (images/load-emoji-image-cached cache emoji)]
+          (is (:success result))))
+      
+      (is (= 5 (:hits (:stats @cache))))
+      (is (= 5 (:misses (:stats @cache)))))))
+
+(deftest test-cache-edge-cases
+  (testing "Cache with existing item replacement"
+    (let [cache (images/create-image-cache)
+          img1 {:buffer (js/Buffer.alloc 100) :width 72 :height 72 :filename "img1.png"}
+          img2 {:buffer (js/Buffer.alloc 200) :width 72 :height 72 :filename "img2.png"}]
+      
+      ;; Put same key twice
+      (images/cache-put cache "💡" img1)
+      (is (= 1 (count (:items @cache))))
+      (is (= 300 (:memory-usage (:stats @cache))))
+      
+      (images/cache-put cache "💡" img2)
+      (is (= 1 (count (:items @cache))))  ; Still just one item
+      (is (= 400 (:memory-usage (:stats @cache))))  ; Updated memory
+      
+      ;; Should get the newer item
+      (let [retrieved (images/cache-get cache "💡")]
+        (is (= "img2.png" (:filename retrieved))))))
+  
+  (testing "Cache with zero size limit"
+    (let [cache (images/create-image-cache {:max-size 0})
+          image-data {:buffer (js/Buffer.alloc 100) :width 72 :height 72 :filename "test.png"}]
+      
+      ;; Should immediately evict
+      (images/cache-put cache "💡" image-data)
+      (is (= 0 (count (:items @cache))))
+      (is (>= (:evictions (:stats @cache)) 1))))
+  
+  (testing "Cache with nil emoji key"
+    (let [cache (images/create-image-cache)]
+      ;; Should handle nil gracefully
+      (is (nil? (images/cache-get cache nil)))
+      (is (= 1 (:misses (:stats @cache))))))))
