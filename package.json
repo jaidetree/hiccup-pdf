@@ -2,7 +2,7 @@
   "name": "hiccup-pdf",
   "version": "1.0.0",
   "description": "A ClojureScript library for transforming hiccup into PDF vector elements",
-  "engine": {
+  "engines": {
     "node": "22.16.0"
   },
   "scripts": {
