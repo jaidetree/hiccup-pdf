@@ -38,25 +38,25 @@ All documents must follow this structure:
 
 ### Document Attributes
 
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `:title` | string | none | Document title (appears in PDF metadata) |
-| `:author` | string | none | Document author |
-| `:subject` | string | none | Document subject |
-| `:keywords` | string | none | Document keywords (comma-separated) |
-| `:creator` | string | "hiccup-pdf" | Creating application |
-| `:producer` | string | "hiccup-pdf" | Producing application |
-| `:width` | number | 612 | Default page width in points |
-| `:height` | number | 792 | Default page height in points |
-| `:margins` | vector | [0 0 0 0] | Default margins [top right bottom left] |
+| Attribute   | Type   | Default      | Description                              |
+| ----------- | ------ | ------------ | ---------------------------------------- |
+| `:title`    | string | none         | Document title (appears in PDF metadata) |
+| `:author`   | string | none         | Document author                          |
+| `:subject`  | string | none         | Document subject                         |
+| `:keywords` | string | none         | Document keywords (comma-separated)      |
+| `:creator`  | string | "hiccup-pdf" | Creating application                     |
+| `:producer` | string | "hiccup-pdf" | Producing application                    |
+| `:width`    | number | 612          | Default page width in points             |
+| `:height`   | number | 792          | Default page height in points            |
+| `:margins`  | vector | [0 0 0 0]    | Default margins [top right bottom left]  |
 
 ### Page Attributes
 
-| Attribute | Type | Inherited | Description |
-|-----------|------|-----------|-------------|
-| `:width` | number | ✓ | Page width in points |
-| `:height` | number | ✓ | Page height in points |
-| `:margins` | vector | ✓ | Page margins [top right bottom left] |
+| Attribute  | Type   | Inherited | Description                          |
+| ---------- | ------ | --------- | ------------------------------------ |
+| `:width`   | number | ✓         | Page width in points                 |
+| `:height`  | number | ✓         | Page height in points                |
+| `:margins` | vector | ✓         | Page margins [top right bottom left] |
 
 ## Page Management
 
@@ -101,11 +101,11 @@ Common page sizes in PDF points (72 points = 1 inch):
  ;; Letter portrait
  [:page {:width 612 :height 792}
   [:text {:x 50 :y 50 :font "Arial" :size 16} "Letter Page"]]
- 
+
  ;; A4 landscape
  [:page {:width 842 :height 595}
   [:text {:x 50 :y 50 :font "Arial" :size 16} "A4 Landscape"]]
- 
+
  ;; Custom size
  [:page {:width 400 :height 600}
   [:text {:x 50 :y 50 :font "Arial" :size 16} "Custom Page"]]]
@@ -125,7 +125,7 @@ The library uses web-style coordinates for input consistency:
 
 The library automatically converts to PDF coordinates internally:
 
-- **Origin**: Bottom-left corner (0, 0) 
+- **Origin**: Bottom-left corner (0, 0)
 - **X-axis**: Increases rightward →
 - **Y-axis**: Increases upward ↑
 
@@ -156,14 +156,14 @@ The library automatically converts to PDF coordinates internally:
 
 The library maps common font names to PDF standard fonts:
 
-| Input Font Name | PDF Standard Font | Style |
-|-----------------|-------------------|-------|
-| "Arial" | Helvetica | Sans-serif |
-| "Helvetica" | Helvetica | Sans-serif |
-| "Times" | Times-Roman | Serif |
-| "Times New Roman" | Times-Roman | Serif |
-| "Courier" | Courier | Monospace |
-| (unknown) | Helvetica | Default fallback |
+| Input Font Name   | PDF Standard Font | Style            |
+| ----------------- | ----------------- | ---------------- |
+| "Arial"           | Helvetica         | Sans-serif       |
+| "Helvetica"       | Helvetica         | Sans-serif       |
+| "Times"           | Times-Roman       | Serif            |
+| "Times New Roman" | Times-Roman       | Serif            |
+| "Courier"         | Courier           | Monospace        |
+| (unknown)         | Helvetica         | Default fallback |
 
 ### Font Usage Examples
 
@@ -182,7 +182,7 @@ Font sizes are specified in points:
 ```clojure
 ;; Common font sizes
 [:text {:font "Arial" :size 8} "Small footnote"]      ; 8pt
-[:text {:font "Arial" :size 10} "Small body"]         ; 10pt  
+[:text {:font "Arial" :size 10} "Small body"]         ; 10pt
 [:text {:font "Arial" :size 12} "Normal body"]        ; 12pt
 [:text {:font "Arial" :size 14} "Large body"]         ; 14pt
 [:text {:font "Arial" :size 16} "Small heading"]      ; 16pt
@@ -200,7 +200,7 @@ Font sizes are specified in points:
  ;; Page inherits all document attributes
  [:page {}
   [:text {:x 0 :y 0 :font "Arial" :size 12} "Uses inherited settings"]]
- 
+
  ;; Page overrides specific attributes
  [:page {:width 842}  ; Override width, inherit height and margins
   [:text {:x 0 :y 0 :font "Arial" :size 12} "Custom width page"]]]
@@ -239,7 +239,7 @@ Font sizes are specified in points:
 ### Document Structure
 
 1. **Always specify metadata**: Include title, author, and subject for professional documents
-2. **Use consistent page sizes**: Avoid mixing page sizes unless necessary  
+2. **Use consistent page sizes**: Avoid mixing page sizes unless necessary
 3. **Plan your layout**: Consider margins and content areas before positioning elements
 4. **Group related content**: Use semantic grouping for complex layouts
 
@@ -276,7 +276,7 @@ Font sizes are specified in points:
  ;; Left column (content area: 468x648, split into 2 columns of 224 each)
  [:text {:x 0 :y 0 :font "Arial" :size 12} "Left column content"]
  [:text {:x 0 :y 20 :font "Arial" :size 12} "More left content"]
- 
+
  ;; Right column (starts at x=244, giving 20pt gutter)
  [:text {:x 244 :y 0 :font "Arial" :size 12} "Right column content"]
  [:text {:x 244 :y 20 :font "Arial" :size 12} "More right content"]]
@@ -285,14 +285,14 @@ Font sizes are specified in points:
 ### Header/Footer Pattern
 
 ```clojure
-[:page {}
+[:page {:width 612 :height 792 :margins [72 72 72 72]}
  ;; Header
  [:rect {:x 0 :y 0 :width 612 :height 50 :fill "#f0f0f0"}]
  [:text {:x 20 :y 25 :font "Arial" :size 14} "Document Header"]
- 
+
  ;; Content area (y: 50 to 742)
  [:text {:x 20 :y 70 :font "Arial" :size 12} "Main content starts here"]
- 
+
  ;; Footer
  [:rect {:x 0 :y 742 :width 612 :height 50 :fill "#f0f0f0"}]
  [:text {:x 20 :y 767 :font "Arial" :size 10} "Footer content"]]
@@ -301,13 +301,13 @@ Font sizes are specified in points:
 ### Table Layout
 
 ```clojure
-[:page {}
+[:page {:width 612 :height 792 :margins [72 72 72 72]}
  ;; Table header
  [:rect {:x 50 :y 100 :width 500 :height 30 :fill "#e6e6e6" :stroke "black"}]
  [:text {:x 60 :y 120 :font "Arial" :size 12} "Column 1"]
  [:text {:x 200 :y 120 :font "Arial" :size 12} "Column 2"]
  [:text {:x 340 :y 120 :font "Arial" :size 12} "Column 3"]
- 
+
  ;; Table rows
  [:rect {:x 50 :y 130 :width 500 :height 25 :stroke "black"}]
  [:text {:x 60 :y 150 :font "Arial" :size 11} "Row 1, Col 1"]
@@ -318,17 +318,17 @@ Font sizes are specified in points:
 ### Form Layout
 
 ```clojure
-[:page {}
+[:page {:width 612 :height 792 :margins [72 72 72 72]}}
  ;; Form title
  [:text {:x 50 :y 50 :font "Arial" :size 18} "Application Form"]
- 
+
  ;; Form fields
  [:text {:x 50 :y 100 :font "Arial" :size 12} "Name:"]
  [:rect {:x 120 :y 90 :width 200 :height 20 :stroke "black"}]
- 
+
  [:text {:x 50 :y 140 :font "Arial" :size 12} "Email:"]
  [:rect {:x 120 :y 130 :width 200 :height 20 :stroke "black"}]
- 
+
  [:text {:x 50 :y 180 :font "Arial" :size 12} "Phone:"]
  [:rect {:x 120 :y 170 :width 200 :height 20 :stroke "black"}]]
 ```
@@ -336,19 +336,19 @@ Font sizes are specified in points:
 ### Chart/Graph Integration
 
 ```clojure
-[:page {}
+[:page {:width 612 :height 792 :margins [72 72 72 72]}}
  ;; Chart title
  [:text {:x 200 :y 50 :font "Arial" :size 16} "Sales Performance"]
- 
+
  ;; Chart area
  [:rect {:x 100 :y 100 :width 400 :height 300 :stroke "black" :stroke-width 2}]
- 
+
  ;; Data bars (simplified bar chart)
  [:rect {:x 120 :y 350 :width 30 :height 40 :fill "blue"}]
  [:rect {:x 170 :y 330 :width 30 :height 60 :fill "blue"}]
  [:rect {:x 220 :y 320 :width 30 :height 70 :fill "blue"}]
  [:rect {:x 270 :y 300 :width 30 :height 90 :fill "blue"}]
- 
+
  ;; Labels
  [:text {:x 125 :y 420 :font "Arial" :size 10} "Q1"]
  [:text {:x 175 :y 420 :font "Arial" :size 10} "Q2"]

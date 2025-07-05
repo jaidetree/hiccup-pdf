@@ -98,10 +98,9 @@ The library provides two main functions:
 
 ## Documentation
 
-- **[API Reference](API.md)** - Complete API documentation for both content streams and documents
-- **[Document Generation Guide](DOCUMENT_GUIDE.md)** - Comprehensive guide for PDF document creation
-- **[Examples](EXAMPLES.md)** - Comprehensive examples from basic shapes to complex layouts
-- **[Development Guide](CLAUDE.md)** - Development environment setup and architecture notes
+- **[API Reference](docs/api.md)** - Complete API documentation for both content streams and documents
+- **[Document Generation Guide](docs/document-guide.md)** - Comprehensive guide for PDF document creation
+- **[Examples](docs/examples.md)** - Comprehensive examples from basic shapes to complex layouts
 
 ## Supported Elements
 
