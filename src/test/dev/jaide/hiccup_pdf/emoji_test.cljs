@@ -234,3 +234,97 @@
       (is (= {:type :text :content " Warning "} (nth result 6)))
       (is (= {:type :emoji :content "⚠"} (nth result 7)))  ; Note: ⚠ without variation selector
       (is (= {:type :text :content "️"} (nth result 8))))))
+
+(deftest test-unicode-to-filename
+  (testing "Single codepoint conversion"
+    (is (= "emoji_u1f4a1.png" (emoji/unicode-to-filename 128161))) ; 💡 lightbulb
+    (is (= "emoji_u1f3af.png" (emoji/unicode-to-filename 127919))) ; 🎯 target
+    (is (= "emoji_u26a0.png" (emoji/unicode-to-filename 9888)))    ; ⚠️ warning
+    (is (= "emoji_u2705.png" (emoji/unicode-to-filename 9989)))    ; ✅ check mark
+    (is (= "emoji_u2022.png" (emoji/unicode-to-filename 8226))))   ; • bullet
+  
+  (testing "Vector codepoint conversion"
+    (is (= "emoji_u1f4a1.png" (emoji/unicode-to-filename [128161]))) ; Single in vector
+    (is (= "emoji_u1f3af.png" (emoji/unicode-to-filename [127919]))))
+  
+  (testing "Multiple codepoints (composite emoji)"
+    (is (= "emoji_u1f468_200d_1f4bb.png" 
+           (emoji/unicode-to-filename [128104 8205 128187]))) ; 👨‍💻 man technologist
+    (is (= "emoji_u1f44b_1f3fd.png" 
+           (emoji/unicode-to-filename [128075 127997])))) ; 👋🏽 waving hand with skin tone
+  
+  (testing "Hex format validation"
+    ;; Verify lowercase hex formatting
+    (is (= "emoji_u41.png" (emoji/unicode-to-filename 65)))     ; 'A' -> 0x41
+    (is (= "emoji_ua.png" (emoji/unicode-to-filename 10)))      ; 10 -> 0xa
+    (is (= "emoji_uff.png" (emoji/unicode-to-filename 255))))   ; 255 -> 0xff
+  
+  (testing "Edge cases"
+    (is (= "emoji_u0.png" (emoji/unicode-to-filename 0)))       ; Zero codepoint
+    (is (= "emoji_u1fffff.png" (emoji/unicode-to-filename 2097151))))) ; Large codepoint
+
+(deftest test-build-emoji-file-map
+  (testing "Default known emoji map"
+    (let [map (emoji/build-emoji-file-map)]
+      (is (= "emoji_u1f4a1.png" (get map 128161))) ; 💡
+      (is (= "emoji_u1f3af.png" (get map 127919))) ; 🎯
+      (is (= "emoji_u26a0.png" (get map 9888)))    ; ⚠️
+      (is (= "emoji_u2705.png" (get map 9989)))    ; ✅
+      (is (= "emoji_u2022.png" (get map 8226)))    ; •
+      (is (= 5 (count map)))))                      ; Only predefined entries
+  
+  (testing "Extended map with additional codepoints"
+    (let [additional [65 66 67]  ; A, B, C
+          map (emoji/build-emoji-file-map additional)]
+      ;; Should contain original entries
+      (is (= "emoji_u1f4a1.png" (get map 128161)))
+      ;; Should contain new entries
+      (is (= "emoji_u41.png" (get map 65)))        ; A
+      (is (= "emoji_u42.png" (get map 66)))        ; B  
+      (is (= "emoji_u43.png" (get map 67)))        ; C
+      (is (= 8 (count map)))))                     ; 5 original + 3 new
+  
+  (testing "Empty additional codepoints"
+    (let [map (emoji/build-emoji-file-map [])]
+      (is (= 5 (count map)))                       ; Only original entries
+      (is (= "emoji_u1f4a1.png" (get map 128161))))))
+
+(deftest test-emoji-filename
+  (testing "Known emoji characters"
+    (is (= "emoji_u1f4a1.png" (emoji/emoji-filename "💡"))) ; Lightbulb
+    (is (= "emoji_u1f3af.png" (emoji/emoji-filename "🎯"))) ; Target
+    (is (= "emoji_u26a0.png" (emoji/emoji-filename "⚠")))   ; Warning (without variation selector)
+    (is (= "emoji_u2705.png" (emoji/emoji-filename "✅")))  ; Check mark
+    (is (= "emoji_u2022.png" (emoji/emoji-filename "•"))))  ; Bullet
+  
+  (testing "Unknown emoji characters"
+    ;; These should generate filenames using unicode-to-filename
+    (let [result (emoji/emoji-filename "🌟")] ; Star (not in known map)
+      (is (some? result))
+      (is (.startsWith result "emoji_u"))
+      (is (.endsWith result ".png"))))
+  
+  (testing "Non-emoji characters"
+    (is (nil? (emoji/emoji-filename "a")))      ; Regular letter
+    (is (nil? (emoji/emoji-filename "A")))      ; Capital letter
+    (is (nil? (emoji/emoji-filename "123")))    ; Numbers
+    (is (nil? (emoji/emoji-filename ""))))      ; Empty string
+  
+  (testing "Multi-codepoint emoji"
+    ;; These should generate composite filenames
+    (let [warning-with-variation (emoji/emoji-filename "⚠️")] ; ⚠ + ️
+      (is (some? warning-with-variation))
+      (is (.startsWith warning-with-variation "emoji_u"))
+      (is (clojure.string/includes? warning-with-variation "_"))  ; Should have underscore for multiple codepoints
+      (is (.endsWith warning-with-variation ".png"))))
+  
+  (testing "Fallback behavior"
+    ;; Test that unknown emoji still get reasonable filenames
+    (let [unknown-emoji-filename (emoji/emoji-filename "🦄")] ; Unicorn
+      (is (some? unknown-emoji-filename))
+      (is (= "emoji_u1f984.png" unknown-emoji-filename))))  ; Should generate correct hex
+  
+  (testing "Edge cases"
+    (is (nil? (emoji/emoji-filename nil)))      ; Nil input
+    (is (nil? (emoji/emoji-filename " ")))      ; Space
+    (is (nil? (emoji/emoji-filename "\n")))))   ; Newline

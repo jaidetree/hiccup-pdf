@@ -2,7 +2,8 @@
   "Unicode emoji processing for hiccup-pdf library.
   
   This namespace provides functions for detecting, extracting, and processing 
-  Unicode emoji characters in text content for PDF generation.")
+  Unicode emoji characters in text content for PDF generation."
+  (:require [clojure.string :as str]))
 
 (defn surrogate-pair?
   "Determines if a character code is part of a UTF-16 surrogate pair.
@@ -197,3 +198,90 @@
                 ;; No text before emoji - just add emoji
                 (let [emoji-segment {:type :emoji :content (:char emoji-info)}]
                   (recur emoji-end remaining-emoji (conj segments emoji-segment)))))))))))
+
+;; Filename mapping functionality for Noto emoji files
+
+(def ^:private known-emoji-map
+  "Predefined mapping from Unicode codepoints to Noto emoji filenames.
+  
+  Maps decimal codepoints to their corresponding PNG filenames in the
+  emojis/noto-72/ directory following Noto naming convention."
+  {128161 "emoji_u1f4a1.png"  ; 💡 lightbulb
+   127919 "emoji_u1f3af.png"  ; 🎯 target  
+   9888   "emoji_u26a0.png"   ; ⚠️ warning sign
+   9989   "emoji_u2705.png"   ; ✅ check mark
+   8226   "emoji_u2022.png"}) ; • bullet point
+
+(defn unicode-to-filename
+  "Converts Unicode codepoint(s) to Noto emoji filename format.
+  
+  Follows Noto emoji naming convention: emoji_u{codepoint}.png (lowercase hex).
+  
+  Args:
+    codepoints: Single codepoint integer or vector of codepoints
+    
+  Returns:
+    String filename in Noto format, or nil if conversion fails
+    
+  Example:
+    (unicode-to-filename 127825) => \"emoji_u1f4a1.png\"
+    (unicode-to-filename [127825]) => \"emoji_u1f4a1.png\""
+  [codepoints]
+  (let [codes (if (vector? codepoints) codepoints [codepoints])]
+    (if (= 1 (count codes))
+      ;; Single codepoint - convert to lowercase hex
+      (let [codepoint (first codes)
+            hex-string (.toString codepoint 16)]
+        (str "emoji_u" (.toLowerCase hex-string) ".png"))
+      ;; Multiple codepoints - join with underscores (for composite emoji)
+      (let [hex-parts (map #(.toLowerCase (.toString % 16)) codes)]
+        (str "emoji_u" (str/join "_" hex-parts) ".png")))))
+
+(defn build-emoji-file-map
+  "Creates a mapping from common emoji codepoints to their filenames.
+  
+  Includes predefined mappings for known emoji and generates filenames
+  for additional codepoints using the standard Noto convention.
+  
+  Args:
+    additional-codepoints: Optional vector of additional codepoints to include
+    
+  Returns:
+    Map from codepoint integers to filename strings"
+  ([] known-emoji-map)
+  ([additional-codepoints]
+   (let [additional-map (into {} (map (fn [cp] [cp (unicode-to-filename cp)]) 
+                                      additional-codepoints))]
+     (merge known-emoji-map additional-map))))
+
+(defn emoji-filename
+  "Main function that takes emoji character and returns corresponding PNG filename.
+  
+  First extracts Unicode codepoints from the emoji character, then looks up
+  or generates the appropriate Noto emoji filename. Also handles special cases
+  like bullet character that have PNG files but aren't technically emoji.
+  
+  Args:
+    emoji-char: String containing emoji character
+    
+  Returns:
+    String filename or nil if emoji not supported
+    
+  Example:
+    (emoji-filename \"💡\") => \"emoji_u1f4a1.png\"
+    (emoji-filename \"🎯\") => \"emoji_u1f3af.png\"
+    (emoji-filename \"•\") => \"emoji_u2022.png\""
+  [emoji-char]
+  (let [codepoints (extract-emoji-codepoints emoji-char)]
+    (if (empty? codepoints)
+      ;; No emoji codepoints found - check for special cases
+      (if (= emoji-char "•")  ; Bullet character special case
+        "emoji_u2022.png"
+        nil)
+      (if (= 1 (count codepoints))
+        ;; Single emoji - check known map first, then generate
+        (let [codepoint (first codepoints)]
+          (or (get known-emoji-map codepoint)
+              (unicode-to-filename codepoint)))
+        ;; Multiple codepoints - generate composite filename
+        (unicode-to-filename codepoints)))))
