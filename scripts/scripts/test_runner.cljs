@@ -3,13 +3,15 @@
             [dev.jaide.hiccup-pdf.core-test]
             [dev.jaide.hiccup-pdf.validation-test]
             [dev.jaide.hiccup-pdf.document-test]
-            [dev.jaide.hiccup-pdf.emoji-test]))
+            [dev.jaide.hiccup-pdf.emoji-test]
+            [dev.jaide.hiccup-pdf.text-processing-test]))
 
 (def tests
   '[dev.jaide.hiccup-pdf.core-test
     dev.jaide.hiccup-pdf.validation-test
     dev.jaide.hiccup-pdf.document-test
-    dev.jaide.hiccup-pdf.emoji-test])
+    dev.jaide.hiccup-pdf.emoji-test
+    dev.jaide.hiccup-pdf.text-processing-test])
 
 (defn run-all-tests
   []

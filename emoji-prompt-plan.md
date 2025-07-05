@@ -114,12 +114,12 @@ Build comprehensive tests covering:
 Use the functions from Step 1A as building blocks. All tests should pass and demonstrate correct boundary detection.
 ```
 
-## Step 2: Filename Mapping
+## Step 2: Filename Mapping ✅ COMPLETED
 
 ### Context
 Now that we can detect and extract emoji codepoints, we need to map them to the corresponding Noto emoji PNG filenames in the local directory structure.
 
-### Prompt 2: Unicode to Filename Conversion
+### Prompt 2: Unicode to Filename Conversion ✅ COMPLETED
 
 ```
 Extend the `hiccup-pdf.emoji` namespace with filename mapping functionality for Noto emoji files:
