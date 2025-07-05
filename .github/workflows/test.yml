@@ -21,6 +21,11 @@ jobs:
           node-version-file: "package.json"
           cache: "npm"
 
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@13.4
+        with:
+          bb: latest
+
       - name: Install dependencies
         run: npm ci
 
