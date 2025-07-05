@@ -202,6 +202,52 @@
                   :else "f")] ; Default to fill if no styling specified
     (str stroke-width-op fill-color-op stroke-color-op path-data draw-op)))
 
+(defn- encode-pdf-text
+  "Encodes text content for PDF text strings with proper Unicode support.
+  
+  For Unicode characters, uses UTF-16BE encoding with BOM.
+  For ASCII-only text, uses simple parenthetical string format.
+  
+  Args:
+    text-content: The text string to encode
+    
+  Returns:
+    String representing PDF text object (either parenthetical or hex string)"
+  [text-content]
+  (if (empty? text-content)
+    "()"
+    ;; Check if text contains non-ASCII characters using char code
+    (let [has-unicode? (some #(> (.charCodeAt % 0) 127) text-content)]
+      (if has-unicode?
+        ;; Use UTF-16BE encoding for Unicode text
+        (let [;; Convert to UTF-16BE bytes with BOM
+              utf16-bytes (concat [0xFE 0xFF] ; BOM for UTF-16BE
+                                  (mapcat (fn [char]
+                                            (let [code (.charCodeAt char 0)]
+                                              (if (< code 0x10000)
+                                                [(bit-shift-right code 8)
+                                                 (bit-and code 0xFF)]
+                                                ;; Handle surrogate pairs for code points > 0xFFFF
+                                                (let [adjusted (- code 0x10000)
+                                                      high (+ 0xD800 (bit-shift-right adjusted 10))
+                                                      low (+ 0xDC00 (bit-and adjusted 0x3FF))]
+                                                  [(bit-shift-right high 8) (bit-and high 0xFF)
+                                                   (bit-shift-right low 8) (bit-and low 0xFF)]))))
+                                          text-content))
+              ;; Convert bytes to hex string
+              hex-string (str/join "" (map (fn [byte]
+                                             (let [hex (.toString byte 16)
+                                                   padded-hex (if (< byte 16) (str "0" hex) hex)]
+                                               (.toUpperCase padded-hex)))
+                                           utf16-bytes))]
+          (str "<" hex-string ">"))
+        ;; Use simple parenthetical format for ASCII text
+        (let [escaped-content (-> text-content
+                                  (str/replace "\\" "\\\\") ; Escape backslashes
+                                  (str/replace "(" "\\(")   ; Escape opening parens
+                                  (str/replace ")" "\\)"))] ; Escape closing parens
+          (str "(" escaped-content ")"))))))
+
 (defn- text->pdf-ops
   "Converts a text hiccup vector to PDF operators.
   
@@ -219,12 +265,9 @@
         fill-color-op (if fill (str (color->pdf-color fill) " rg\n") "0 0 0 rg\n") ; Default to black
         font-op (str "/" font " " size " Tf\n")
         position-op (str x " " y " Td\n")
-        ;; Escape special characters for PDF text strings
-        escaped-content (-> text-content
-                            (str/replace "\\" "\\\\") ; Escape backslashes
-                            (str/replace "(" "\\(")   ; Escape opening parens
-                            (str/replace ")" "\\)"))  ; Escape closing parens
-        text-op (str "(" escaped-content ") Tj\n")]
+        ;; Encode text content for PDF - handle Unicode properly
+        encoded-content (encode-pdf-text text-content)
+        text-op (str encoded-content " Tj\n")]
     (str "BT\n" fill-color-op font-op position-op text-op "ET")))
 
 (defn- transform->matrix

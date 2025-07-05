@@ -342,16 +342,16 @@
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Hello 😀 World"])]
       (is (string? result)
           "Should handle emoji characters")
-      (is (re-find #"\(Hello 😀 World\) Tj\n" result)
-          "Should contain emoji in text content"))
+      (is (re-find #"<[0-9A-F]+> Tj\n" result)
+          "Should use UTF-16BE hex encoding for Unicode content"))
     
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "🎉🚀✨"])]
-      (is (re-find #"\(🎉🚀✨\) Tj\n" result)
-          "Should handle multiple emojis"))
+      (is (re-find #"<[0-9A-F]+> Tj\n" result)
+          "Should handle multiple emojis with hex encoding"))
     
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Text with emoji 🎨 and more text"])]
-      (is (re-find #"\(Text with emoji 🎨 and more text\) Tj\n" result)
-          "Should handle mixed text and emoji")))
+      (is (re-find #"<[0-9A-F]+> Tj\n" result)
+          "Should handle mixed text and emoji with hex encoding")))
   
   (testing "Text with special PDF characters"
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Text with (parentheses)"])]
@@ -370,19 +370,19 @@
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Times-Roman" :size 14} "Times font with 📚 book emoji"])]
       (is (re-find #"/Times-Roman 14 Tf\n" result)
           "Should work with Times-Roman font")
-      (is (re-find #"\(Times font with 📚 book emoji\) Tj\n" result)
-          "Should render emoji with Times font"))
+      (is (re-find #"<[0-9A-F]+> Tj\n" result)
+          "Should render emoji with Times font using hex encoding"))
     
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Helvetica" :size 16} "Helvetica with 🌟 star"])]
       (is (re-find #"/Helvetica 16 Tf\n" result)
           "Should work with Helvetica font")
-      (is (re-find #"\(Helvetica with 🌟 star\) Tj\n" result)
-          "Should render emoji with Helvetica font")))
+      (is (re-find #"<[0-9A-F]+> Tj\n" result)
+          "Should render emoji with Helvetica font using hex encoding")))
   
   (testing "Edge cases with emoji and special characters"
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "🔥(hot)🔥"])]
-      (is (re-find #"\(🔥\\\(hot\\\)🔥\) Tj\n" result)
-          "Should handle emoji with special characters"))
+      (is (re-find #"<[0-9A-F]+> Tj\n" result)
+          "Should handle emoji with special characters using hex encoding"))
     
     (let [result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} ""])]
       (is (re-find #"\(\) Tj\n" result)

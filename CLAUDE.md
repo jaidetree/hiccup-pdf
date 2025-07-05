@@ -141,3 +141,10 @@ transforming into a SVG produces expected output.
 - After, use my script **@scripts/pdf2svg** like `./scripts/pdf2svg triangle_test.pdf` which will generate `triangle_test.svg`.
 - Fix any bugs returned by pdf2svg, which uses the inkscape cli
 - When an svg is produced check it to make sure it matches the expected output of triangle_with_save.cljs
+
+## Mitigate shortcuts
+
+When testing, you need to prompt me to confirm before changing input to make
+the test simpler. For example, if there are unicode characters in a hiccup
+document but they do not render correctly in a PDF that is a bug. Do not change
+those to ASCII characters.
