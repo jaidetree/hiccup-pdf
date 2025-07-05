@@ -95,10 +95,10 @@
     (v/parse schema attributes)))
 
 (defn validate-color
-  "Validates that a color value is a valid color string.
+  "Validates that a color value is a valid hex color string.
   
   Args:
-    color: The color string to validate
+    color: The color string to validate (hex format like #ff0000)
     
   Returns:
     The validated color string if valid
@@ -106,11 +106,9 @@
   Throws:
     Validation error if color is invalid"
   [color]
-  (let [valid-color-names #{"red" "green" "blue" "black" "white" "yellow" "cyan" "magenta"}
-        schema (v/chain
+  (let [schema (v/chain
                  (v/string)
-                 (v/assert #(or (some? (re-find #"^#[0-9a-fA-F]{6}$" %))
-                                (contains? valid-color-names %))))]
+                 (v/regex "^#[0-9a-fA-F]{6}$"))]
     (v/parse schema color)))
 
 (defn validate-rect-attributes
@@ -129,11 +127,9 @@
                                    :y (v/number)
                                    :width (v/number)
                                    :height (v/number)})
-        valid-color-names #{"red" "green" "blue" "black" "white" "yellow" "cyan" "magenta"}
         color-validator (v/chain
                           (v/string)
-                          (v/assert #(or (some? (re-find #"^#[0-9a-fA-F]{6}$" %))
-                                         (contains? valid-color-names %))))
+                          (v/regex "^#[0-9a-fA-F]{6}$"))
         optional-schema (v/record {:fill (v/nilable color-validator)
                                    :stroke (v/nilable color-validator)
                                    :stroke-width (v/nilable (v/number))})]
@@ -157,11 +153,9 @@
                                    :y1 (v/number)
                                    :x2 (v/number)
                                    :y2 (v/number)})
-        valid-color-names #{"red" "green" "blue" "black" "white" "yellow" "cyan" "magenta"}
         color-validator (v/chain
                           (v/string)
-                          (v/assert #(or (some? (re-find #"^#[0-9a-fA-F]{6}$" %))
-                                         (contains? valid-color-names %))))
+                          (v/regex "^#[0-9a-fA-F]{6}$"))
         optional-schema (v/record {:stroke (v/nilable color-validator)
                                    :stroke-width (v/nilable (v/number))})]
     (v/parse required-schema attributes)
@@ -183,11 +177,9 @@
   (let [required-schema (v/record {:cx (v/number)
                                    :cy (v/number)
                                    :r (v/chain (v/number) (v/assert #(>= % 0)))})
-        valid-color-names #{"red" "green" "blue" "black" "white" "yellow" "cyan" "magenta"}
         color-validator (v/chain
                           (v/string)
-                          (v/assert #(or (some? (re-find #"^#[0-9a-fA-F]{6}$" %))
-                                         (contains? valid-color-names %))))
+                          (v/regex "^#[0-9a-fA-F]{6}$"))
         optional-schema (v/record {:fill (v/nilable color-validator)
                                    :stroke (v/nilable color-validator)
                                    :stroke-width (v/nilable (v/number))})]
@@ -210,11 +202,9 @@
   (let [required-schema (v/record {:d (v/chain 
                                         (v/string)
                                         (v/assert #(not (str/blank? %))))})
-        valid-color-names #{"red" "green" "blue" "black" "white" "yellow" "cyan" "magenta"}
         color-validator (v/chain
                           (v/string)
-                          (v/assert #(or (some? (re-find #"^#[0-9a-fA-F]{6}$" %))
-                                         (contains? valid-color-names %))))
+                          (v/regex "^#[0-9a-fA-F]{6}$"))
         optional-schema (v/record {:fill (v/nilable color-validator)
                                    :stroke (v/nilable color-validator)
                                    :stroke-width (v/nilable (v/number))})]
@@ -240,11 +230,9 @@
                                            (v/string)
                                            (v/assert #(not (str/blank? %))))
                                    :size (v/chain (v/number) (v/assert #(> % 0)))})
-        valid-color-names #{"red" "green" "blue" "black" "white" "yellow" "cyan" "magenta"}
         color-validator (v/chain
                           (v/string)
-                          (v/assert #(or (some? (re-find #"^#[0-9a-fA-F]{6}$" %))
-                                         (contains? valid-color-names %))))
+                          (v/regex "^#[0-9a-fA-F]{6}$"))
         optional-schema (v/record {:fill (v/nilable color-validator)})]
     (v/parse required-schema attributes)
     (v/parse optional-schema attributes)

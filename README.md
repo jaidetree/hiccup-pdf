@@ -48,19 +48,19 @@ This library converts web-style hiccup markup into PDF content streams, providin
 (require '[hiccup-pdf.core :refer [hiccup->pdf-ops]])
 
 ;; Simple rectangle
-(hiccup->pdf-ops [:rect {:x 10 :y 20 :width 100 :height 50 :fill "red"}])
+(hiccup->pdf-ops [:rect {:x 10 :y 20 :width 100 :height 50 :fill "#ff0000"}])
 ;; => "1 0 0 rg\n10 20 100 50 re\nf"
 
 ;; Circle with stroke
-(hiccup->pdf-ops [:circle {:cx 50 :cy 50 :r 25 :stroke "blue" :stroke-width 2}])
+(hiccup->pdf-ops [:circle {:cx 50 :cy 50 :r 25 :stroke "#0000ff" :stroke-width 2}])
 
 ;; Text with emoji
 (hiccup->pdf-ops [:text {:x 100 :y 200 :font "Arial" :size 14} "Hello 🌍!"])
 
 ;; Complex group with transforms
 (hiccup->pdf-ops [:g {:transforms [[:translate [50 50]] [:rotate 45]]}
-                  [:rect {:x 0 :y 0 :width 30 :height 30 :fill "green"}]
-                  [:circle {:cx 0 :y 0 :r 15 :fill "white"}]])
+                  [:rect {:x 0 :y 0 :width 30 :height 30 :fill "#00ff00"}]
+                  [:circle {:cx 0 :y 0 :r 15 :fill "#ffffff"}]])
 ```
 
 ### Complete PDF Document Generation
@@ -74,7 +74,7 @@ This library converts web-style hiccup markup into PDF content streams, providin
    [:page {}
     [:text {:x 100 :y 100 :font "Arial" :size 24} "Q4 Sales Report"]
     [:text {:x 100 :y 150 :font "Arial" :size 12} "Total Revenue: $1,234,567"]
-    [:rect {:x 100 :y 200 :width 400 :height 200 :fill "#e6f3ff" :stroke "blue"}]]])
+    [:rect {:x 100 :y 200 :width 400 :height 200 :fill "#e6f3ff" :stroke "#0000ff"}]]])
 
 ;; Multi-page document with different layouts
 (hiccup->pdf-document
@@ -120,10 +120,10 @@ The library provides two main functions:
 ```clojure
 (hiccup->pdf-ops
   [:g {}
-   [:rect {:x 0 :y 0 :width 350 :height 200 :fill "white" :stroke "black"}]
+   [:rect {:x 0 :y 0 :width 350 :height 200 :fill "#ffffff" :stroke "#000000"}]
    [:g {:transforms [[:translate [20 20]]]}
-    [:circle {:cx 0 :cy 0 :r 15 :fill "blue"}]
-    [:text {:x 25 :y 5 :font "Arial" :size 18 :fill "blue"} "TechCorp"]]
+    [:circle {:cx 0 :cy 0 :r 15 :fill "#0000ff"}]
+    [:text {:x 25 :y 5 :font "Arial" :size 18 :fill "#0000ff"} "TechCorp"]]
    [:g {:transforms [[:translate [20 80]]]}
     [:text {:x 0 :y 0 :font "Arial" :size 14} "John Smith"]
     [:text {:x 0 :y 20 :font "Arial" :size 12} "Senior Developer"]]])
@@ -135,10 +135,10 @@ The library provides two main functions:
 (hiccup->pdf-ops
   [:g {}
    ;; Chart background
-   [:rect {:x 50 :y 50 :width 300 :height 200 :fill "white" :stroke "black"}]
+   [:rect {:x 50 :y 50 :width 300 :height 200 :fill "#ffffff" :stroke "#000000"}]
    ;; Data points
    (for [i (range 5)]
-     [:circle {:cx (+ 75 (* i 60)) :cy (+ 100 (* i 20)) :r 5 :fill "red"}])])
+     [:circle {:cx (+ 75 (* i 60)) :cy (+ 100 (* i 20)) :r 5 :fill "#ff0000"}])])
 ```
 
 ## Development

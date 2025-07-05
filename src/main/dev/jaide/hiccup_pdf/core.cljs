@@ -33,30 +33,20 @@
   [color]
   (if-let [cached (@color-cache color)]
     cached
-    (let [result (case color
-                   "red" "1 0 0"
-                   "green" "0 1 0"
-                   "blue" "0 0 1"
-                   "black" "0 0 0"
-                   "white" "1 1 1"
-                   "yellow" "1 1 0"
-                   "cyan" "0 1 1"
-                   "magenta" "1 0 1"
-                   ;; For hex colors, convert to RGB
-                   (if (re-matches #"^#[0-9a-fA-F]{6}$" color)
-                     (let [r (/ (js/parseInt (subs color 1 3) 16) 255.0)
-                           g (/ (js/parseInt (subs color 3 5) 16) 255.0)
-                           b (/ (js/parseInt (subs color 5 7) 16) 255.0)]
-                       (str r " " g " " b))
-                     "0 0 0"))] ; Default to black
+    (let [result (if (re-matches #"^#[0-9a-fA-F]{6}$" color)
+                   (let [r (/ (js/parseInt (subs color 1 3) 16) 255.0)
+                         g (/ (js/parseInt (subs color 3 5) 16) 255.0)
+                         b (/ (js/parseInt (subs color 5 7) 16) 255.0)]
+                     (str r " " g " " b))
+                   "0 0 0")] ; Default to black for invalid colors
       (swap! color-cache assoc color result)
       result)))
 
 (defn- color->pdf-color
-  "Converts a color string to PDF color values.
+  "Converts a hex color string to PDF color values.
   
   Args:
-    color: Color string (hex like #ff0000 or named color like red)
+    color: Hex color string (like #ff0000)
     
   Returns:
     String with PDF color operators"
@@ -381,7 +371,6 @@
   
   ## Colors
   
-  Supports named colors: \"red\", \"green\", \"blue\", \"black\", \"white\", \"yellow\", \"cyan\", \"magenta\"
   Supports hex colors: \"#ff0000\", \"#00ff00\", etc.
   
   ## Transforms
@@ -400,25 +389,25 @@
   
   Examples:
     ;; Basic rectangle
-    (hiccup->pdf-ops [:rect {:x 10 :y 20 :width 100 :height 50 :fill \"red\"}])
+    (hiccup->pdf-ops [:rect {:x 10 :y 20 :width 100 :height 50 :fill \"#ff0000\"}])
     ;; => \"1 0 0 rg\\n10 20 100 50 re\\nf\"
     
     ;; Circle with stroke
-    (hiccup->pdf-ops [:circle {:cx 50 :cy 50 :r 25 :stroke \"blue\" :stroke-width 2}])
+    (hiccup->pdf-ops [:circle {:cx 50 :cy 50 :r 25 :stroke \"#0000ff\" :stroke-width 2}])
     ;; => \"2 w\\n0 0 1 RG\\n50 75 m\\n...\\nS\"
     
     ;; Text with styling
-    (hiccup->pdf-ops [:text {:x 100 :y 200 :font \"Arial\" :size 14 :fill \"green\"} \"Hello PDF!\"])
+    (hiccup->pdf-ops [:text {:x 100 :y 200 :font \"Arial\" :size 14 :fill \"#00ff00\"} \"Hello PDF!\"])
     ;; => \"BT\\n0 1 0 rg\\n/Arial 14 Tf\\n100 200 Td\\n(Hello PDF!) Tj\\nET\"
     
     ;; Complex group with transforms
     (hiccup->pdf-ops [:g {:transforms [[:translate [50 50]] [:rotate 45]]}
-                      [:rect {:x 0 :y 0 :width 30 :height 30 :fill \"red\"}]
-                      [:circle {:cx 0 :cy 0 :r 15 :fill \"blue\"}]])
+                      [:rect {:x 0 :y 0 :width 30 :height 30 :fill \"#ff0000\"}]
+                      [:circle {:cx 0 :cy 0 :r 15 :fill \"#0000ff\"}]])
     ;; => \"q\\n1 0 0 1 50 50 cm\\n0.707... 0.707... -0.707... 0.707... 0 0 cm\\n...\\nQ\"
     
     ;; SVG-style path
-    (hiccup->pdf-ops [:path {:d \"M10,10 L50,50 C60,60 70,40 80,50 Z\" :fill \"yellow\"}])
+    (hiccup->pdf-ops [:path {:d \"M10,10 L50,50 C60,60 70,40 80,50 Z\" :fill \"#ffff00\"}])
     ;; => \"1 1 0 rg\\n10 10 m\\n50 50 l\\n60 60 70 40 80 50 c\\nh\\nf\"
   
   Throws:

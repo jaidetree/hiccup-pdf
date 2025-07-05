@@ -158,10 +158,10 @@ This document outlines the performance characteristics and optimizations impleme
 
 ```clojure
 ;; Good: Reuse colors
-(def company-colors {:primary "blue" :secondary "red"})
+(def company-colors {:primary "#0000ff" :secondary "#ff0000"})
 
 ;; Good: Use named colors when possible
-[:rect {:fill "red"}] ; Faster than [:rect {:fill "#ff0000"}]
+[:rect {:fill "#ff0000"}] ; Faster than [:rect {:fill "#ff0000"}]
 
 ;; Avoid: Unique colors everywhere
 [:rect {:fill "#ff0001"}] ; Slightly different red - no cache benefit
@@ -198,9 +198,9 @@ This document outlines the performance characteristics and optimizations impleme
 ;; Good: Process similar elements together
 [:g {}
  ;; All rectangles together
- (for [i (range 100)] [:rect {:x (* i 10) :y 0 :width 8 :height 20 :fill "red"}])
+ (for [i (range 100)] [:rect {:x (* i 10) :y 0 :width 8 :height 20 :fill "#ff0000"}])
  ;; All circles together  
- (for [i (range 50)] [:circle {:cx (* i 20) :cy 50 :r 5 :fill "blue"}])]
+ (for [i (range 50)] [:circle {:cx (* i 20) :cy 50 :r 5 :fill "#0000ff"}])]
 ```
 
 ## Performance Testing

@@ -27,39 +27,39 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 (require '[hiccup-pdf.core :refer [hiccup->pdf-ops]])
 
 ;; Simple filled rectangle
-(hiccup->pdf-ops [:rect {:x 10 :y 20 :width 100 :height 50 :fill "red"}])
+(hiccup->pdf-ops [:rect {:x 10 :y 20 :width 100 :height 50 :fill "#ff0000"}])
 
 ;; Rectangle with stroke
-(hiccup->pdf-ops [:rect {:x 0 :y 0 :width 200 :height 100 :stroke "black" :stroke-width 2}])
+(hiccup->pdf-ops [:rect {:x 0 :y 0 :width 200 :height 100 :stroke "#000000" :stroke-width 2}])
 
 ;; Rectangle with both fill and stroke  
-(hiccup->pdf-ops [:rect {:x 50 :y 50 :width 80 :height 60 :fill "blue" :stroke "red" :stroke-width 3}])
+(hiccup->pdf-ops [:rect {:x 50 :y 50 :width 80 :height 60 :fill "#0000ff" :stroke "#ff0000" :stroke-width 3}])
 ```
 
 ### Circles
 
 ```clojure
 ;; Filled circle
-(hiccup->pdf-ops [:circle {:cx 100 :cy 100 :r 50 :fill "green"}])
+(hiccup->pdf-ops [:circle {:cx 100 :cy 100 :r 50 :fill "#00ff00"}])
 
 ;; Circle outline
-(hiccup->pdf-ops [:circle {:cx 50 :cy 50 :r 25 :stroke "blue" :stroke-width 2}])
+(hiccup->pdf-ops [:circle {:cx 50 :cy 50 :r 25 :stroke "#0000ff" :stroke-width 2}])
 
 ;; Small circle (dot)
-(hiccup->pdf-ops [:circle {:cx 10 :cy 10 :r 3 :fill "black"}])
+(hiccup->pdf-ops [:circle {:cx 10 :cy 10 :r 3 :fill "#000000"}])
 ```
 
 ### Lines
 
 ```clojure
 ;; Horizontal line
-(hiccup->pdf-ops [:line {:x1 0 :y1 50 :x2 200 :y2 50 :stroke "black"}])
+(hiccup->pdf-ops [:line {:x1 0 :y1 50 :x2 200 :y2 50 :stroke "#000000"}])
 
 ;; Diagonal line
-(hiccup->pdf-ops [:line {:x1 0 :y1 0 :x2 100 :y2 100 :stroke "red" :stroke-width 3}])
+(hiccup->pdf-ops [:line {:x1 0 :y1 0 :x2 100 :y2 100 :stroke "#ff0000" :stroke-width 3}])
 
 ;; Vertical line
-(hiccup->pdf-ops [:line {:x1 50 :y1 0 :x2 50 :y2 200 :stroke "blue"}])
+(hiccup->pdf-ops [:line {:x1 50 :y1 0 :x2 50 :y2 200 :stroke "#0000ff"}])
 ```
 
 ## Styling and Colors
@@ -68,18 +68,18 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 
 ```clojure
 ;; Primary colors
-(hiccup->pdf-ops [:rect {:x 0 :y 0 :width 50 :height 50 :fill "red"}])
-(hiccup->pdf-ops [:rect {:x 60 :y 0 :width 50 :height 50 :fill "green"}])
-(hiccup->pdf-ops [:rect {:x 120 :y 0 :width 50 :height 50 :fill "blue"}])
+(hiccup->pdf-ops [:rect {:x 0 :y 0 :width 50 :height 50 :fill "#ff0000"}])
+(hiccup->pdf-ops [:rect {:x 60 :y 0 :width 50 :height 50 :fill "#00ff00"}])
+(hiccup->pdf-ops [:rect {:x 120 :y 0 :width 50 :height 50 :fill "#0000ff"}])
 
 ;; Secondary colors
-(hiccup->pdf-ops [:rect {:x 0 :y 60 :width 50 :height 50 :fill "yellow"}])
-(hiccup->pdf-ops [:rect {:x 60 :y 60 :width 50 :height 50 :fill "cyan"}])
-(hiccup->pdf-ops [:rect {:x 120 :y 60 :width 50 :height 50 :fill "magenta"}])
+(hiccup->pdf-ops [:rect {:x 0 :y 60 :width 50 :height 50 :fill "#ffff00"}])
+(hiccup->pdf-ops [:rect {:x 60 :y 60 :width 50 :height 50 :fill "#00ffff"}])
+(hiccup->pdf-ops [:rect {:x 120 :y 60 :width 50 :height 50 :fill "#ff00ff"}])
 
 ;; Monochrome
-(hiccup->pdf-ops [:rect {:x 0 :y 120 :width 50 :height 50 :fill "black"}])
-(hiccup->pdf-ops [:rect {:x 60 :y 120 :width 50 :height 50 :fill "white" :stroke "black"}])
+(hiccup->pdf-ops [:rect {:x 0 :y 120 :width 50 :height 50 :fill "#000000"}])
+(hiccup->pdf-ops [:rect {:x 60 :y 120 :width 50 :height 50 :fill "#ffffff" :stroke "#000000"}])
 ```
 
 ### Hex Colors
@@ -96,10 +96,10 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 
 ```clojure
 ;; Various stroke widths
-(hiccup->pdf-ops [:line {:x1 0 :y1 10 :x2 200 :y2 10 :stroke "black" :stroke-width 1}])
-(hiccup->pdf-ops [:line {:x1 0 :y1 30 :x2 200 :y2 30 :stroke "black" :stroke-width 2}])
-(hiccup->pdf-ops [:line {:x1 0 :y1 50 :x2 200 :y2 50 :stroke "black" :stroke-width 5}])
-(hiccup->pdf-ops [:line {:x1 0 :y1 80 :x2 200 :y2 80 :stroke "black" :stroke-width 10}])
+(hiccup->pdf-ops [:line {:x1 0 :y1 10 :x2 200 :y2 10 :stroke "#000000" :stroke-width 1}])
+(hiccup->pdf-ops [:line {:x1 0 :y1 30 :x2 200 :y2 30 :stroke "#000000" :stroke-width 2}])
+(hiccup->pdf-ops [:line {:x1 0 :y1 50 :x2 200 :y2 50 :stroke "#000000" :stroke-width 5}])
+(hiccup->pdf-ops [:line {:x1 0 :y1 80 :x2 200 :y2 80 :stroke "#000000" :stroke-width 10}])
 ```
 
 ## Text Rendering
@@ -121,9 +121,9 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 
 ```clojure
 ;; Text with colors
-(hiccup->pdf-ops [:text {:x 50 :y 50 :font "Arial" :size 14 :fill "red"} "Red text"])
-(hiccup->pdf-ops [:text {:x 50 :y 75 :font "Arial" :size 14 :fill "blue"} "Blue text"])
-(hiccup->pdf-ops [:text {:x 50 :y 100 :font "Arial" :size 14 :fill "green"} "Green text"])
+(hiccup->pdf-ops [:text {:x 50 :y 50 :font "Arial" :size 14 :fill "#ff0000"} "Red text"])
+(hiccup->pdf-ops [:text {:x 50 :y 75 :font "Arial" :size 14 :fill "#0000ff"} "Blue text"])
+(hiccup->pdf-ops [:text {:x 50 :y 100 :font "Arial" :size 14 :fill "#00ff00"} "Green text"])
 ```
 
 ### Text with Emojis
@@ -150,29 +150,29 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 
 ```clojure
 ;; Triangle
-(hiccup->pdf-ops [:path {:d "M50,10 L90,90 L10,90 Z" :fill "red"}])
+(hiccup->pdf-ops [:path {:d "M50,10 L90,90 L10,90 Z" :fill "#ff0000"}])
 
 ;; Diamond
-(hiccup->pdf-ops [:path {:d "M50,10 L90,50 L50,90 L10,50 Z" :fill "blue"}])
+(hiccup->pdf-ops [:path {:d "M50,10 L90,50 L50,90 L10,50 Z" :fill "#0000ff"}])
 
 ;; Star shape
 (hiccup->pdf-ops [:path {:d "M50,5 L61,35 L95,35 L68,57 L79,91 L50,70 L21,91 L32,57 L5,35 L39,35 Z" 
-                          :fill "yellow" :stroke "black"}])
+                          :fill "#ffff00" :stroke "#000000"}])
 ```
 
 ### Curved Paths
 
 ```clojure
 ;; Simple curve
-(hiccup->pdf-ops [:path {:d "M10,50 C10,10 90,10 90,50" :stroke "blue" :stroke-width 3}])
+(hiccup->pdf-ops [:path {:d "M10,50 C10,10 90,10 90,50" :stroke "#0000ff" :stroke-width 3}])
 
 ;; Wave pattern
 (hiccup->pdf-ops [:path {:d "M0,50 C25,10 75,90 100,50 C125,10 175,90 200,50" 
-                          :stroke "green" :stroke-width 2}])
+                          :stroke "#00ff00" :stroke-width 2}])
 
 ;; Heart shape
 (hiccup->pdf-ops [:path {:d "M50,70 C50,50 20,30 20,50 C20,30 50,50 50,30 C50,50 80,30 80,50 C80,30 50,50 50,70 Z" 
-                          :fill "red"}])
+                          :fill "#ff0000"}])
 ```
 
 ## Groups and Transforms
@@ -183,8 +183,8 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 ;; Group multiple elements
 (hiccup->pdf-ops 
   [:g {}
-   [:rect {:x 0 :y 0 :width 100 :height 50 :fill "red"}]
-   [:circle {:cx 50 :cy 25 :r 15 :fill "white"}]
+   [:rect {:x 0 :y 0 :width 100 :height 50 :fill "#ff0000"}]
+   [:circle {:cx 50 :cy 25 :r 15 :fill "#ffffff"}]
    [:text {:x 35 :y 30 :font "Arial" :size 10} "Hi"]])
 ```
 
@@ -194,15 +194,15 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 ;; Translate group
 (hiccup->pdf-ops 
   [:g {:transforms [[:translate [100 100]]]}
-   [:rect {:x 0 :y 0 :width 50 :height 50 :fill "blue"}]
+   [:rect {:x 0 :y 0 :width 50 :height 50 :fill "#0000ff"}]
    [:text {:x 10 :y 30 :font "Arial" :size 12} "Moved"]])
 
 ;; Multiple elements with same translation
 (hiccup->pdf-ops 
   [:g {:transforms [[:translate [50 50]]]}
-   [:circle {:cx 0 :cy 0 :r 20 :fill "red"}]
-   [:circle {:cx 50 :cy 0 :r 20 :fill "green"}]
-   [:circle {:cx 25 :cy 40 :r 20 :fill "blue"}]])
+   [:circle {:cx 0 :cy 0 :r 20 :fill "#ff0000"}]
+   [:circle {:cx 50 :cy 0 :r 20 :fill "#00ff00"}]
+   [:circle {:cx 25 :cy 40 :r 20 :fill "#0000ff"}]])
 ```
 
 ### Rotations
@@ -211,12 +211,12 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 ;; Rotate rectangle
 (hiccup->pdf-ops 
   [:g {:transforms [[:rotate 45]]}
-   [:rect {:x 0 :y 0 :width 60 :height 20 :fill "green"}]])
+   [:rect {:x 0 :y 0 :width 60 :height 20 :fill "#00ff00"}]])
 
 ;; Rotate around translated center
 (hiccup->pdf-ops 
   [:g {:transforms [[:translate [100 100]] [:rotate 30]]}
-   [:rect {:x -25 :y -10 :width 50 :height 20 :fill "red"}]
+   [:rect {:x -25 :y -10 :width 50 :height 20 :fill "#ff0000"}]
    [:text {:x -15 :y 5 :font "Arial" :size 10} "Rotated"]])
 ```
 
@@ -226,12 +226,12 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 ;; Scale up
 (hiccup->pdf-ops 
   [:g {:transforms [[:scale [2 2]]]}
-   [:circle {:cx 25 :cy 25 :r 15 :fill "blue"}]])
+   [:circle {:cx 25 :cy 25 :r 15 :fill "#0000ff"}]])
 
 ;; Non-uniform scaling
 (hiccup->pdf-ops 
   [:g {:transforms [[:scale [3 1]]]}
-   [:rect {:x 0 :y 0 :width 20 :height 40 :fill "green"}]])
+   [:rect {:x 0 :y 0 :width 20 :height 40 :fill "#00ff00"}]])
 
 ;; Scale down
 (hiccup->pdf-ops 
@@ -245,8 +245,8 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 ;; Translate, rotate, and scale
 (hiccup->pdf-ops 
   [:g {:transforms [[:translate [100 100]] [:rotate 45] [:scale [1.5 1.5]]]}
-   [:rect {:x -20 :y -20 :width 40 :height 40 :fill "red"}]
-   [:circle {:cx 0 :cy 0 :r 10 :fill "white"}]])
+   [:rect {:x -20 :y -20 :width 40 :height 40 :fill "#ff0000"}]
+   [:circle {:cx 0 :cy 0 :r 10 :fill "#ffffff"}]])
 ```
 
 ### Nested Groups
@@ -255,11 +255,11 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 ;; Nested transformations
 (hiccup->pdf-ops 
   [:g {:transforms [[:translate [100 100]]]}
-   [:rect {:x -30 :y -30 :width 60 :height 60 :fill "blue"}]
+   [:rect {:x -30 :y -30 :width 60 :height 60 :fill "#0000ff"}]
    [:g {:transforms [[:rotate 45]]}
-    [:rect {:x -15 :y -15 :width 30 :height 30 :fill "red"}]
+    [:rect {:x -15 :y -15 :width 30 :height 30 :fill "#ff0000"}]
     [:g {:transforms [[:scale [0.5 0.5]]]}
-     [:circle {:cx 0 :cy 0 :r 10 :fill "white"}]]]])
+     [:circle {:cx 0 :cy 0 :r 10 :fill "#ffffff"}]]]])
 ```
 
 ## Real-World Content Examples
@@ -270,23 +270,23 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 (hiccup->pdf-ops
   [:g {}
    ;; Background
-   [:rect {:x 0 :y 0 :width 350 :height 200 :fill "white" :stroke "black" :stroke-width 1}]
+   [:rect {:x 0 :y 0 :width 350 :height 200 :fill "#ffffff" :stroke "#000000" :stroke-width 1}]
    
    ;; Company logo area
    [:g {:transforms [[:translate [20 20]]]}
-    [:circle {:cx 0 :cy 0 :r 15 :fill "blue"}]
-    [:text {:x 25 :y 5 :font "Arial" :size 18 :fill "blue"} "TechCorp"]]
+    [:circle {:cx 0 :cy 0 :r 15 :fill "#0000ff"}]
+    [:text {:x 25 :y 5 :font "Arial" :size 18 :fill "#0000ff"} "TechCorp"]]
    
    ;; Contact information
    [:g {:transforms [[:translate [20 80]]]}
-    [:text {:x 0 :y 0 :font "Arial" :size 14 :fill "black"} "John Smith"]
-    [:text {:x 0 :y 20 :font "Arial" :size 12 :fill "black"} "Senior Developer"] 
-    [:text {:x 0 :y 40 :font "Arial" :size 10 :fill "black"} "john.smith@techcorp.com"]
-    [:text {:x 0 :y 55 :font "Arial" :size 10 :fill "black"} "+1 (555) 123-4567"]]
+    [:text {:x 0 :y 0 :font "Arial" :size 14 :fill "#000000"} "John Smith"]
+    [:text {:x 0 :y 20 :font "Arial" :size 12 :fill "#000000"} "Senior Developer"] 
+    [:text {:x 0 :y 40 :font "Arial" :size 10 :fill "#000000"} "john.smith@techcorp.com"]
+    [:text {:x 0 :y 55 :font "Arial" :size 10 :fill "#000000"} "+1 (555) 123-4567"]]
    
    ;; Decorative element
    [:g {:transforms [[:translate [250 50]]]}
-    [:path {:d "M0,0 L50,25 L0,50 L10,25 Z" :fill "blue"}]]])
+    [:path {:d "M0,0 L50,25 L0,50 L10,25 Z" :fill "#0000ff"}]]])
 ```
 
 ### Simple Flowchart
@@ -296,24 +296,24 @@ This document provides comprehensive examples for using the hiccup-pdf library t
   [:g {}
    ;; Start box
    [:g {:transforms [[:translate [50 50]]]}
-    [:rect {:x 0 :y 0 :width 80 :height 40 :fill "white" :stroke "green" :stroke-width 2}]
-    [:text {:x 30 :y 25 :font "Arial" :size 12 :fill "green"} "Start"]]
+    [:rect {:x 0 :y 0 :width 80 :height 40 :fill "#ffffff" :stroke "#00ff00" :stroke-width 2}]
+    [:text {:x 30 :y 25 :font "Arial" :size 12 :fill "#00ff00"} "Start"]]
    
    ;; Arrow  
-   [:path {:d "M130,70 L170,70 M165,65 L170,70 L165,75" :stroke "black" :stroke-width 2}]
+   [:path {:d "M130,70 L170,70 M165,65 L170,70 L165,75" :stroke "#000000" :stroke-width 2}]
    
    ;; Process box
    [:g {:transforms [[:translate [180 50]]]}
-    [:rect {:x 0 :y 0 :width 80 :height 40 :fill "white" :stroke "blue" :stroke-width 2}]
-    [:text {:x 20 :y 25 :font "Arial" :size 12 :fill "blue"} "Process"]]
+    [:rect {:x 0 :y 0 :width 80 :height 40 :fill "#ffffff" :stroke "#0000ff" :stroke-width 2}]
+    [:text {:x 20 :y 25 :font "Arial" :size 12 :fill "#0000ff"} "Process"]]
    
    ;; Arrow
-   [:path {:d "M260,70 L300,70 M295,65 L300,70 L295,75" :stroke "black" :stroke-width 2}]
+   [:path {:d "M260,70 L300,70 M295,65 L300,70 L295,75" :stroke "#000000" :stroke-width 2}]
    
    ;; End box
    [:g {:transforms [[:translate [310 50]]]}
-    [:rect {:x 0 :y 0 :width 80 :height 40 :fill "white" :stroke "red" :stroke-width 2}]
-    [:text {:x 35 :y 25 :font "Arial" :size 12 :fill "red"} "End"]]])
+    [:rect {:x 0 :y 0 :width 80 :height 40 :fill "#ffffff" :stroke "#ff0000" :stroke-width 2}]
+    [:text {:x 35 :y 25 :font "Arial" :size 12 :fill "#ff0000"} "End"]]])
 ```
 
 ### Data Chart
@@ -322,30 +322,30 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 (hiccup->pdf-ops
   [:g {}
    ;; Chart background
-   [:rect {:x 50 :y 50 :width 300 :height 200 :fill "white" :stroke "black" :stroke-width 1}]
+   [:rect {:x 50 :y 50 :width 300 :height 200 :fill "#ffffff" :stroke "#000000" :stroke-width 1}]
    
    ;; Grid lines
-   [:line {:x1 50 :y1 100 :x2 350 :y2 100 :stroke "black"}]
-   [:line {:x1 50 :y1 150 :x2 350 :y2 150 :stroke "black"}]
-   [:line {:x1 50 :y1 200 :x2 350 :y2 200 :stroke "black"}]
-   [:line {:x1 100 :y1 50 :x2 100 :y2 250 :stroke "black"}]
-   [:line {:x1 200 :y1 50 :x2 200 :y2 250 :stroke "black"}]
-   [:line {:x1 300 :y1 50 :x2 300 :y2 250 :stroke "black"}]
+   [:line {:x1 50 :y1 100 :x2 350 :y2 100 :stroke "#000000"}]
+   [:line {:x1 50 :y1 150 :x2 350 :y2 150 :stroke "#000000"}]
+   [:line {:x1 50 :y1 200 :x2 350 :y2 200 :stroke "#000000"}]
+   [:line {:x1 100 :y1 50 :x2 100 :y2 250 :stroke "#000000"}]
+   [:line {:x1 200 :y1 50 :x2 200 :y2 250 :stroke "#000000"}]
+   [:line {:x1 300 :y1 50 :x2 300 :y2 250 :stroke "#000000"}]
    
    ;; Data points
-   [:circle {:cx 75 :cy 180 :r 4 :fill "red"}]
-   [:circle {:cx 125 :cy 140 :r 4 :fill "red"}]
-   [:circle {:cx 175 :cy 120 :r 4 :fill "red"}]
-   [:circle {:cx 225 :cy 160 :r 4 :fill "red"}]
-   [:circle {:cx 275 :cy 100 :r 4 :fill "red"}]
+   [:circle {:cx 75 :cy 180 :r 4 :fill "#ff0000"}]
+   [:circle {:cx 125 :cy 140 :r 4 :fill "#ff0000"}]
+   [:circle {:cx 175 :cy 120 :r 4 :fill "#ff0000"}]
+   [:circle {:cx 225 :cy 160 :r 4 :fill "#ff0000"}]
+   [:circle {:cx 275 :cy 100 :r 4 :fill "#ff0000"}]
    
    ;; Connect data points
-   [:path {:d "M75,180 L125,140 L175,120 L225,160 L275,100" :stroke "red" :stroke-width 2}]
+   [:path {:d "M75,180 L125,140 L175,120 L225,160 L275,100" :stroke "#ff0000" :stroke-width 2}]
    
    ;; Labels
-   [:text {:x 170 :y 280 :font "Arial" :size 12 :fill "black"} "Time"]
+   [:text {:x 170 :y 280 :font "Arial" :size 12 :fill "#000000"} "Time"]
    [:g {:transforms [[:translate [20 150]] [:rotate -90]]}
-    [:text {:x 0 :y 0 :font "Arial" :size 12 :fill "black"} "Value"]]])
+    [:text {:x 0 :y 0 :font "Arial" :size 12 :fill "#000000"} "Value"]]])
 ```
 
 ### Logo Design
@@ -354,15 +354,15 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 (hiccup->pdf-ops
   [:g {:transforms [[:translate [100 100]]]}
    ;; Outer circle
-   [:circle {:cx 0 :cy 0 :r 50 :fill "blue" :stroke "black" :stroke-width 3}]
+   [:circle {:cx 0 :cy 0 :r 50 :fill "#0000ff" :stroke "#000000" :stroke-width 3}]
    
    ;; Inner shapes
    [:g {:transforms [[:rotate 45]]}
-    [:rect {:x -20 :y -20 :width 40 :height 40 :fill "white"}]
-    [:circle {:cx 0 :cy 0 :r 15 :fill "blue"}]]
+    [:rect {:x -20 :y -20 :width 40 :height 40 :fill "#ffffff"}]
+    [:circle {:cx 0 :cy 0 :r 15 :fill "#0000ff"}]]
    
    ;; Company name
-   [:text {:x -25 :y 70 :font "Arial" :size 14 :fill "black"} "MyCompany"]])
+   [:text {:x -25 :y 70 :font "Arial" :size 14 :fill "#000000"} "MyCompany"]])
 ```
 
 ### Certificate Border
@@ -371,25 +371,25 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 (hiccup->pdf-ops
   [:g {}
    ;; Outer border
-   [:rect {:x 20 :y 20 :width 560 :height 400 :stroke "black" :stroke-width 3}]
+   [:rect {:x 20 :y 20 :width 560 :height 400 :stroke "#000000" :stroke-width 3}]
    
    ;; Inner decorative border
-   [:rect {:x 40 :y 40 :width 520 :height 360 :stroke "blue" :stroke-width 1}]
+   [:rect {:x 40 :y 40 :width 520 :height 360 :stroke "#0000ff" :stroke-width 1}]
    
    ;; Corner decorations
    (for [corner [[60 60] [540 60] [60 380] [540 380]]]
      [:g {:transforms [[:translate corner]]}
-      [:circle {:cx 0 :cy 0 :r 8 :fill "blue"}]
-      [:circle {:cx 0 :cy 0 :r 4 :fill "white"}]])
+      [:circle {:cx 0 :cy 0 :r 8 :fill "#0000ff"}]
+      [:circle {:cx 0 :cy 0 :r 4 :fill "#ffffff"}]])
    
    ;; Title area
-   [:text {:x 300 :y 120 :font "Arial" :size 24 :fill "black"} "Certificate"]
-   [:text {:x 280 :y 150 :font "Arial" :size 16 :fill "black"} "of Achievement"]
+   [:text {:x 300 :y 120 :font "Arial" :size 24 :fill "#000000"} "Certificate"]
+   [:text {:x 280 :y 150 :font "Arial" :size 16 :fill "#000000"} "of Achievement"]
    
    ;; Content area
-   [:text {:x 300 :y 220 :font "Arial" :size 14 :fill "black"} "This certifies that"]
-   [:text {:x 300 :y 250 :font "Arial" :size 18 :fill "blue"} "John Doe"]
-   [:text {:x 270 :y 280 :font "Arial" :size 14 :fill "black"} "has successfully completed"]])
+   [:text {:x 300 :y 220 :font "Arial" :size 14 :fill "#000000"} "This certifies that"]
+   [:text {:x 300 :y 250 :font "Arial" :size 18 :fill "#0000ff"} "John Doe"]
+   [:text {:x 270 :y 280 :font "Arial" :size 14 :fill "#000000"} "has successfully completed"]])
 ```
 
 ### Technical Diagram
@@ -399,20 +399,20 @@ This document provides comprehensive examples for using the hiccup-pdf library t
   [:g {}
    ;; Components
    [:g {:transforms [[:translate [50 100]]]}
-    [:rect {:x 0 :y 0 :width 60 :height 40 :fill "white" :stroke "black"}]
+    [:rect {:x 0 :y 0 :width 60 :height 40 :fill "#ffffff" :stroke "#000000"}]
     [:text {:x 15 :y 25 :font "Arial" :size 10} "Input"]]
    
    [:g {:transforms [[:translate [200 100]]]}
-    [:rect {:x 0 :y 0 :width 60 :height 40 :fill "white" :stroke "black"}]
+    [:rect {:x 0 :y 0 :width 60 :height 40 :fill "#ffffff" :stroke "#000000"}]
     [:text {:x 10 :y 25 :font "Arial" :size 10} "Process"]]
    
    [:g {:transforms [[:translate [350 100]]]}
-    [:rect {:x 0 :y 0 :width 60 :height 40 :fill "white" :stroke "black"}]
+    [:rect {:x 0 :y 0 :width 60 :height 40 :fill "#ffffff" :stroke "#000000"}]
     [:text {:x 12 :y 25 :font "Arial" :size 10} "Output"]]
    
    ;; Connections
-   [:path {:d "M110,120 L200,120 M195,115 L200,120 L195,125" :stroke "black" :stroke-width 2}]
-   [:path {:d "M260,120 L350,120 M345,115 L350,120 L345,125" :stroke "black" :stroke-width 2}]
+   [:path {:d "M110,120 L200,120 M195,115 L200,120 L195,125" :stroke "#000000" :stroke-width 2}]
+   [:path {:d "M260,120 L350,120 M345,115 L350,120 L345,125" :stroke "#000000" :stroke-width 2}]
    
    ;; Labels
    [:text {:x 140 :y 110 :font "Arial" :size 8} "data"]
@@ -466,17 +466,17 @@ The following examples demonstrate complete PDF document generation using `hiccu
    ;; Standard letter page
    [:page {:width 612 :height 792}
     [:text {:x 50 :y 50 :font "Arial" :size 16} "Letter Size Page"]
-    [:rect {:x 50 :y 100 :width 512 :height 592 :stroke "black"}]]
+    [:rect {:x 50 :y 100 :width 512 :height 592 :stroke "#000000"}]]
    
    ;; A4 portrait page
    [:page {:width 595 :height 842}
     [:text {:x 50 :y 50 :font "Arial" :size 16} "A4 Portrait Page"]
-    [:circle {:cx 297 :cy 421 :r 200 :stroke "blue" :stroke-width 2}]]
+    [:circle {:cx 297 :cy 421 :r 200 :stroke "#0000ff" :stroke-width 2}]]
    
    ;; Custom landscape page
    [:page {:width 800 :height 600}
     [:text {:x 50 :y 50 :font "Arial" :size 16} "Custom Landscape Page"]
-    [:line {:x1 50 :y1 100 :x2 750 :y2 100 :stroke "red" :stroke-width 3}]]])
+    [:line {:x1 50 :y1 100 :x2 750 :y2 100 :stroke "#ff0000" :stroke-width 3}]]])
 ```
 
 ### Page Inheritance
@@ -526,21 +526,21 @@ The following examples demonstrate complete PDF document generation using `hiccu
     [:text {:x 350 :y 160 :font "Arial" :size 12} "Town, ST 67890"]
     
     ;; Table header
-    [:rect {:x 50 :y 200 :width 500 :height 30 :fill "#f0f0f0" :stroke "black"}]
+    [:rect {:x 50 :y 200 :width 500 :height 30 :fill "#f0f0f0" :stroke "#000000"}]
     [:text {:x 60 :y 220 :font "Arial" :size 12} "Description"]
     [:text {:x 350 :y 220 :font "Arial" :size 12} "Quantity"]
     [:text {:x 450 :y 220 :font "Arial" :size 12} "Rate"]
     [:text {:x 500 :y 220 :font "Arial" :size 12} "Amount"]
     
     ;; Table rows
-    [:rect {:x 50 :y 230 :width 500 :height 25 :stroke "black"}]
+    [:rect {:x 50 :y 230 :width 500 :height 25 :stroke "#000000"}]
     [:text {:x 60 :y 250 :font "Arial" :size 11} "Web Development Services"]
     [:text {:x 370 :y 250 :font "Arial" :size 11} "1"]
     [:text {:x 450 :y 250 :font "Arial" :size 11} "$2,500"]
     [:text {:x 500 :y 250 :font "Arial" :size 11} "$2,500"]
     
     ;; Total
-    [:rect {:x 400 :y 280 :width 150 :height 25 :fill "#e6f3ff" :stroke "black"}]
+    [:rect {:x 400 :y 280 :width 150 :height 25 :fill "#e6f3ff" :stroke "#000000"}]
     [:text {:x 410 :y 300 :font "Arial" :size 12} "Total: $2,500.00"]
     
     ;; Footer
@@ -565,12 +565,12 @@ The following examples demonstrate complete PDF document generation using `hiccu
     [:text {:x 50 :y 170 :font "Arial" :size 12} "• Customer Retention: 94.3%"]
     
     ;; Revenue chart (simplified)
-    [:rect {:x 50 :y 220 :width 400 :height 200 :stroke "black" :stroke-width 2}]
+    [:rect {:x 50 :y 220 :width 400 :height 200 :stroke "#000000" :stroke-width 2}]
     [:text {:x 225 :y 210 :font "Arial" :size 12} "Quarterly Revenue"]
-    [:rect {:x 80 :y 350 :width 40 :height 50 :fill "blue"}]
-    [:rect {:x 150 :y 330 :width 40 :height 70 :fill "blue"}]
-    [:rect {:x 220 :y 320 :width 40 :height 80 :fill "blue"}]
-    [:rect {:x 290 :y 300 :width 40 :height 100 :fill "blue"}]
+    [:rect {:x 80 :y 350 :width 40 :height 50 :fill "#0000ff"}]
+    [:rect {:x 150 :y 330 :width 40 :height 70 :fill "#0000ff"}]
+    [:rect {:x 220 :y 320 :width 40 :height 80 :fill "#0000ff"}]
+    [:rect {:x 290 :y 300 :width 40 :height 100 :fill "#0000ff"}]
     [:text {:x 95 :y 470 :font "Arial" :size 10} "Q1"]
     [:text {:x 165 :y 470 :font "Arial" :size 10} "Q2"]
     [:text {:x 235 :y 470 :font "Arial" :size 10} "Q3"]
@@ -582,7 +582,7 @@ The following examples demonstrate complete PDF document generation using `hiccu
     
     ;; Customer acquisition table
     [:text {:x 50 :y 100 :font "Arial" :size 14} "Customer Acquisition"]
-    [:rect {:x 50 :y 120 :width 300 :height 120 :stroke "black"}]
+    [:rect {:x 50 :y 120 :width 300 :height 120 :stroke "#000000"}]
     [:text {:x 60 :y 140 :font "Arial" :size 11} "Channel"]
     [:text {:x 200 :y 140 :font "Arial" :size 11} "Customers"]
     [:text {:x 60 :y 160 :font "Arial" :size 11} "Direct Sales"]
@@ -594,11 +594,11 @@ The following examples demonstrate complete PDF document generation using `hiccu
     
     ;; Regional performance
     [:text {:x 50 :y 280 :font "Arial" :size 14} "Regional Performance"]
-    [:circle {:cx 150 :cy 350 :r 60 :fill "green"}]
+    [:circle {:cx 150 :cy 350 :r 60 :fill "#00ff00"}]
     [:text {:x 130 :y 355 :font "Arial" :size 10} "North"]
-    [:circle {:cx 300 :cy 350 :r 45 :fill "yellow"}]
+    [:circle {:cx 300 :cy 350 :r 45 :fill "#ffff00"}]
     [:text {:x 285 :y 355 :font "Arial" :size 10} "South"]
-    [:circle {:cx 450 :cy 350 :r 50 :fill "blue"}]
+    [:circle {:cx 450 :cy 350 :r 50 :fill "#0000ff"}]
     [:text {:x 435 :y 355 :font "Arial" :size 10} "West"]]])
 ```
 
@@ -620,24 +620,24 @@ The following examples demonstrate complete PDF document generation using `hiccu
     [:text {:x 240 :y 220 :font "Arial" :size 12} "March 2024"]
     
     ;; Decorative elements
-    [:rect {:x 100 :y 80 :width 400 :height 200 :stroke "blue" :stroke-width 3}]
-    [:circle {:cx 300 :cy 350 :r 100 :stroke "blue" :stroke-width 2}]]
+    [:rect {:x 100 :y 80 :width 400 :height 200 :stroke "#0000ff" :stroke-width 3}]
+    [:circle {:cx 300 :cy 350 :r 100 :stroke "#0000ff" :stroke-width 2}]]
    
    ;; Endpoints page
    [:page {}
     [:text {:x 50 :y 50 :font "Arial" :size 20} "Endpoints"]
     
     ;; GET endpoint
-    [:rect {:x 50 :y 100 :width 500 :height 80 :fill "#f8f9fa" :stroke "black"}]
-    [:rect {:x 60 :y 110 :width 40 :height 20 :fill "green"}]
+    [:rect {:x 50 :y 100 :width 500 :height 80 :fill "#f8f9fa" :stroke "#000000"}]
+    [:rect {:x 60 :y 110 :width 40 :height 20 :fill "#00ff00"}]
     [:text {:x 70 :y 125 :font "Courier" :size 10} "GET"]
     [:text {:x 120 :y 125 :font "Courier" :size 12} "/api/users"]
     [:text {:x 60 :y 145 :font "Arial" :size 11} "Retrieve all users"]
     [:text {:x 60 :y 165 :font "Arial" :size 10} "Returns: Array of user objects"]
     
     ;; POST endpoint
-    [:rect {:x 50 :y 200 :width 500 :height 80 :fill "#f8f9fa" :stroke "black"}]
-    [:rect {:x 60 :y 210 :width 50 :height 20 :fill "blue"}]
+    [:rect {:x 50 :y 200 :width 500 :height 80 :fill "#f8f9fa" :stroke "#000000"}]
+    [:rect {:x 60 :y 210 :width 50 :height 20 :fill "#0000ff"}]
     [:text {:x 70 :y 225 :font "Courier" :size 10} "POST"]
     [:text {:x 120 :y 225 :font "Courier" :size 12} "/api/users"]
     [:text {:x 60 :y 245 :font "Arial" :size 11} "Create a new user"]
@@ -645,11 +645,11 @@ The following examples demonstrate complete PDF document generation using `hiccu
     
     ;; Code example
     [:text {:x 50 :y 320 :font "Arial" :size 14} "Example Request"]
-    [:rect {:x 50 :y 340 :width 500 :height 100 :fill "#2d3748" :stroke "black"}]
-    [:text {:x 60 :y 360 :font "Courier" :size 10 :fill "white"} "curl -X POST https://api.example.com/users \\"]
-    [:text {:x 60 :y 380 :font "Courier" :size 10 :fill "white"} "  -H \"Content-Type: application/json\" \\"]
-    [:text {:x 60 :y 400 :font "Courier" :size 10 :fill "white"} "  -d '{\"name\": \"John Doe\", \"email\": \"john@example.com\"}'"]
-    [:text {:x 60 :y 420 :font "Courier" :size 10 :fill "white"} ""]]]
+    [:rect {:x 50 :y 340 :width 500 :height 100 :fill "#2d3748" :stroke "#000000"}]
+    [:text {:x 60 :y 360 :font "Courier" :size 10 :fill "#ffffff"} "curl -X POST https://api.example.com/users \\"]
+    [:text {:x 60 :y 380 :font "Courier" :size 10 :fill "#ffffff"} "  -H \"Content-Type: application/json\" \\"]
+    [:text {:x 60 :y 400 :font "Courier" :size 10 :fill "#ffffff"} "  -d '{\"name\": \"John Doe\", \"email\": \"john@example.com\"}'"]
+    [:text {:x 60 :y 420 :font "Courier" :size 10 :fill "#ffffff"} ""]]]
    
    ;; Response formats page
    [:page {}
@@ -657,7 +657,7 @@ The following examples demonstrate complete PDF document generation using `hiccu
     
     ;; Success response
     [:text {:x 50 :y 100 :font "Arial" :size 14} "Success Response (200 OK)"]
-    [:rect {:x 50 :y 120 :width 500 :height 80 :fill "#f0fff4" :stroke "green"}]
+    [:rect {:x 50 :y 120 :width 500 :height 80 :fill "#f0fff4" :stroke "#00ff00"}]
     [:text {:x 60 :y 140 :font "Courier" :size 10} "{"]
     [:text {:x 70 :y 155 :font "Courier" :size 10} "  \"status\": \"success\","]
     [:text {:x 70 :y 170 :font "Courier" :size 10} "  \"data\": { ... },"]
@@ -666,7 +666,7 @@ The following examples demonstrate complete PDF document generation using `hiccu
     
     ;; Error response
     [:text {:x 50 :y 230 :font "Arial" :size 14} "Error Response (400+ status)"]
-    [:rect {:x 50 :y 250 :width 500 :height 80 :fill "#fff5f5" :stroke "red"}]
+    [:rect {:x 50 :y 250 :width 500 :height 80 :fill "#fff5f5" :stroke "#ff0000"}]
     [:text {:x 60 :y 270 :font "Courier" :size 10} "{"]
     [:text {:x 70 :y 285 :font "Courier" :size 10} "  \"status\": \"error\","]
     [:text {:x 70 :y 300 :font "Courier" :size 10} "  \"error\": \"Validation failed\","]
@@ -687,10 +687,10 @@ The following examples demonstrate complete PDF document generation using `hiccu
    ;; Slide 1 - Title slide (16:9 aspect ratio)
    [:page {:width 792 :height 612}
     [:rect {:x 0 :y 0 :width 792 :height 612 :fill "#1e3a8a"}]
-    [:text {:x 200 :y 200 :font "Arial" :size 36 :fill "white"} "Machine Learning"]
-    [:text {:x 240 :y 250 :font "Arial" :size 36 :fill "white"} "in Production"]
-    [:text {:x 300 :y 350 :font "Arial" :size 18 :fill "white"} "Dr. Jane Smith"]
-    [:text {:x 280 :y 380 :font "Arial" :size 14 :fill "white"} "Tech Conference 2024"]]
+    [:text {:x 200 :y 200 :font "Arial" :size 36 :fill "#ffffff"} "Machine Learning"]
+    [:text {:x 240 :y 250 :font "Arial" :size 36 :fill "#ffffff"} "in Production"]
+    [:text {:x 300 :y 350 :font "Arial" :size 18 :fill "#ffffff"} "Dr. Jane Smith"]
+    [:text {:x 280 :y 380 :font "Arial" :size 14 :fill "#ffffff"} "Tech Conference 2024"]]
    
    ;; Speaker notes for slide 1 (standard letter)
    [:page {:width 612 :height 792}
@@ -714,36 +714,36 @@ The following examples demonstrate complete PDF document generation using `hiccu
    
    ;; Slide 2 - Content slide
    [:page {:width 792 :height 612}
-    [:rect {:x 0 :y 0 :width 792 :height 612 :fill "white"}]
+    [:rect {:x 0 :y 0 :width 792 :height 612 :fill "#ffffff"}]
     [:text {:x 50 :y 50 :font "Arial" :size 24} "Challenges in ML Production"]
     
     ;; Challenge 1
-    [:circle {:cx 100 :cy 150 :r 30 :fill "red"}]
-    [:text {:x 85 :y 155 :font "Arial" :size 14 :fill "white"} "1"]
+    [:circle {:cx 100 :cy 150 :r 30 :fill "#ff0000"}]
+    [:text {:x 85 :y 155 :font "Arial" :size 14 :fill "#ffffff"} "1"]
     [:text {:x 150 :y 155 :font "Arial" :size 16} "Model Drift"]
     [:text {:x 150 :y 180 :font "Arial" :size 12} "Performance degrades over time"]
     
     ;; Challenge 2
     [:circle {:cx 100 :cy 250 :r 30 :fill "orange"}]
-    [:text {:x 85 :y 255 :font "Arial" :size 14 :fill "white"} "2"]
+    [:text {:x 85 :y 255 :font "Arial" :size 14 :fill "#ffffff"} "2"]
     [:text {:x 150 :y 255 :font "Arial" :size 16} "Data Pipeline Failures"]
     [:text {:x 150 :y 280 :font "Arial" :size 12} "Upstream data quality issues"]
     
     ;; Challenge 3
-    [:circle {:cx 100 :cy 350 :r 30 :fill "blue"}]
-    [:text {:x 85 :y 355 :font "Arial" :size 14 :fill "white"} "3"]
+    [:circle {:cx 100 :cy 350 :r 30 :fill "#0000ff"}]
+    [:text {:x 85 :y 355 :font "Arial" :size 14 :fill "#ffffff"} "3"]
     [:text {:x 150 :y 355 :font "Arial" :size 16} "Scalability"]
     [:text {:x 150 :y 380 :font "Arial" :size 12} "Handling increasing load"]
     
     ;; Visual element
     [:g {:transforms [[:translate [500 200]]]}
-     [:rect {:x 0 :y 0 :width 200 :height 150 :fill "#f3f4f6" :stroke "black"}]
+     [:rect {:x 0 :y 0 :width 200 :height 150 :fill "#f3f4f6" :stroke "#000000"}]
      [:text {:x 70 :y 30 :font "Arial" :size 14} "ML System"]
-     [:rect {:x 20 :y 50 :width 160 :height 20 :fill "green"}]
+     [:rect {:x 20 :y 50 :width 160 :height 20 :fill "#00ff00"}]
      [:text {:x 90 :y 65 :font "Arial" :size 10} "Training"]
-     [:rect {:x 20 :y 80 :width 160 :height 20 :fill "yellow"}]
+     [:rect {:x 20 :y 80 :width 160 :height 20 :fill "#ffff00"}]
      [:text {:x 85 :y 95 :font "Arial" :size 10} "Validation"]
-     [:rect {:x 20 :y 110 :width 160 :height 20 :fill "red"}]
+     [:rect {:x 20 :y 110 :width 160 :height 20 :fill "#ff0000"}]
      [:text {:x 80 :y 125 :font "Arial" :size 10} "Production"]]]]
    
    ;; Speaker notes for slide 2

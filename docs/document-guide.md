@@ -303,13 +303,13 @@ Font sizes are specified in points:
 ```clojure
 [:page {:width 612 :height 792 :margins [72 72 72 72]}
  ;; Table header
- [:rect {:x 50 :y 100 :width 500 :height 30 :fill "#e6e6e6" :stroke "black"}]
+ [:rect {:x 50 :y 100 :width 500 :height 30 :fill "#e6e6e6" :stroke "#000000"}]
  [:text {:x 60 :y 120 :font "Arial" :size 12} "Column 1"]
  [:text {:x 200 :y 120 :font "Arial" :size 12} "Column 2"]
  [:text {:x 340 :y 120 :font "Arial" :size 12} "Column 3"]
 
  ;; Table rows
- [:rect {:x 50 :y 130 :width 500 :height 25 :stroke "black"}]
+ [:rect {:x 50 :y 130 :width 500 :height 25 :stroke "#000000"}]
  [:text {:x 60 :y 150 :font "Arial" :size 11} "Row 1, Col 1"]
  [:text {:x 200 :y 150 :font "Arial" :size 11} "Row 1, Col 2"]
  [:text {:x 340 :y 150 :font "Arial" :size 11} "Row 1, Col 3"]]
@@ -324,13 +324,13 @@ Font sizes are specified in points:
 
  ;; Form fields
  [:text {:x 50 :y 100 :font "Arial" :size 12} "Name:"]
- [:rect {:x 120 :y 90 :width 200 :height 20 :stroke "black"}]
+ [:rect {:x 120 :y 90 :width 200 :height 20 :stroke "#000000"}]
 
  [:text {:x 50 :y 140 :font "Arial" :size 12} "Email:"]
- [:rect {:x 120 :y 130 :width 200 :height 20 :stroke "black"}]
+ [:rect {:x 120 :y 130 :width 200 :height 20 :stroke "#000000"}]
 
  [:text {:x 50 :y 180 :font "Arial" :size 12} "Phone:"]
- [:rect {:x 120 :y 170 :width 200 :height 20 :stroke "black"}]]
+ [:rect {:x 120 :y 170 :width 200 :height 20 :stroke "#000000"}]]
 ```
 
 ### Chart/Graph Integration
@@ -341,13 +341,13 @@ Font sizes are specified in points:
  [:text {:x 200 :y 50 :font "Arial" :size 16} "Sales Performance"]
 
  ;; Chart area
- [:rect {:x 100 :y 100 :width 400 :height 300 :stroke "black" :stroke-width 2}]
+ [:rect {:x 100 :y 100 :width 400 :height 300 :stroke "#000000" :stroke-width 2}]
 
  ;; Data bars (simplified bar chart)
- [:rect {:x 120 :y 350 :width 30 :height 40 :fill "blue"}]
- [:rect {:x 170 :y 330 :width 30 :height 60 :fill "blue"}]
- [:rect {:x 220 :y 320 :width 30 :height 70 :fill "blue"}]
- [:rect {:x 270 :y 300 :width 30 :height 90 :fill "blue"}]
+ [:rect {:x 120 :y 350 :width 30 :height 40 :fill "#0000ff"}]
+ [:rect {:x 170 :y 330 :width 30 :height 60 :fill "#0000ff"}]
+ [:rect {:x 220 :y 320 :width 30 :height 70 :fill "#0000ff"}]
+ [:rect {:x 270 :y 300 :width 30 :height 90 :fill "#0000ff"}]
 
  ;; Labels
  [:text {:x 125 :y 420 :font "Arial" :size 10} "Q1"]

@@ -78,7 +78,7 @@
 
 (deftest validate-color-test
   (testing "Valid colors"
-    (is (= "red" (validate-color "red"))
+    (is (= "#ff0000" (validate-color "#ff0000"))
         "Should validate named color")
     
     (is (= "#ff0000" (validate-color "#ff0000"))
@@ -99,12 +99,12 @@
 
 (deftest validate-rect-attributes-with-styling-test
   (testing "Valid rectangle attributes with styling"
-    (is (= {:x 10 :y 20 :width 100 :height 50 :fill "red"}
-           (validate-rect-attributes {:x 10 :y 20 :width 100 :height 50 :fill "red"}))
+    (is (= {:x 10 :y 20 :width 100 :height 50 :fill "#ff0000"}
+           (validate-rect-attributes {:x 10 :y 20 :width 100 :height 50 :fill "#ff0000"}))
         "Should validate rectangle with fill")
     
-    (is (= {:x 10 :y 20 :width 100 :height 50 :stroke "blue" :stroke-width 2}
-           (validate-rect-attributes {:x 10 :y 20 :width 100 :height 50 :stroke "blue" :stroke-width 2}))
+    (is (= {:x 10 :y 20 :width 100 :height 50 :stroke "#0000ff" :stroke-width 2}
+           (validate-rect-attributes {:x 10 :y 20 :width 100 :height 50 :stroke "#0000ff" :stroke-width 2}))
         "Should validate rectangle with stroke")
     
     (is (= {:x 10 :y 20 :width 100 :height 50 :fill "#ff0000" :stroke "#0000ff" :stroke-width 1.5}
@@ -129,12 +129,12 @@
         "Should validate minimal line attributes"))
   
   (testing "Line attributes with styling"
-    (is (= {:x1 10 :y1 20 :x2 100 :y2 50 :stroke "red"}
-           (validate-line-attributes {:x1 10 :y1 20 :x2 100 :y2 50 :stroke "red"}))
+    (is (= {:x1 10 :y1 20 :x2 100 :y2 50 :stroke "#ff0000"}
+           (validate-line-attributes {:x1 10 :y1 20 :x2 100 :y2 50 :stroke "#ff0000"}))
         "Should validate line with stroke")
     
-    (is (= {:x1 10 :y1 20 :x2 100 :y2 50 :stroke "blue" :stroke-width 2}
-           (validate-line-attributes {:x1 10 :y1 20 :x2 100 :y2 50 :stroke "blue" :stroke-width 2}))
+    (is (= {:x1 10 :y1 20 :x2 100 :y2 50 :stroke "#0000ff" :stroke-width 2}
+           (validate-line-attributes {:x1 10 :y1 20 :x2 100 :y2 50 :stroke "#0000ff" :stroke-width 2}))
         "Should validate line with stroke and width"))
   
   (testing "Invalid line attributes"
@@ -168,12 +168,12 @@
         "Should validate circle with zero radius"))
   
   (testing "Circle attributes with styling"
-    (is (= {:cx 50 :cy 50 :r 25 :fill "red"}
-           (validate-circle-attributes {:cx 50 :cy 50 :r 25 :fill "red"}))
+    (is (= {:cx 50 :cy 50 :r 25 :fill "#ff0000"}
+           (validate-circle-attributes {:cx 50 :cy 50 :r 25 :fill "#ff0000"}))
         "Should validate circle with fill")
     
-    (is (= {:cx 50 :cy 50 :r 25 :stroke "blue" :stroke-width 2}
-           (validate-circle-attributes {:cx 50 :cy 50 :r 25 :stroke "blue" :stroke-width 2}))
+    (is (= {:cx 50 :cy 50 :r 25 :stroke "#0000ff" :stroke-width 2}
+           (validate-circle-attributes {:cx 50 :cy 50 :r 25 :stroke "#0000ff" :stroke-width 2}))
         "Should validate circle with stroke"))
   
   (testing "Invalid circle attributes"
@@ -210,12 +210,12 @@
         "Should validate path with curve command"))
   
   (testing "Path attributes with styling"
-    (is (= {:d "M10,10 L20,20" :fill "red"}
-           (validate-path-attributes {:d "M10,10 L20,20" :fill "red"}))
+    (is (= {:d "M10,10 L20,20" :fill "#ff0000"}
+           (validate-path-attributes {:d "M10,10 L20,20" :fill "#ff0000"}))
         "Should validate path with fill")
     
-    (is (= {:d "M10,10 L20,20" :stroke "blue" :stroke-width 2}
-           (validate-path-attributes {:d "M10,10 L20,20" :stroke "blue" :stroke-width 2}))
+    (is (= {:d "M10,10 L20,20" :stroke "#0000ff" :stroke-width 2}
+           (validate-path-attributes {:d "M10,10 L20,20" :stroke "#0000ff" :stroke-width 2}))
         "Should validate path with stroke"))
   
   (testing "Invalid path attributes"
@@ -248,8 +248,8 @@
         "Should validate minimal text attributes"))
   
   (testing "Text attributes with styling"
-    (is (= {:x 10 :y 20 :font "Arial" :size 12 :fill "red"}
-           (validate-text-attributes {:x 10 :y 20 :font "Arial" :size 12 :fill "red"}))
+    (is (= {:x 10 :y 20 :font "Arial" :size 12 :fill "#ff0000"}
+           (validate-text-attributes {:x 10 :y 20 :font "Arial" :size 12 :fill "#ff0000"}))
         "Should validate text with fill")
     
     (is (= {:x 10 :y 20 :font "Arial" :size 12 :fill "#ff0000"}

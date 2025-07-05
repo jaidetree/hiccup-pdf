@@ -429,7 +429,7 @@
 (deftest page-content-stream-generation-test
   (testing "Basic page content stream generation"
     (let [page-attributes {:width 612 :height 792}
-          page-content [[:rect {:x 10 :y 20 :width 100 :height 50 :fill "red"}]]
+          page-content [[:rect {:x 10 :y 20 :width 100 :height 50 :fill "#ff0000"}]]
           document-defaults {:width 595 :height 842}
           result (page->content-stream page-attributes page-content document-defaults)]
 
@@ -452,7 +452,7 @@
 
   (testing "Page content stream with inheritance"
     (let [page-attributes {:margins [10 20 30 40]}  ; Only override margins
-          page-content [[:circle {:cx 100 :cy 100 :r 50 :fill "blue"}]]
+          page-content [[:circle {:cx 100 :cy 100 :r 50 :fill "#0000ff"}]]
           document-defaults {:width 595 :height 842 :margins [5 5 5 5]}
           result (page->content-stream page-attributes page-content document-defaults)]
 
@@ -468,10 +468,10 @@
 
   (testing "Complex page content with multiple elements"
     (let [page-attributes {:width 600 :height 800}
-          page-content [[:rect {:x 10 :y 20 :width 100 :height 50 :fill "red"}]
-                        [:circle {:cx 200 :cy 100 :r 30 :stroke "blue"}]
-                        [:text {:x 50 :y 200 :font "Arial" :size 14 :fill "black"} "Test Text"]
-                        [:line {:x1 300 :y1 150 :x2 400 :y2 250 :stroke "green"}]]
+          page-content [[:rect {:x 10 :y 20 :width 100 :height 50 :fill "#ff0000"}]
+                        [:circle {:cx 200 :cy 100 :r 30 :stroke "#0000ff"}]
+                        [:text {:x 50 :y 200 :font "Arial" :size 14 :fill "#000000"} "Test Text"]
+                        [:line {:x1 300 :y1 150 :x2 400 :y2 250 :stroke "#00ff00"}]]
           document-defaults {}
           result (page->content-stream page-attributes page-content document-defaults)]
 
@@ -499,9 +499,9 @@
   (testing "Page content with groups and transforms"
     (let [page-attributes {:width 500 :height 700}
           page-content [[:g {:transforms [[:translate [50 100]]]}
-                         [:rect {:x 10 :y 20 :width 80 :height 40 :fill "yellow"}]
+                         [:rect {:x 10 :y 20 :width 80 :height 40 :fill "#ffff00"}]
                          [:g {:transforms [[:rotate 45]]}
-                          [:circle {:cx 60 :cy 80 :r 20 :stroke "magenta"}]]]]
+                          [:circle {:cx 60 :cy 80 :r 20 :stroke "#ff00ff"}]]]]
           document-defaults {}
           result (page->content-stream page-attributes page-content document-defaults)]
 
@@ -674,7 +674,7 @@
     ;; Test a complete set of objects for a simple document
     (let [;; Page content with fonts
           page-content [[:text {:x 100 :y 100 :font "Arial" :size 12} "Hello World"]
-                        [:rect {:x 50 :y 200 :width 200 :height 100 :fill "red"}]]
+                        [:rect {:x 50 :y 200 :width 200 :height 100 :fill "#ff0000"}]]
           
           ;; Extract fonts
           fonts (extract-fonts-from-content page-content)
@@ -826,9 +826,9 @@
     (let [hiccup-doc [:document {:title "Integration Test" :width 612 :height 792}
                       [:page {}
                        [:text {:x 100 :y 100 :font "Arial" :size 12} "Hello World"]
-                       [:rect {:x 50 :y 200 :width 200 :height 100 :fill "red"}]]
+                       [:rect {:x 50 :y 200 :width 200 :height 100 :fill "#ff0000"}]]
                       [:page {:width 595 :height 842}
-                       [:circle {:cx 300 :cy 400 :r 50 :stroke "blue"}]]]
+                       [:circle {:cx 300 :cy 400 :r 50 :stroke "#0000ff"}]]]
           pdf (hiccup->pdf-document hiccup-doc)]
       
       ;; Test that we get a complete PDF
@@ -855,7 +855,7 @@
                        [:g {:transforms [[:translate [50 50]]]}
                         [:text {:x 0 :y 0 :font "Courier" :size 10} "Transformed text"]
                         [:g {:transforms [[:rotate 45]]}
-                         [:rect {:x 10 :y 10 :width 50 :height 30 :fill "green"}]]]]]
+                         [:rect {:x 10 :y 10 :width 50 :height 30 :fill "#00ff00"}]]]]]
           pdf (hiccup->pdf-document hiccup-doc)]
       
       ;; Test that complex transformations are preserved
@@ -883,15 +883,15 @@
                       ;; Standard letter page
                       [:page {:width 612 :height 792}
                        [:text {:x 50 :y 50 :font "Arial" :size 16} "Letter Page"]
-                       [:rect {:x 50 :y 100 :width 200 :height 100 :fill "blue"}]]
+                       [:rect {:x 50 :y 100 :width 200 :height 100 :fill "#0000ff"}]]
                       ;; A4 page
                       [:page {:width 595 :height 842}
                        [:text {:x 50 :y 50 :font "Times" :size 14} "A4 Page"]
-                       [:circle {:cx 200 :cy 200 :r 50 :stroke "green" :stroke-width 2}]]
+                       [:circle {:cx 200 :cy 200 :r 50 :stroke "#00ff00" :stroke-width 2}]]
                       ;; Custom landscape page
                       [:page {:width 800 :height 600}
                        [:text {:x 50 :y 50 :font "Courier" :size 12} "Landscape Page"]
-                       [:line {:x1 50 :y1 100 :x2 750 :y2 100 :stroke "red"}]]]
+                       [:line {:x1 50 :y1 100 :x2 750 :y2 100 :stroke "#ff0000"}]]]
           pdf (hiccup->pdf-document hiccup-doc)]
       
       ;; Test multiple page sizes
@@ -920,18 +920,18 @@
     (let [hiccup-doc [:document {:title "All Elements Test"}
                       [:page {}
                        ;; Rectangle
-                       [:rect {:x 50 :y 50 :width 100 :height 80 :fill "red" :stroke "black" :stroke-width 2}]
+                       [:rect {:x 50 :y 50 :width 100 :height 80 :fill "#ff0000" :stroke "#000000" :stroke-width 2}]
                        ;; Circle
-                       [:circle {:cx 250 :cy 100 :r 40 :fill "green" :stroke "blue" :stroke-width 1}]
+                       [:circle {:cx 250 :cy 100 :r 40 :fill "#00ff00" :stroke "#0000ff" :stroke-width 1}]
                        ;; Line
-                       [:line {:x1 350 :y1 50 :x2 450 :y2 130 :stroke "magenta" :stroke-width 3}]
+                       [:line {:x1 350 :y1 50 :x2 450 :y2 130 :stroke "#ff00ff" :stroke-width 3}]
                        ;; Text
-                       [:text {:x 50 :y 200 :font "Arial" :size 14 :fill "blue"} "Sample Text"]
+                       [:text {:x 50 :y 200 :font "Arial" :size 14 :fill "#0000ff"} "Sample Text"]
                        ;; Path
-                       [:path {:d "M 50 300 L 150 300 L 100 250 Z" :fill "yellow" :stroke "red"}]
+                       [:path {:d "M 50 300 L 150 300 L 100 250 Z" :fill "#ffff00" :stroke "#ff0000"}]
                        ;; Nested group with transforms
                        [:g {:transforms [[:translate [300 300]] [:rotate 30]]}
-                        [:rect {:x 0 :y 0 :width 60 :height 40 :fill "cyan"}]
+                        [:rect {:x 0 :y 0 :width 60 :height 40 :fill "#00ffff"}]
                         [:text {:x 10 :y 25 :font "Courier" :size 10} "Rotated"]]]]
           pdf (hiccup->pdf-document hiccup-doc)]
       
@@ -970,11 +970,11 @@
                       [:page {}
                        ;; Deep nesting with multiple transforms
                        [:g {:transforms [[:translate [100 100]]]}
-                        [:rect {:x 0 :y 0 :width 50 :height 50 :fill "red"}]
+                        [:rect {:x 0 :y 0 :width 50 :height 50 :fill "#ff0000"}]
                         [:g {:transforms [[:rotate 45]]}
-                         [:rect {:x 60 :y 0 :width 30 :height 30 :fill "green"}]
+                         [:rect {:x 60 :y 0 :width 30 :height 30 :fill "#00ff00"}]
                          [:g {:transforms [[:scale [2 1]]]}
-                          [:rect {:x 20 :y 20 :width 15 :height 15 :fill "blue"}]]]]
+                          [:rect {:x 20 :y 20 :width 15 :height 15 :fill "#0000ff"}]]]]
                        ;; Multiple transforms on same group
                        [:g {:transforms [[:translate [200 200]] [:rotate 30] [:scale [1.5 0.8]]]}
                         [:text {:x 0 :y 0 :font "Arial" :size 12} "Multi-transform"]]]]
@@ -997,8 +997,8 @@
                        [:text {:x 50 :y 50 :font "Arial" :size 12} "   "]]
                       ;; Page with zero-size elements
                       [:page {}
-                       [:rect {:x 50 :y 50 :width 0 :height 0 :fill "red"}]
-                       [:circle {:cx 100 :cy 100 :r 0 :fill "blue"}]]]
+                       [:rect {:x 50 :y 50 :width 0 :height 0 :fill "#ff0000"}]
+                       [:circle {:cx 100 :cy 100 :r 0 :fill "#0000ff"}]]]
           pdf (hiccup->pdf-document hiccup-doc)]
       
       ;; Test document structure
@@ -1015,7 +1015,7 @@
     (let [pages (for [i (range 10)]
                   [:page {}
                    [:text {:x 50 :y 50 :font "Arial" :size 12} (str "Page " (inc i))]
-                   [:rect {:x 50 :y 100 :width 100 :height 50 :fill (if (even? i) "red" "blue")}]])
+                   [:rect {:x 50 :y 100 :width 100 :height 50 :fill (if (even? i) "#ff0000" "#0000ff")}]])
           hiccup-doc (into [:document {:title "Large Document"}] pages)
           pdf (hiccup->pdf-document hiccup-doc)]
       
@@ -1039,11 +1039,11 @@
                       ;; Small page
                       [:page {:width 400 :height 300}
                        [:text {:x 50 :y 50 :font "Arial" :size 12} "Small"]
-                       [:rect {:x 50 :y 100 :width 100 :height 50 :fill "red"}]]
+                       [:rect {:x 50 :y 100 :width 100 :height 50 :fill "#ff0000"}]]
                       ;; Large page
                       [:page {:width 1000 :height 800}
                        [:text {:x 50 :y 50 :font "Arial" :size 12} "Large"]
-                       [:rect {:x 50 :y 100 :width 100 :height 50 :fill "blue"}]]]
+                       [:rect {:x 50 :y 100 :width 100 :height 50 :fill "#0000ff"}]]]
           pdf (hiccup->pdf-document hiccup-doc)]
       
       ;; Test coordinate transformation for different page sizes
