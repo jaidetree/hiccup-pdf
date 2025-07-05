@@ -58,12 +58,12 @@ Each step is sized to be:
 
 # Implementation Prompts
 
-## Step 1: Unicode Detection & Processing
+## Step 1: Unicode Detection & Processing ✅ COMPLETED
 
 ### Context
 We're implementing emoji image support for a hiccup-pdf library. The first step is building the foundation for Unicode emoji detection and processing. This step focuses on correctly identifying emoji characters in text and extracting their Unicode codepoints, handling complex cases like surrogate pairs.
 
-### Prompt 1A: Basic Unicode Processing
+### Prompt 1A: Basic Unicode Processing ✅ COMPLETED
 
 ```
 Create a new ClojureScript namespace `hiccup-pdf.emoji` that handles Unicode emoji processing. Implement the following core functions with comprehensive test coverage:
@@ -87,7 +87,7 @@ Example expected behavior:
 Use ClojureScript's JavaScript interop for character code extraction. Create test file `hiccup-pdf.emoji-test` with at least 10 test cases covering various emoji types and edge cases.
 ```
 
-### Prompt 1B: Text Emoji Detection
+### Prompt 1B: Text Emoji Detection ✅ COMPLETED
 
 ```
 Extend the `hiccup-pdf.emoji` namespace with text processing functions that can detect and locate emoji within text strings:
