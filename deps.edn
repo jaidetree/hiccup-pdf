@@ -1,0 +1,4 @@
+{:paths ["src/main"]
+ :deps {dev.jaide/valhalla {:mvn/version "2025.7.3"}}
+ :aliases {:build {:deps {com.github.liquidz/build.edn {:mvn/version "0.11.266"}}
+                   :ns-default build-edn.main}}}

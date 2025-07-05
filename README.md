@@ -6,6 +6,22 @@ A ClojureScript library for transforming hiccup vectors into PDF vector primitiv
 [![ClojureScript](https://img.shields.io/badge/ClojureScript-1.11+-blue)](#)
 [![nbb](https://img.shields.io/badge/nbb-compatible-orange)](#)
 
+## Installation
+
+Add hiccup-pdf to your ClojureScript project using deps.edn, bb.edn, nbb.edn, as well as Leiningen and Boot:
+
+### deps.edn
+
+```clojure
+{:deps {dev.jaide/hiccup-pdf {:mvn/version "2025.7.4-SNAPSHOT"}}}
+```
+
+### Leiningen/Boot
+
+```clojure
+[dev.jaide/hiccup-pdf "2025.7.4-SNAPSHOT"]
+```
+
 ## Overview
 
 This library converts web-style hiccup markup into PDF content streams, providing a functional approach to PDF generation from structured data. It supports all major PDF drawing primitives including rectangles, circles, lines, text with emoji support, SVG-style paths, and grouped elements with transforms.
@@ -14,7 +30,7 @@ This library converts web-style hiccup markup into PDF content streams, providin
 
 - ✅ **Complete PDF Primitives**: Rectangles, circles, lines, text, paths, and groups
 - ✅ **Transform Support**: Translate, rotate, and scale operations with matrix composition
-- ✅ **Styling**: Fill colors, stroke colors, stroke widths with named and hex color support  
+- ✅ **Styling**: Fill colors, stroke colors, stroke widths with named and hex color support
 - ✅ **Text Rendering**: Font support with emoji compatibility and proper PDF text escaping
 - ✅ **SVG Path Data**: Full support for SVG-style path commands (M, L, C, Z)
 - ✅ **Graphics State Management**: Proper PDF graphics state save/restore with nested groups
@@ -75,10 +91,10 @@ This library converts web-style hiccup markup into PDF content streams, providin
 
 The library provides two main functions:
 
-| Function | Purpose | Use Case |
-|----------|---------|----------|
-| `hiccup->pdf-ops` | Generate PDF content streams | Embedding in existing PDFs, custom layouts |
-| `hiccup->pdf-document` | Generate complete PDF documents | Standalone documents, file output |
+| Function               | Purpose                         | Use Case                                   |
+| ---------------------- | ------------------------------- | ------------------------------------------ |
+| `hiccup->pdf-ops`      | Generate PDF content streams    | Embedding in existing PDFs, custom layouts |
+| `hiccup->pdf-document` | Generate complete PDF documents | Standalone documents, file output          |
 
 ## Documentation
 
@@ -89,14 +105,14 @@ The library provides two main functions:
 
 ## Supported Elements
 
-| Element | Description | Required Attributes | Optional Attributes |
-|---------|-------------|-------------------|-------------------|
-| `:rect` | Rectangle | `:x`, `:y`, `:width`, `:height` | `:fill`, `:stroke`, `:stroke-width` |
-| `:circle` | Circle | `:cx`, `:cy`, `:r` | `:fill`, `:stroke`, `:stroke-width` |
-| `:line` | Line | `:x1`, `:y1`, `:x2`, `:y2` | `:stroke`, `:stroke-width` |
-| `:text` | Text | `:x`, `:y`, `:font`, `:size` | `:fill` |
-| `:path` | SVG Path | `:d` | `:fill`, `:stroke`, `:stroke-width` |
-| `:g` | Group | None | `:transforms` |
+| Element   | Description | Required Attributes             | Optional Attributes                 |
+| --------- | ----------- | ------------------------------- | ----------------------------------- |
+| `:rect`   | Rectangle   | `:x`, `:y`, `:width`, `:height` | `:fill`, `:stroke`, `:stroke-width` |
+| `:circle` | Circle      | `:cx`, `:cy`, `:r`              | `:fill`, `:stroke`, `:stroke-width` |
+| `:line`   | Line        | `:x1`, `:y1`, `:x2`, `:y2`      | `:stroke`, `:stroke-width`          |
+| `:text`   | Text        | `:x`, `:y`, `:font`, `:size`    | `:fill`                             |
+| `:path`   | SVG Path    | `:d`                            | `:fill`, `:stroke`, `:stroke-width` |
+| `:g`      | Group       | None                            | `:transforms`                       |
 
 ## Installation
 
@@ -148,7 +164,7 @@ nbb repl
 # Run tests
 npx nbb test_runner.cljs
 
-# Lint code  
+# Lint code
 clj-kondo --lint src/
 ```
 
@@ -157,7 +173,7 @@ clj-kondo --lint src/
 The library includes comprehensive test coverage:
 
 - **Unit Tests**: All element types and validation functions
-- **Integration Tests**: Complex documents and real-world scenarios  
+- **Integration Tests**: Complex documents and real-world scenarios
 - **Error Handling Tests**: Validation and error condition coverage
 - **Performance Tests**: Large documents and deep nesting
 
@@ -167,9 +183,26 @@ npx nbb test_runner.cljs
 
 # Tests include:
 # - 41 test functions
-# - 398 assertions  
+# - 398 assertions
 # - 100% pass rate
 ```
+
+## Deploying
+
+More a personal reminder but run the following to cut a release version:
+
+```bash
+nbb -m scripts.release create [version]
+```
+
+Then run:
+
+```bash
+clojure -T:build jar
+clojure -T:build deploy
+```
+
+Alternatively, create a GitHub release that matches the version string and an automated action will deploy to Clojars.
 
 ## License
 
