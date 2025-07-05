@@ -160,8 +160,8 @@ This document outlines the performance characteristics and optimizations impleme
 ;; Good: Reuse colors
 (def company-colors {:primary "#0000ff" :secondary "#ff0000"})
 
-;; Good: Use named colors when possible
-[:rect {:fill "#ff0000"}] ; Faster than [:rect {:fill "#ff0000"}]
+;; Good: Use consistent hex colors  
+[:rect {:fill "#ff0000"}] ; Benefits from color conversion cache
 
 ;; Avoid: Unique colors everywhere
 [:rect {:fill "#ff0001"}] ; Slightly different red - no cache benefit

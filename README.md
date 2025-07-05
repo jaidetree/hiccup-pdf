@@ -30,7 +30,7 @@ This library converts web-style hiccup markup into PDF content streams, providin
 
 - ✅ **Complete PDF Primitives**: Rectangles, circles, lines, text, paths, and groups
 - ✅ **Transform Support**: Translate, rotate, and scale operations with matrix composition
-- ✅ **Styling**: Fill colors, stroke colors, stroke widths with named and hex color support
+- ✅ **Styling**: Fill colors, stroke colors, stroke widths with hex color support
 - ✅ **Text Rendering**: Font support with emoji compatibility and proper PDF text escaping
 - ✅ **SVG Path Data**: Full support for SVG-style path commands (M, L, C, Z)
 - ✅ **Graphics State Management**: Proper PDF graphics state save/restore with nested groups

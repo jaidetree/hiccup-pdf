@@ -46,7 +46,7 @@ The hiccup-pdf library successfully provides both content stream generation (`hi
 | Feature | Implementation | Verification |
 |---------|----------------|--------------|
 | Emoji support | ✅ Complete | Tested with Unicode characters in text and titles |
-| Color support (named & hex) | ✅ Complete | 8 named colors + hex color validation |
+| Color support (hex) | ✅ Complete | Hex color validation with valhalla regex |
 | Transform operations | ✅ Complete | Translate, rotate, scale with matrix composition |
 | Graphics state management | ✅ Complete | Proper q/Q operators with nesting |
 | System font support | ✅ Complete | Arial→Helvetica, Times→Times-Roman, Courier mapping |
@@ -142,7 +142,7 @@ Relative positioning preserved ✅ Verified
 - Very large documents (10+ pages)
 - Complex nested group structures (5+ levels deep)
 - Unicode characters and emoji in all text contexts
-- All supported color formats (named colors + hex)
+- All supported color formats (hex colors)
 - Mixed page sizes and orientations
 
 ## Performance Verification ✅
