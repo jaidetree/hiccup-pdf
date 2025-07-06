@@ -2,6 +2,8 @@
   "Core namespace for transforming hiccup vectors into PDF operators."
   (:require [dev.jaide.hiccup-pdf.validation :as v]
             [dev.jaide.hiccup-pdf.document :as doc]
+            [dev.jaide.hiccup-pdf.text-processing :as text-proc]
+            [dev.jaide.hiccup-pdf.images :as images]
             [clojure.string :as str]))
 
 (declare element->pdf-ops)
@@ -207,94 +209,185 @@
 
   Uses hex string format for Unicode characters to match reference PDF approach.
   This provides better compatibility and matches professional PDF generation.
+  
+  Enhanced with emoji image fallback support.
 
   Args:
     text-content: The text string to encode
+    options: Optional map with emoji configuration
+             :enable-emoji-images - Enable emoji image processing (default false)
+             :emoji-config - Configuration for emoji image handling
 
   Returns:
     String representing PDF text object with proper Unicode encoding"
+  [text-content & [options]]
+  (let [opts (or options {})
+        enable-emoji-images? (get opts :enable-emoji-images false)]
+    (if (empty? text-content)
+      "()"
+      (if enable-emoji-images?
+        ;; For emoji image mode, fall back to hex encoding for individual emoji characters
+        ;; Mixed content processing will be handled at a higher level
+        (if (text-proc/extract-unique-emoji text-content)
+          ;; Contains emoji - use fallback strategy
+          (let [image-cache (get opts :image-cache)
+                emoji-config (get opts :emoji-config {})
+                fallback-strategy (get emoji-config :fallback-strategy :hex-string)
+                unique-emoji (text-proc/extract-unique-emoji text-content)]
+            (if (empty? unique-emoji)
+              ;; No emoji found - use regular encoding
+              (encode-pdf-text-legacy text-content)
+              ;; Has emoji - process with fallback
+              (loop [remaining-text text-content
+                     result ""]
+                (if (empty? remaining-text)
+                  result
+                  (let [segments (text-proc/segment-text remaining-text)]
+                    (if (= 1 (count segments))
+                      ;; Single segment - encode directly
+                      (let [segment (first segments)]
+                        (if (= :emoji (:type segment))
+                          ;; Single emoji - use fallback
+                          (let [emoji-char (:content segment)
+                                fallback-result (images/emoji-image-with-fallback 
+                                                  image-cache emoji-char 
+                                                  {:fallback-strategy fallback-strategy})]
+                            (case (:type fallback-result)
+                              :hex-string (:content fallback-result)
+                              :placeholder (str "(" (:content fallback-result) ")")
+                              :skip ""
+                              (encode-pdf-text-legacy text-content))) ; Default fallback
+                          ;; Single text segment
+                          (encode-pdf-text-legacy (:content segment))))
+                      ;; Multiple segments - use first segment and continue
+                      (let [first-segment (first segments)
+                            remaining-segments (rest segments)
+                            first-result (if (= :emoji (:type first-segment))
+                                           (let [emoji-char (:content first-segment)
+                                                 fallback-result (images/emoji-image-with-fallback 
+                                                                   image-cache emoji-char 
+                                                                   {:fallback-strategy fallback-strategy})]
+                                             (case (:type fallback-result)
+                                               :hex-string (:content fallback-result)
+                                               :placeholder (str "(" (:content fallback-result) ")")
+                                               :skip ""
+                                               (encode-pdf-text-legacy (:content first-segment))))
+                                           (encode-pdf-text-legacy (:content first-segment)))
+                            remaining-content (apply str (map :content remaining-segments))]
+                        (recur remaining-content (str result first-result)))))))))
+        ;; Legacy mode - use existing hex encoding logic
+        (encode-pdf-text-legacy text-content))))
+
+(defn- encode-pdf-text-legacy
+  "Legacy implementation of encode-pdf-text for backward compatibility."
   [text-content]
-  (if (empty? text-content)
-    "()"
-    ;; Check if text contains Unicode characters
-    (let [char-codes (map #(.charCodeAt text-content %) (range (count text-content)))
-          has-unicode? (some #(> % 127) char-codes)]
-      (if has-unicode?
-        ;; Use hex string format for Unicode text
-        (let [hex-bytes (loop [i 0
-                               bytes []]
-                          (if (>= i (count text-content))
-                            bytes
-                            (let [code (.charCodeAt text-content i)]
-                              (cond
-                                ;; Handle surrogate pairs for emoji
-                                (and (>= code 55296) (<= code 56319) ; High surrogate (0xD800-0xDBFF)
-                                     (< (+ i 1) (count text-content))) ; Ensure there's a next char
-                                (let [low-surrogate (.charCodeAt text-content (+ i 1))]
-                                  (if (and (>= low-surrogate 56320) (<= low-surrogate 57343)) ; Low surrogate (0xDC00-0xDFFF)
-                                    ;; Valid surrogate pair - use mapping for specific emoji
-                                    (let [emoji-mapping (cond
-                                                          ;; Lightbulb emoji 💡 (U+1F4A1) - high: 55357, low: 56481
-                                                          (and (= code 55357) (= low-surrogate 56481)) [61 161] ; 0x3d 0xa1
-                                                          ;; Target emoji 🎯 (U+1F3AF) - high: 55356, low: 57263
-                                                          (and (= code 55356) (= low-surrogate 57263)) [60 175] ; 0x3c 0xaf
-                                                          ;; Default fallback for other emoji
-                                                          :else [63 63])] ; 0x3f 0x3f (question marks)
-                                      (recur (+ i 2) (concat bytes emoji-mapping)))
-                                    ;; Invalid surrogate pair
-                                    (recur (+ i 1) (concat bytes [63]))))
+  ;; Check if text contains Unicode characters
+  (let [char-codes (map #(.charCodeAt text-content %) (range (count text-content)))
+        has-unicode? (some #(> % 127) char-codes)]
+    (if has-unicode?
+      ;; Use hex string format for Unicode text
+      (let [hex-bytes (loop [i 0
+                             bytes []]
+                        (if (>= i (count text-content))
+                          bytes
+                          (let [code (.charCodeAt text-content i)]
+                            (cond
+                              ;; Handle surrogate pairs for emoji
+                              (and (>= code 55296) (<= code 56319) ; High surrogate (0xD800-0xDBFF)
+                                   (< (+ i 1) (count text-content))) ; Ensure there's a next char
+                              (let [low-surrogate (.charCodeAt text-content (+ i 1))]
+                                (if (and (>= low-surrogate 56320) (<= low-surrogate 57343)) ; Low surrogate (0xDC00-0xDFFF)
+                                  ;; Valid surrogate pair - use mapping for specific emoji
+                                  (let [emoji-mapping (cond
+                                                        ;; Lightbulb emoji 💡 (U+1F4A1) - high: 55357, low: 56481
+                                                        (and (= code 55357) (= low-surrogate 56481)) [61 161] ; 0x3d 0xa1
+                                                        ;; Target emoji 🎯 (U+1F3AF) - high: 55356, low: 57263
+                                                        (and (= code 55356) (= low-surrogate 57263)) [60 175] ; 0x3c 0xaf
+                                                        ;; Default fallback for other emoji
+                                                        :else [63 63])] ; 0x3f 0x3f (question marks)
+                                    (recur (+ i 2) (concat bytes emoji-mapping)))
+                                  ;; Invalid surrogate pair
+                                  (recur (+ i 1) (concat bytes [63]))))
 
-                                ;; Special single Unicode characters
-                                (= code 9888) ; Warning sign ⚠️ (U+26A0)
-                                (recur (+ i 1) (concat bytes [38 160])) ; 0x26 0xa0
+                              ;; Special single Unicode characters
+                              (= code 9888) ; Warning sign ⚠️ (U+26A0)
+                              (recur (+ i 1) (concat bytes [38 160])) ; 0x26 0xa0
 
-                                (= code 9989) ; Check mark ✅ (U+2705)
-                                (recur (+ i 1) (concat bytes [39 5])) ; 0x27 0x05
+                              (= code 9989) ; Check mark ✅ (U+2705)
+                              (recur (+ i 1) (concat bytes [39 5])) ; 0x27 0x05
 
-                                (= code 8226) ; Bullet character •
-                                (recur (+ i 1) (concat bytes [0 183])) ; Middle dot (0x00 0xb7)
+                              (= code 8226) ; Bullet character •
+                              (recur (+ i 1) (concat bytes [0 183])) ; Middle dot (0x00 0xb7)
 
-                                ;; Regular Unicode characters
-                                (<= code 255)
-                                (recur (+ i 1) (concat bytes [code]))
+                              ;; Regular Unicode characters
+                              (<= code 255)
+                              (recur (+ i 1) (concat bytes [code]))
 
-                                ;; High Unicode - use placeholder bytes
-                                :else
-                                (recur (+ i 1) (concat bytes [63]))))))
-              hex-string (str/join "" (map (fn [byte]
-                                             (let [hex (.toString byte 16)
-                                                   padded-hex (if (< byte 16) (str "0" hex) hex)]
-                                               (.toUpperCase padded-hex)))
-                                           hex-bytes))]
-          (str "<" hex-string ">"))
-        ;; Use simple parenthetical format for ASCII text
-        (let [escaped-content (-> text-content
-                                  (str/replace "\\" "\\\\") ; Escape backslashes
-                                  (str/replace "(" "\\(")   ; Escape opening parens
-                                  (str/replace ")" "\\)"))] ; Escape closing parens
-          (str "(" escaped-content ")"))))))
+                              ;; High Unicode - use placeholder bytes
+                              :else
+                              (recur (+ i 1) (concat bytes [63]))))))
+            hex-string (str/join "" (map (fn [byte]
+                                           (let [hex (.toString byte 16)
+                                                 padded-hex (if (< byte 16) (str "0" hex) hex)]
+                                             (.toUpperCase padded-hex)))
+                                         hex-bytes))]
+        (str "<" hex-string ">"))
+      ;; Use simple parenthetical format for ASCII text
+      (let [escaped-content (-> text-content
+                                (str/replace "\\" "\\\\") ; Escape backslashes
+                                (str/replace "(" "\\(")   ; Escape opening parens
+                                (str/replace ")" "\\)"))] ; Escape closing parens
+        (str "(" escaped-content ")"))))))
 
 (defn- text->pdf-ops
   "Converts a text hiccup vector to PDF operators.
 
+  Enhanced with emoji image support for mixed content rendering.
+
   Args:
     attributes: Map containing :x, :y, :font, :size and optional styling
     content: The text content string
+    options: Optional map with emoji configuration
+             :enable-emoji-images - Enable emoji image processing (default false)
+             :emoji-config - Configuration for emoji image handling
+             :image-cache - Image cache for emoji loading
+             :xobject-refs - Map from emoji characters to XObject references
 
   Returns:
     String of PDF operators for text drawing"
-  [attributes content]
+  [attributes content & [options]]
   (let [validated-attrs (v/validate-text-attributes attributes)
         {:keys [x y font size fill]} validated-attrs
         text-content (or content "")
-        ;; PDF text requires BT/ET blocks
-        fill-color-op (if fill (str (color->pdf-color fill) " rg\n") "0 0 0 rg\n") ; Default to black
-        font-op (str "/" font " " size " Tf\n")
-        position-op (str x " " y " Td\n")
-        ;; Encode text content for PDF - handle Unicode properly
-        encoded-content (encode-pdf-text text-content)
-        text-op (str encoded-content " Tj\n")]
-    (str "BT\n" fill-color-op font-op position-op text-op "ET")))
+        opts (or options {})
+        enable-emoji-images? (get opts :enable-emoji-images false)]
+    
+    (if (and enable-emoji-images? (text-proc/extract-unique-emoji text-content))
+      ;; Mixed content processing with emoji images
+      (let [image-cache (get opts :image-cache)
+            xobject-refs (get opts :xobject-refs {})
+            color (or fill "black")
+            ;; Use text-processing for mixed content
+            result (text-proc/process-mixed-content text-content x y font size image-cache 
+                                                   (assoc opts :color color :xobject-refs xobject-refs))]
+        (if (:success result)
+          (:operators result)
+          ;; Fallback to legacy processing on error
+          (let [fill-color-op (if fill (str (color->pdf-color fill) " rg\n") "0 0 0 rg\n")
+                font-op (str "/" font " " size " Tf\n")
+                position-op (str x " " y " Td\n")
+                encoded-content (encode-pdf-text text-content opts)
+                text-op (str encoded-content " Tj\n")]
+            (str "BT\n" fill-color-op font-op position-op text-op "ET"))))
+      
+      ;; Legacy text processing
+      (let [fill-color-op (if fill (str (color->pdf-color fill) " rg\n") "0 0 0 rg\n") ; Default to black
+            font-op (str "/" font " " size " Tf\n")
+            position-op (str x " " y " Td\n")
+            ;; Encode text content for PDF - handle Unicode properly
+            encoded-content (encode-pdf-text text-content opts)
+            text-op (str encoded-content " Tj\n")]
+        (str "BT\n" fill-color-op font-op position-op text-op "ET")))))
 
 (defn- transform->matrix
   "Converts a single transform operation to a PDF transformation matrix.
@@ -370,17 +463,18 @@
   Args:
     attributes: Map containing group attributes
     content: Vector of child hiccup elements
+    options: Optional map with configuration options for emoji support
 
   Returns:
     String of PDF operators for group with save/restore state"
-  [attributes content]
+  [attributes content & [options]]
   (let [_ (v/validate-group-attributes attributes)
         ;; Apply transforms if present
         transform-op (if-let [transforms (:transforms attributes)]
                        (matrix->pdf-op (transforms->matrix transforms))
                        "")
         ;; Process all child elements
-        child-ops (apply str (map element->pdf-ops content))]
+        child-ops (apply str (map #(element->pdf-ops % options) content))]
     (str (:save-state pdf-operators) transform-op child-ops (:restore-state pdf-operators))))
 
 (defn- element->pdf-ops
@@ -388,10 +482,11 @@
 
   Args:
     element: Hiccup vector [tag attributes & content]
+    options: Optional map with configuration options for emoji support
 
   Returns:
     String of PDF operators"
-  [element]
+  [element & [options]]
   (let [validated-element (v/validate-hiccup-structure element)
         [tag attributes & content] validated-element
         validated-tag (v/validate-element-type tag)]
@@ -400,8 +495,8 @@
       :line (line->pdf-ops attributes)
       :circle (circle->pdf-ops attributes)
       :path (path->pdf-ops attributes)
-      :text (text->pdf-ops attributes (first content))
-      :g (group->pdf-ops attributes content)
+      :text (text->pdf-ops attributes (first content) options)
+      :g (group->pdf-ops attributes content options)
       (throw (js/Error. (str "Element type " tag " not yet implemented"))))))
 
 (defn hiccup->pdf-ops
@@ -483,8 +578,55 @@
     ValidationError if hiccup structure or element attributes are invalid"
   ([hiccup-vector]
    (hiccup->pdf-ops hiccup-vector nil))
-  ([hiccup-vector _options]
-   (element->pdf-ops hiccup-vector)))
+  ([hiccup-vector options]
+   (element->pdf-ops hiccup-vector options)))
+
+(defn process-text-with-emoji-images
+  "Processes text content with emoji image support for mixed content rendering.
+  
+  This function provides a convenient interface for processing text that contains
+  emoji characters, automatically handling image loading, XObject generation,
+  and mixed content PDF operator creation.
+  
+  Args:
+    text-content: String containing text and emoji characters
+    x: X position for text placement
+    y: Y position for text placement  
+    font: Font name (e.g., \"Arial\", \"Times-Roman\")
+    size: Font size in points
+    options: Map with emoji configuration:
+             :image-cache - Image cache atom (required for emoji images)
+             :xobject-refs - Map from emoji chars to XObject references
+             :color - Text color (default \"black\")
+             :fallback-strategy - Strategy when images unavailable (:hex-string, :placeholder, :skip)
+             :baseline-offset - Image baseline adjustment (default 0.2)
+             
+  Returns:
+    Map with processing results:
+    {:operators string - PDF operators for mixed content
+     :segments vector - Positioned segments with metadata
+     :success boolean - Processing success status
+     :errors [strings] - Any errors encountered}
+     
+  Example:
+    (let [cache (images/create-image-cache)
+          xobject-refs {\"💡\" \"Em1\" \"🎯\" \"Em2\"}]
+      (process-text-with-emoji-images \"Status: ✅ Progress: 💡 Target: 🎯\"
+                                      100 200 \"Arial\" 14
+                                      {:image-cache cache
+                                       :xobject-refs xobject-refs
+                                       :color \"blue\"}))"
+  [text-content x y font size & [options]]
+  (let [opts (merge {:color "black" :fallback-strategy :hex-string :baseline-offset 0.2} options)
+        image-cache (get opts :image-cache)]
+    (if image-cache
+      ;; Use mixed content processing
+      (text-proc/process-mixed-content text-content x y font size image-cache opts)
+      ;; No cache provided - fallback to basic text processing
+      {:operators (text->pdf-ops {:x x :y y :font font :size size :fill (:color opts)} text-content)
+       :segments [{:type :text :content text-content :x x :y y}]
+       :success true
+       :errors []})))
 
 (defn hiccup->pdf-document
   "Generates complete PDF documents with pages from hiccup structure.
