@@ -1,7 +1,9 @@
 (ns dev.jaide.hiccup-pdf.document
   "PDF document generation functionality for complete PDF files with pages."
   (:require [dev.jaide.hiccup-pdf.validation :as v]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [dev.jaide.hiccup-pdf.text-processing :as text-proc]
+            [dev.jaide.hiccup-pdf.images :as images]))
 
 (declare document->pdf page->content-stream)
 
@@ -211,6 +213,212 @@
                   (into (mapcat extract-fonts children))))))]
     (into #{} (mapcat extract-fonts page-content))))
 
+;; Emoji Image Resource Management
+
+(defn collect-page-images
+  "Scans page content for emoji images and returns collection.
+  
+  Recursively scans hiccup page content for :text elements and extracts
+  unique emoji characters that would need image resources.
+  
+  Args:
+    page-content: Vector of hiccup elements
+    
+  Returns:
+    Set of emoji character strings found in text content"
+  [page-content]
+  (letfn [(extract-emoji [element]
+            (if-not (vector? element)
+              #{}
+              (let [[tag attributes & children] element]
+                (cond-> #{}
+                  ;; Extract emoji from text element content
+                  (= tag :text)
+                  (into (if-let [content (last children)]
+                          (text-proc/extract-unique-emoji (str content))
+                          #{}))
+                  
+                  ;; Recursively process children
+                  (seq children)
+                  (into (mapcat extract-emoji children))))))]
+    (into #{} (mapcat extract-emoji page-content))))
+
+(defn generate-image-resources
+  "Creates PDF resource dictionary entries for images.
+  
+  Generates the XObject section of a PDF resource dictionary
+  with references to emoji image objects.
+  
+  Args:
+    image-refs: Map from emoji characters to object numbers
+                e.g., {\"💡\" 10, \"🎯\" 11}
+    xobject-names: Map from emoji characters to XObject names  
+                   e.g., {\"💡\" \"Em1\", \"🎯\" \"Em2\"}
+    
+  Returns:
+    String with PDF XObject resource dictionary entries"
+  [image-refs xobject-names]
+  (if (empty? image-refs)
+    ""
+    (let [entries (map (fn [[emoji-char obj-num]]
+                         (let [xobj-name (get xobject-names emoji-char)]
+                           (when xobj-name
+                             (str "/" xobj-name " " obj-num " 0 R"))))
+                       image-refs)
+          valid-entries (filter some? entries)]
+      (if (empty? valid-entries)
+        ""
+        (str "/XObject <<\n"
+             (str/join "\n" valid-entries) "\n"
+             ">>")))))
+
+(defn update-page-resources
+  "Merges image resources with existing page resources (fonts, etc.).
+  
+  Updates the PDF page resource dictionary to include both font
+  and XObject (image) resources.
+  
+  Args:
+    font-dict: String containing font resource dictionary
+    image-dict: String containing XObject resource dictionary
+    
+  Returns:
+    String with complete resource dictionary or empty string if no resources"
+  [font-dict image-dict]
+  (let [has-fonts (not (str/blank? font-dict))
+        has-images (not (str/blank? image-dict))]
+    (cond
+      (and has-fonts has-images)
+      (str "/Resources <<\n" font-dict "\n" image-dict "\n>>")
+      
+      has-fonts
+      (str "/Resources <<\n" font-dict "\n>>")
+      
+      has-images  
+      (str "/Resources <<\n" image-dict "\n>>")
+      
+      :else
+      "")))
+
+(defn embed-images-in-document
+  "Integrates image objects into complete PDF document.
+  
+  Processes emoji images for a document, generates XObjects,
+  and updates object numbering and references.
+  
+  Args:
+    unique-emoji: Set of unique emoji characters in document
+    image-cache: Image cache atom for loading emoji images
+    starting-object-number: Starting object number for image objects
+    options: Map with emoji configuration options
+    
+  Returns:
+    Map with image processing results:
+    {:image-objects [pdf-object-strings]
+     :image-refs {emoji-char object-number}
+     :xobject-names {emoji-char xobject-name}
+     :next-object-number number
+     :success boolean
+     :errors [error-strings]}"
+  [unique-emoji image-cache starting-object-number & [options]]
+  (let [opts (merge {:fallback-strategy :hex-string :logging? false} options)]
+    (try
+      (if (empty? unique-emoji)
+        ;; No emoji to process
+        {:image-objects []
+         :image-refs {}
+         :xobject-names {}
+         :next-object-number starting-object-number
+         :success true
+         :errors []}
+        
+        ;; Process each unique emoji
+        (let [emoji-list (vec unique-emoji)
+              xobject-names (into {} (map-indexed (fn [idx emoji-char]
+                                                    [emoji-char (str "Em" (+ idx 1))])
+                                                  emoji-list))
+              
+              ;; Load images and generate XObjects
+              results (loop [remaining-emoji emoji-list
+                           current-obj-num starting-object-number
+                           image-objects []
+                           image-refs {}
+                           errors []]
+                        
+                        (if (empty? remaining-emoji)
+                          {:image-objects image-objects
+                           :image-refs image-refs  
+                           :next-object-number current-obj-num
+                           :errors errors}
+                          
+                          (let [emoji-char (first remaining-emoji)
+                                rest-emoji (rest remaining-emoji)
+                                xobj-name (get xobject-names emoji-char)
+                                
+                                ;; Attempt to load image
+                                image-result (images/emoji-image-with-fallback 
+                                              image-cache emoji-char opts)]
+                            
+                            (if (and (:success image-result) (= :image (:type image-result)))
+                              ;; Successfully loaded image - generate XObject
+                              (let [xobj-result (images/generate-image-xobject image-result xobj-name current-obj-num)]
+                                (if (:success xobj-result)
+                                  ;; XObject generated successfully
+                                  (recur rest-emoji
+                                         (inc current-obj-num)
+                                         (conj image-objects (:pdf-object xobj-result))
+                                         (assoc image-refs emoji-char current-obj-num)
+                                         errors)
+                                  ;; XObject generation failed
+                                  (recur rest-emoji
+                                         current-obj-num
+                                         image-objects
+                                         image-refs
+                                         (conj errors (str "XObject generation failed for " emoji-char ": " (:error xobj-result))))))
+                              
+                              ;; Image loading failed or fallback used - skip XObject generation
+                              (recur rest-emoji
+                                     current-obj-num
+                                     image-objects
+                                     image-refs
+                                     (if (:success image-result)
+                                       errors  ; Fallback used, not an error
+                                       (conj errors (str "Image loading failed for " emoji-char ": " (:error image-result)))))))))
+              
+              final-result (assoc results :xobject-names xobject-names :success true)]
+          final-result))
+      
+      (catch js/Error e
+        {:image-objects []
+         :image-refs {}
+         :xobject-names {}
+         :next-object-number starting-object-number
+         :success false
+         :errors [(str "Image embedding failed: " (.-message e))]}))))
+
+(defn scan-document-for-emoji
+  "Scans entire document for unique emoji across all pages.
+  
+  Recursively processes document structure to find all unique
+  emoji characters that will need image resources.
+  
+  Args:
+    document-vector: Hiccup document vector
+    
+  Returns:
+    Set of unique emoji character strings"
+  [document-vector]
+  (if-not (and (vector? document-vector) (= :document (first document-vector)))
+    #{}
+    (let [[_ attributes & pages] document-vector]
+      ;; Extract emoji from all pages
+      (into #{} (mapcat (fn [page]
+                          (if (and (vector? page) (= :page (first page)))
+                            (let [[_ page-attrs & page-content] page]
+                              (collect-page-images page-content))
+                            #{}))
+                        pages)))))
+
 (defn generate-font-resource-object
   "Generates a font resource object for system fonts.
   
@@ -268,10 +476,12 @@
     parent-pages-ref: Reference to parent pages object
     content-stream-ref: Reference to content stream object
     font-refs: Map of font names to object references
+    image-refs: Optional map of emoji characters to object references for images
+    xobject-names: Optional map of emoji characters to XObject names
     
   Returns:
     String containing PDF page object"
-  [object-number page-data parent-pages-ref content-stream-ref font-refs]
+  [object-number page-data parent-pages-ref content-stream-ref font-refs & [image-refs xobject-names]]
   (let [{:keys [width height margins]} page-data
         [top right bottom left] (or margins [0 0 0 0])
         ;; MediaBox defines the page boundaries
@@ -283,14 +493,18 @@
                          (str/join "\n" (map (fn [[font-name ref]]
                                                (str "/" font-name " " ref " 0 R"))
                                              font-refs))
-                         "\n>>"))]
+                         "\n>>"))
+        ;; Create image resource dictionary
+        image-dict (generate-image-resources (or image-refs {}) (or xobject-names {}))
+        ;; Combine resources
+        resource-dict (update-page-resources font-dict image-dict)]
     (str object-number " 0 obj\n"
          "<<\n"
          "/Type /Page\n"
          "/Parent " parent-pages-ref " 0 R\n"
          "/MediaBox " media-box "\n"
-         (when (not (str/blank? font-dict))
-           (str "/Resources <<\n" font-dict "\n>>\n"))
+         (when (not (str/blank? resource-dict))
+           (str resource-dict "\n"))
          "/Contents " content-stream-ref " 0 R\n"
          ">>\n"
          "endobj")))
