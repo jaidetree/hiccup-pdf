@@ -433,11 +433,11 @@
   [document-vector]
   (if-not (and (vector? document-vector) (= :document (first document-vector)))
     #{}
-    (let [[_ attributes & pages] document-vector]
+    (let [[_ _attributes & pages] document-vector]
       ;; Extract emoji from all pages
       (into #{} (mapcat (fn [page]
                           (if (and (vector? page) (= :page (first page)))
-                            (let [[_ page-attrs & page-content] page]
+                            (let [[_ _page-attrs & page-content] page]
                               (collect-page-images page-content))
                             #{}))
                         pages)))))
@@ -506,7 +506,7 @@
     String containing PDF page object"
   [object-number page-data parent-pages-ref content-stream-ref font-refs & [image-refs xobject-names]]
   (let [{:keys [width height margins]} page-data
-        [top right bottom left] (or margins [0 0 0 0])
+        [_top _right bottom left] (or margins [0 0 0 0])
         ;; MediaBox defines the page boundaries
         media-box (str "[" left " " bottom " " width " " height "]")
         ;; Create font resource dictionary
@@ -636,7 +636,7 @@
         obj-0-entry "0000000000 65535 f \n"
         ;; Generate entries for each object
         object-entries (map-indexed
-                        (fn [idx offset]
+                        (fn [_idx offset]
                           (let [padded-offset (str (apply str (repeat (- 10 (count (str offset))) "0")) offset)]
                             (str padded-offset " 00000 n \n")))
                         byte-offsets)]
@@ -713,13 +713,13 @@
         
         font-list (vec all-fonts)
         font-count (count font-list)
-        image-count (count (:image-objects image-result))
+        _image-count (count (:image-objects image-result))
         page-count (count pages-data)
         
         ;; Calculate object numbers
         catalog-ref 1
         first-font-ref 2
-        first-image-ref (+ first-font-ref font-count)
+        _first-image-ref (+ first-font-ref font-count)
         first-content-ref (:next-object-number image-result)
         first-page-ref (+ first-content-ref page-count)
         pages-collection-ref (+ first-page-ref page-count)

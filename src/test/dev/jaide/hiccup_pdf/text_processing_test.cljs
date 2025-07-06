@@ -1,6 +1,7 @@
 (ns dev.jaide.hiccup-pdf.text-processing-test
   "Tests for text processing functions for mixed content and PDF operator generation"
   (:require [cljs.test :refer [deftest is testing]]
+            [clojure.string :as str]
             [dev.jaide.hiccup-pdf.text-processing :as text-proc]
             [dev.jaide.hiccup-pdf.images :as images]))
 
@@ -398,7 +399,7 @@
 
   (testing "Fallback to hex encoding"
     (let [cache (images/create-image-cache)
-          segments [{:type :emoji :content "🦄" :x 0 :y 0}]  ; Unicorn emoji, likely no XObject ref
+          segments [{:type :emoji :content "😀😀😀" :x 0 :y 0}]  ; Multiple identical emoji, will trigger fallback
           result (text-proc/render-mixed-segments segments "Arial" 12 cache {:fallback-strategy :hex-string})]
       ;; Should fallback to text rendering with hex encoding
       (is (clojure.string/includes? result "BT"))
@@ -408,22 +409,22 @@
 
   (testing "Fallback to placeholder"
     (let [cache (images/create-image-cache)
-          segments [{:type :emoji :content "🦄" :x 0 :y 0}]
+          segments [{:type :emoji :content "😀😀😀" :x 0 :y 0}]
           result (text-proc/render-mixed-segments segments "Arial" 12 cache {:fallback-strategy :placeholder})]
       ;; Should render placeholder text
-      (is (clojure.string/includes? result "([🦄]) Tj"))))
+      (is (clojure.string/includes? result "([😀😀😀]) Tj"))))
 
   (testing "Skip fallback"
     (let [cache (images/create-image-cache)
           segments [{:type :text :content "Before "}
-                    {:type :emoji :content "🦄"}
+                    {:type :emoji :content "😀😀😀"}
                     {:type :text :content " after"}]
           result (text-proc/render-mixed-segments segments "Arial" 12 cache {:fallback-strategy :skip})]
       ;; Should render text but skip emoji
       (is (clojure.string/includes? result "(Before ) Tj"))
       (is (clojure.string/includes? result "( after) Tj"))
-      ;; Should not contain unicorn emoji content
-      (is (not (clojure.string/includes? result "🦄")))))
+      ;; Should not contain emoji content
+      (is (not (clojure.string/includes? result "😀😀😀")))))
 
   (testing "Empty segments"
     (let [cache (images/create-image-cache)

@@ -338,8 +338,7 @@
      :normalized-config map}"
   [config]
   (let [errors []
-        warnings []
-        normalized {}]
+        warnings []]
     (try
       (let [;; Validate enable-emoji-images
             errors (if (contains? config :enable-emoji-images)
@@ -487,13 +486,12 @@
         validation (validate-emoji-config user-opts)]
     (if (:valid? validation)
       ;; Merge with defaults
-      (let [merged-config (merge default-emoji-config user-opts)]
-        ;; Validate final merged config
-        (let [final-validation (validate-emoji-config merged-config)]
-          (if (:valid? final-validation)
-            merged-config
-            (throw (js/Error. (str "Invalid merged configuration: " 
-                                  (clojure.string/join ", " (:errors final-validation))))))))
+      (let [merged-config (merge default-emoji-config user-opts)
+            final-validation (validate-emoji-config merged-config)]
+        (if (:valid? final-validation)
+          merged-config
+          (throw (js/Error. (str "Invalid merged configuration: " 
+                                (clojure.string/join ", " (:errors final-validation)))))))
       ;; User config invalid
       (throw (js/Error. (str "Invalid emoji configuration: " 
                             (clojure.string/join ", " (:errors validation))))))))

@@ -136,7 +136,7 @@
     {:valid? boolean :errors [error-strings] :coverage {:expected N :actual N}}"
   [segments original-text]
   (let [total-length (count original-text)
-        errors []
+        _errors []
 
         ;; Check for gaps and overlaps
         sorted-segments (sort-by :start-idx segments)
@@ -355,15 +355,33 @@
                 ;; Fallback to text rendering
                 (let [fallback-result (images/emoji-image-with-fallback image-cache emoji-char
                                                                         {:fallback-strategy fallback-strategy})
-                      fallback-content (case (:type fallback-result)
-                                         :hex-string (:content fallback-result)
-                                         :placeholder (:content fallback-result)
-                                         :skip ""
-                                         emoji-char)  ; Default fallback
-                      text-segment (assoc segment :content fallback-content :type :text)
-                      text-ops (if (not-empty fallback-content)
-                                 (render-text-segment text-segment font-name font-size color)
-                                 "")]
+                      text-ops (case (:type fallback-result)
+                                 :hex-string 
+                                 ;; For hex strings, render directly as hex content
+                                 (str "BT\n"
+                                      (when (and color (not= color "black"))
+                                        (str (cond 
+                                               (= color "red") "1 0 0 rg"
+                                               (= color "green") "0 1 0 rg"
+                                               (= color "blue") "0 0 1 rg"
+                                               :else "0 0 0 rg") "\n"))
+                                      "/" font-name " " font-size " Tf\n"
+                                      (:x segment) " " (:y segment) " Td\n"
+                                      (:content fallback-result) " Tj\n"
+                                      "ET\n")
+                                 
+                                 :placeholder
+                                 ;; For placeholders, render as escaped text
+                                 (let [placeholder-segment (assoc segment :content (:content fallback-result) :type :text)]
+                                   (render-text-segment placeholder-segment font-name font-size color))
+                                 
+                                 :skip
+                                 ;; For skip, render nothing
+                                 ""
+                                 
+                                 ;; Default fallback - render original emoji as text
+                                 (let [default-segment (assoc segment :content emoji-char :type :text)]
+                                   (render-text-segment default-segment font-name font-size color)))]
                   (recur rest-segments (conj operators text-ops)))))))))))
 
 (defn process-mixed-content

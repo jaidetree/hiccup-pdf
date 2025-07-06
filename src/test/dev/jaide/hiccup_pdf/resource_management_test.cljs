@@ -1,6 +1,7 @@
 (ns dev.jaide.hiccup-pdf.resource-management-test
   "Tests for emoji image resource management functions"
   (:require [cljs.test :refer [deftest is testing]]
+            [clojure.string :as str]
             [dev.jaide.hiccup-pdf.document :as doc]
             [dev.jaide.hiccup-pdf.images :as images]))
 
@@ -117,7 +118,7 @@
   
   (testing "Blank strings"
     (let [result (doc/update-page-resources "   " "  ")]
-      (is (= "" result)))))
+      (is (= "" result))))
 
 (deftest test-embed-images-in-document
   (testing "No emoji to process"

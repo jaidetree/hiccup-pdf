@@ -124,7 +124,7 @@
     Map with validation results:
     {:valid? boolean :errors [error-strings] :info {:size N :format string}}"
   [buffer]
-  (let [errors []]
+  (let [_errors []]
     (try
       (if (not buffer)
         {:valid? false 
@@ -426,7 +426,6 @@
     {:valid? boolean :errors [error-strings] :warnings [warning-strings] :info map}"
   [image-data]
   (let [buffer (:buffer image-data)
-        errors []
         warnings []
         info {}]
     (try
@@ -564,7 +563,7 @@
   Returns:
     Map with fallback data:
     {:type :skip :content string :success true}"
-  [emoji-char]
+  [_emoji-char]
   {:type :skip
    :content ""
    :success true
@@ -925,8 +924,7 @@
     Map with validation results:
     {:valid? boolean :errors [error-strings] :warnings [warning-strings]}"
   [pdf-object]
-  (let [errors []
-        warnings []]
+  (let [warnings []]
     (try
       (cond
         ;; Check basic structure
