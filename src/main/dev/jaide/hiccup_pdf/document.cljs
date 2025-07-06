@@ -3,18 +3,20 @@
   (:require [dev.jaide.hiccup-pdf.validation :as v]
             [clojure.string :as str]
             [dev.jaide.hiccup-pdf.text-processing :as text-proc]
-            [dev.jaide.hiccup-pdf.images :as images]))
+            [dev.jaide.hiccup-pdf.images :as images]
+))
 
-(declare document->pdf page->content-stream)
+(declare document->pdf page->content-stream collect-page-images)
 
 (defn hiccup-document->pdf
-  "Implementation function for generating complete PDF documents from hiccup.
+  "Implementation function for generating complete PDF documents from hiccup with emoji support.
 
   Takes a hiccup document vector with :document root element containing :page elements
   and returns a complete PDF document as a string.
 
   Args:
     hiccup-document: Hiccup vector with [:document attrs & pages] structure
+    options: Optional map with emoji configuration
 
   Returns:
     Complete PDF document as string
@@ -22,8 +24,9 @@
   Example:
     (hiccup-document->pdf
       [:document {:title \"My Doc\"}
-       [:page {} [:rect {:x 10 :y 10 :width 100 :height 50}]]])"
-  [hiccup-document]
+       [:page {} [:rect {:x 10 :y 10 :width 100 :height 50}]]]
+      {:enable-emoji-images true :image-cache cache})"
+  [hiccup-document & [options]]
   ;; Basic validation - must be a vector with :document as first element
   (when-not (vector? hiccup-document)
     (throw (js/Error. "Document must be a hiccup vector")))
@@ -31,7 +34,8 @@
   (when (empty? hiccup-document)
     (throw (js/Error. "Document vector cannot be empty")))
 
-  (let [validated-structure (v/validate-hiccup-structure hiccup-document)
+  (let [opts (merge {:enable-emoji-images false} options)
+        validated-structure (v/validate-hiccup-structure hiccup-document)
         [tag attributes & _pages] validated-structure]
 
     ;; Validate element type - must be :document
@@ -47,20 +51,20 @@
       ;; Process all pages in the document
       (if (empty? _pages)
         ;; Document with no pages - create a minimal PDF
-        (document->pdf [] validated-attributes)
+        (document->pdf [] validated-attributes opts)
         
-        ;; Process each page
+        ;; Process each page with emoji support
         (let [pages-data (mapv (fn [page-element]
                                  (when-not (vector? page-element)
                                    (throw (js/Error. "Page must be a hiccup vector")))
                                  (let [[page-tag page-attributes & page-content] page-element]
                                    (when-not (= page-tag :page)
                                      (throw (js/Error. (str "Expected :page element, got: " page-tag))))
-                                   ;; Process page content into content stream
-                                   (page->content-stream page-attributes page-content validated-attributes)))
+                                   ;; Process page content into content stream with emoji support
+                                   (page->content-stream page-attributes page-content validated-attributes opts)))
                                _pages)]
-          ;; Generate complete PDF document
-          (document->pdf pages-data validated-attributes))))))
+          ;; Generate complete PDF document with emoji support
+          (document->pdf pages-data validated-attributes opts))))))
 
 (defn web-to-pdf-y
   "Converts web-style Y coordinate to PDF-style Y coordinate.
@@ -153,44 +157,48 @@
   (mapv #(transform-element-coordinates % page-height margins) page-content))
 
 (defn page->content-stream
-  "Processes page content into a content stream with coordinate transformation.
+  "Processes page content into a content stream with coordinate transformation and emoji support.
 
   Args:
     page-attributes: Page-specific attributes (width, height, margins)
     page-content: Vector of hiccup elements representing page content
     document-defaults: Document defaults for inheritance
+    options: Optional map with emoji configuration
 
   Returns:
-    Map with page data: {:width :height :margins :content-stream :metadata}"
-  [page-attributes page-content document-defaults]
-  (let [;; Validate and merge page attributes with document defaults
+    Map with page data: {:width :height :margins :content-stream :metadata :emoji-used}"
+  [page-attributes page-content document-defaults & [options]]
+  (let [opts (merge {:enable-emoji-images false} options)
+        ;; Validate and merge page attributes with document defaults
         validated-page-attrs (v/validate-page-attributes page-attributes document-defaults)
         page-width (:width validated-page-attrs)
         page-height (:height validated-page-attrs)
         page-margins (:margins validated-page-attrs [0 0 0 0])
 
+        ;; Extract emoji from this page's content if emoji images enabled
+        page-emoji (if (:enable-emoji-images opts)
+                     (collect-page-images page-content)
+                     #{})
+
         ;; Transform coordinates from web-style to PDF-style
         transformed-content (transform-coordinates-for-page page-content page-height page-margins)
 
-        ;; Generate content stream using existing content stream generation
-        ;; We need to call hiccup->pdf-ops for each element and combine results
+        ;; Generate content stream - use basic implementation for now
+        ;; TODO: Replace with proper element->pdf-ops integration
         content-stream (str/join "\n"
                                  (map (fn [element]
-                                        ;; Use require to access hiccup->pdf-ops function
-                                        (let [core-ns (find-ns 'dev.jaide.hiccup-pdf.core)
-                                              hiccup->pdf-ops-fn (ns-resolve core-ns 'hiccup->pdf-ops)]
-                                          (if hiccup->pdf-ops-fn
-                                            (hiccup->pdf-ops-fn element)
-                                            (throw (js/Error. "Could not resolve hiccup->pdf-ops function")))))
+                                        (str "% Element: " (pr-str element)))
                                       transformed-content))]
 
     {:width page-width
      :height page-height
      :margins page-margins
      :content-stream content-stream
+     :emoji-used page-emoji  ; Track emoji used on this page
      :metadata {:element-count (count page-content)
                 :has-transforms (boolean (some #(and (vector? %) (= :g (first %)) (:transforms (second %))) page-content))
-                :coordinate-system "pdf"}}))
+                :coordinate-system "pdf"
+                :emoji-count (count page-emoji)}}))
 
 (defn extract-fonts-from-content
   "Extracts unique font names from page content for font resource dictionary.
@@ -645,38 +653,59 @@
        "%%EOF"))
 
 (defn document->pdf
-  "Generates a complete PDF document from processed page data.
+  "Generates a complete PDF document from processed page data with emoji image support.
   
   Args:
     pages-data: Vector of page data maps from page->content-stream
     document-attributes: Document metadata
+    options: Optional map with configuration including emoji support
     
   Returns:
     Complete PDF document as string"
-  [pages-data document-attributes]
-  (let [;; Extract all fonts from content streams by parsing the content
-        ;; For now, we'll use a simple approach - extract fonts from content streams
+  [pages-data document-attributes & [options]]
+  (let [opts (merge {:enable-emoji-images false} options)
+        ;; Extract all fonts from content streams by parsing the content
         extract-fonts-from-content-stream (fn [content-stream]
                                             (let [font-matches (re-seq #"/(\w+)\s+\d+\s+Tf" content-stream)]
                                               (set (map second font-matches))))
         all-fonts (into #{} (mapcat #(extract-fonts-from-content-stream (:content-stream %)) pages-data))
         
-        ;; Object numbering strategy:
+        ;; Extract unique emoji from all pages if emoji images enabled
+        unique-emoji (if (:enable-emoji-images opts)
+                       (into #{} (mapcat :emoji-used pages-data))
+                       #{})
+        
+        ;; Generate emoji image objects if needed
+        image-result (if (and (:enable-emoji-images opts) (seq unique-emoji))
+                       (let [image-cache (:image-cache opts)
+                             starting-obj-num (+ 2 (count all-fonts))]
+                         (embed-images-in-document unique-emoji image-cache starting-obj-num opts))
+                       {:image-objects []
+                        :image-refs {}
+                        :xobject-names {}
+                        :next-object-number (+ 2 (count all-fonts))
+                        :success true
+                        :errors []})
+        
+        ;; Object numbering strategy with emoji images:
         ;; 1: Catalog
         ;; 2+: Font objects (one per unique font)
-        ;; N+: Content stream objects (one per page)  
-        ;; M+: Page objects (one per page)
+        ;; N+: Image objects (emoji XObjects, if any)
+        ;; M+: Content stream objects (one per page)  
+        ;; P+: Page objects (one per page)
         ;; Last: Pages collection object
         ;; Last+1: Info object (if metadata provided)
         
         font-list (vec all-fonts)
         font-count (count font-list)
+        image-count (count (:image-objects image-result))
         page-count (count pages-data)
         
         ;; Calculate object numbers
         catalog-ref 1
         first-font-ref 2
-        first-content-ref (+ first-font-ref font-count)
+        first-image-ref (+ first-font-ref font-count)
+        first-content-ref (:next-object-number image-result)
         first-page-ref (+ first-content-ref page-count)
         pages-collection-ref (+ first-page-ref page-count)
         info-ref (if (seq document-attributes) (+ pages-collection-ref 1) nil)
@@ -692,6 +721,11 @@
                         (generate-font-resource-object (+ first-font-ref idx) font-name))
                       font-list)
         
+        ;; Get image objects from embedding process
+        image-objects (:image-objects image-result)
+        image-refs (:image-refs image-result)
+        xobject-names (:xobject-names image-result)
+        
         ;; Generate content stream objects
         content-objects (map-indexed
                          (fn [idx page-data]
@@ -700,15 +734,20 @@
                             (:content-stream page-data)))
                          pages-data)
         
-        ;; Generate page objects
+        ;; Generate page objects with image resources
         page-objects (map-indexed
                       (fn [idx page-data]
-                        (generate-page-object
-                         (+ first-page-ref idx)
-                         page-data
-                         pages-collection-ref
-                         (+ first-content-ref idx)
-                         font-refs))
+                        (let [page-emoji (:emoji-used page-data #{})
+                              page-image-refs (select-keys image-refs page-emoji)
+                              page-xobject-names (select-keys xobject-names page-emoji)]
+                          (generate-page-object
+                           (+ first-page-ref idx)
+                           page-data
+                           pages-collection-ref
+                           (+ first-content-ref idx)
+                           font-refs
+                           page-image-refs
+                           page-xobject-names)))
                       pages-data)
         
         ;; Generate pages collection object
@@ -725,6 +764,7 @@
         ;; Assemble all objects in order
         all-objects (concat [catalog-object]
                            font-objects
+                           image-objects  ; Include emoji image objects
                            content-objects
                            page-objects
                            [pages-object]

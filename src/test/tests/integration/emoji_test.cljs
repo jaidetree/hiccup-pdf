@@ -1,5 +1,6 @@
 (ns tests.integration.emoji-test
   (:require
+   [clojure.string :as str]
    [dev.jaide.hiccup-pdf.core :refer [hiccup->pdf-ops]]))
 
 ;; Test various emoji combinations

@@ -204,80 +204,6 @@
                   :else "f")] ; Default to fill if no styling specified
     (str stroke-width-op fill-color-op stroke-color-op path-data draw-op)))
 
-(defn- encode-pdf-text
-  "Encodes text content for PDF text strings with proper Unicode support.
-
-  Uses hex string format for Unicode characters to match reference PDF approach.
-  This provides better compatibility and matches professional PDF generation.
-  
-  Enhanced with emoji image fallback support.
-
-  Args:
-    text-content: The text string to encode
-    options: Optional map with emoji configuration
-             :enable-emoji-images - Enable emoji image processing (default false)
-             :emoji-config - Configuration for emoji image handling
-
-  Returns:
-    String representing PDF text object with proper Unicode encoding"
-  [text-content & [options]]
-  (let [opts (or options {})
-        enable-emoji-images? (get opts :enable-emoji-images false)]
-    (if (empty? text-content)
-      "()"
-      (if enable-emoji-images?
-        ;; For emoji image mode, fall back to hex encoding for individual emoji characters
-        ;; Mixed content processing will be handled at a higher level
-        (if (text-proc/extract-unique-emoji text-content)
-          ;; Contains emoji - use fallback strategy
-          (let [image-cache (get opts :image-cache)
-                emoji-config (get opts :emoji-config {})
-                fallback-strategy (get emoji-config :fallback-strategy :hex-string)
-                unique-emoji (text-proc/extract-unique-emoji text-content)]
-            (if (empty? unique-emoji)
-              ;; No emoji found - use regular encoding
-              (encode-pdf-text-legacy text-content)
-              ;; Has emoji - process with fallback
-              (loop [remaining-text text-content
-                     result ""]
-                (if (empty? remaining-text)
-                  result
-                  (let [segments (text-proc/segment-text remaining-text)]
-                    (if (= 1 (count segments))
-                      ;; Single segment - encode directly
-                      (let [segment (first segments)]
-                        (if (= :emoji (:type segment))
-                          ;; Single emoji - use fallback
-                          (let [emoji-char (:content segment)
-                                fallback-result (images/emoji-image-with-fallback 
-                                                  image-cache emoji-char 
-                                                  {:fallback-strategy fallback-strategy})]
-                            (case (:type fallback-result)
-                              :hex-string (:content fallback-result)
-                              :placeholder (str "(" (:content fallback-result) ")")
-                              :skip ""
-                              (encode-pdf-text-legacy text-content))) ; Default fallback
-                          ;; Single text segment
-                          (encode-pdf-text-legacy (:content segment))))
-                      ;; Multiple segments - use first segment and continue
-                      (let [first-segment (first segments)
-                            remaining-segments (rest segments)
-                            first-result (if (= :emoji (:type first-segment))
-                                           (let [emoji-char (:content first-segment)
-                                                 fallback-result (images/emoji-image-with-fallback 
-                                                                   image-cache emoji-char 
-                                                                   {:fallback-strategy fallback-strategy})]
-                                             (case (:type fallback-result)
-                                               :hex-string (:content fallback-result)
-                                               :placeholder (str "(" (:content fallback-result) ")")
-                                               :skip ""
-                                               (encode-pdf-text-legacy (:content first-segment))))
-                                           (encode-pdf-text-legacy (:content first-segment)))
-                            remaining-content (apply str (map :content remaining-segments))]
-                        (recur remaining-content (str result first-result)))))))))
-        ;; Legacy mode - use existing hex encoding logic
-        (encode-pdf-text-legacy text-content))))
-
 (defn- encode-pdf-text-legacy
   "Legacy implementation of encode-pdf-text for backward compatibility."
   [text-content]
@@ -337,7 +263,83 @@
                                 (str/replace "\\" "\\\\") ; Escape backslashes
                                 (str/replace "(" "\\(")   ; Escape opening parens
                                 (str/replace ")" "\\)"))] ; Escape closing parens
-        (str "(" escaped-content ")"))))))
+        (str "(" escaped-content ")")))))
+
+(defn- encode-pdf-text
+  "Encodes text content for PDF text strings with proper Unicode support.
+
+  Uses hex string format for Unicode characters to match reference PDF approach.
+  This provides better compatibility and matches professional PDF generation.
+
+  Enhanced with emoji image fallback support.
+
+  Args:
+    text-content: The text string to encode
+    options: Optional map with emoji configuration
+             :enable-emoji-images - Enable emoji image processing (default false)
+             :emoji-config - Configuration for emoji image handling
+
+  Returns:
+    String representing PDF text object with proper Unicode encoding"
+  [text-content & [options]]
+  (let [opts (or options {})
+        enable-emoji-images? (get opts :enable-emoji-images false)]
+    (if (empty? text-content)
+      "()"
+      (if enable-emoji-images?
+        ;; For emoji image mode, fall back to hex encoding for individual emoji characters
+        ;; Mixed content processing will be handled at a higher level
+        (if (text-proc/extract-unique-emoji text-content)
+          ;; Contains emoji - use fallback strategy
+          (let [image-cache (get opts :image-cache)
+                emoji-config (get opts :emoji-config {})
+                fallback-strategy (get emoji-config :fallback-strategy :hex-string)
+                unique-emoji (text-proc/extract-unique-emoji text-content)]
+            (if (empty? unique-emoji)
+              ;; No emoji found - use regular encoding
+              (encode-pdf-text-legacy text-content)
+              ;; Has emoji - process with fallback
+              (loop [remaining-text text-content
+                     result ""]
+                (if (empty? remaining-text)
+                  result
+                  (let [segments (text-proc/segment-text remaining-text)]
+                    (if (= 1 (count segments))
+                      ;; Single segment - encode directly
+                      (let [segment (first segments)]
+                        (if (= :emoji (:type segment))
+                          ;; Single emoji - use fallback
+                          (let [emoji-char (:content segment)
+                                fallback-result (images/emoji-image-with-fallback
+                                                 image-cache emoji-char
+                                                 {:fallback-strategy fallback-strategy})]
+                            (case (:type fallback-result)
+                              :hex-string (:content fallback-result)
+                              :placeholder (str "(" (:content fallback-result) ")")
+                              :skip ""
+                              (encode-pdf-text-legacy text-content))) ; Default fallback
+                          ;; Single text segment
+                          (encode-pdf-text-legacy (:content segment))))
+                      ;; Multiple segments - use first segment and continue
+                      (let [first-segment (first segments)
+                            remaining-segments (rest segments)
+                            first-result (if (= :emoji (:type first-segment))
+                                           (let [emoji-char (:content first-segment)
+                                                 fallback-result (images/emoji-image-with-fallback
+                                                                  image-cache emoji-char
+                                                                  {:fallback-strategy fallback-strategy})]
+                                             (case (:type fallback-result)
+                                               :hex-string (:content fallback-result)
+                                               :placeholder (str "(" (:content fallback-result) ")")
+                                               :skip ""
+                                               (encode-pdf-text-legacy (:content first-segment))))
+                                           (encode-pdf-text-legacy (:content first-segment)))
+                            remaining-content (apply str (map :content remaining-segments))]
+                        (recur remaining-content (str result first-result)))))))))
+          ;; No emoji - use legacy encoding  
+          (encode-pdf-text-legacy text-content))
+        ;; Legacy mode - use existing hex encoding logic
+        (encode-pdf-text-legacy text-content)))))
 
 (defn- text->pdf-ops
   "Converts a text hiccup vector to PDF operators.
@@ -361,15 +363,15 @@
         text-content (or content "")
         opts (or options {})
         enable-emoji-images? (get opts :enable-emoji-images false)]
-    
+
     (if (and enable-emoji-images? (text-proc/extract-unique-emoji text-content))
       ;; Mixed content processing with emoji images
       (let [image-cache (get opts :image-cache)
             xobject-refs (get opts :xobject-refs {})
             color (or fill "black")
             ;; Use text-processing for mixed content
-            result (text-proc/process-mixed-content text-content x y font size image-cache 
-                                                   (assoc opts :color color :xobject-refs xobject-refs))]
+            result (text-proc/process-mixed-content text-content x y font size image-cache
+                                                    (assoc opts :color color :xobject-refs xobject-refs))]
         (if (:success result)
           (:operators result)
           ;; Fallback to legacy processing on error
@@ -379,7 +381,7 @@
                 encoded-content (encode-pdf-text text-content opts)
                 text-op (str encoded-content " Tj\n")]
             (str "BT\n" fill-color-op font-op position-op text-op "ET"))))
-      
+
       ;; Legacy text processing
       (let [fill-color-op (if fill (str (color->pdf-color fill) " rg\n") "0 0 0 rg\n") ; Default to black
             font-op (str "/" font " " size " Tf\n")
@@ -583,15 +585,15 @@
 
 (defn process-text-with-emoji-images
   "Processes text content with emoji image support for mixed content rendering.
-  
+
   This function provides a convenient interface for processing text that contains
   emoji characters, automatically handling image loading, XObject generation,
   and mixed content PDF operator creation.
-  
+
   Args:
     text-content: String containing text and emoji characters
     x: X position for text placement
-    y: Y position for text placement  
+    y: Y position for text placement
     font: Font name (e.g., \"Arial\", \"Times-Roman\")
     size: Font size in points
     options: Map with emoji configuration:
@@ -600,14 +602,14 @@
              :color - Text color (default \"black\")
              :fallback-strategy - Strategy when images unavailable (:hex-string, :placeholder, :skip)
              :baseline-offset - Image baseline adjustment (default 0.2)
-             
+
   Returns:
     Map with processing results:
     {:operators string - PDF operators for mixed content
      :segments vector - Positioned segments with metadata
      :success boolean - Processing success status
      :errors [strings] - Any errors encountered}
-     
+
   Example:
     (let [cache (images/create-image-cache)
           xobject-refs {\"💡\" \"Em1\" \"🎯\" \"Em2\"}]
@@ -676,6 +678,7 @@
 
   Args:
     hiccup-document: Hiccup vector with [:document attrs & pages] structure
+    options: Optional map with configuration including emoji support
 
   Returns:
     Complete PDF document as string
@@ -695,7 +698,15 @@
        [:page {:width 842 :height 595}  ; A4 landscape
         [:circle {:cx 400 :cy 300 :r 50 :fill \"red\"}]]])
 
+    ;; Document with emoji image support
+    (let [cache (images/create-image-cache)]
+      (hiccup->pdf-document
+        [:document {:title \"Emoji Report\"}
+         [:page {}
+          [:text {:x 100 :y 100 :font \"Arial\" :size 16} \"Status: ✅ Progress: 💡\"]]]
+        {:enable-emoji-images true :image-cache cache}))
+
   Throws:
     ValidationError if document structure or attributes are invalid"
-  [hiccup-document]
-  (doc/hiccup-document->pdf hiccup-document))
+  [hiccup-document & [options]]
+  (doc/hiccup-document->pdf hiccup-document options))

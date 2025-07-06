@@ -83,7 +83,7 @@
       (is (clojure.string/includes? result "/Em1 10 0 R"))
       (is (clojure.string/includes? result "/Em2 11 0 R"))
       (is (clojure.string/includes? result "/Em3 12 0 R"))
-      (is (clojure.string/includes? result "/Em4 13 0 R")))))
+      (is (clojure.string/includes? result "/Em4 13 0 R"))))
 
 (deftest test-update-page-resources
   (testing "Both fonts and images"

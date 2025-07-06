@@ -1,6 +1,7 @@
 (ns dev.jaide.hiccup-pdf.images-test
   "Tests for PNG image file operations"
   (:require [cljs.test :refer [deftest is testing]]
+            [clojure.string :as str]
             [dev.jaide.hiccup-pdf.images :as images]))
 
 (deftest test-emoji-file-exists?

@@ -5,6 +5,7 @@
   with proper error handling and cross-platform path support."
   (:require ["node:fs" :as fs]
             ["node:path" :as path]
+            [clojure.string :as str]
             [dev.jaide.hiccup-pdf.emoji :as emoji]))
 
 (def ^:private emoji-base-directory

@@ -1,27 +1,29 @@
 (ns dev.jaide.hiccup-pdf.text-processing
   "Text processing functions for mixed content rendering with emoji support.
-  
+
   This namespace handles segmentation of text into alternating text and emoji
   parts for mixed content rendering in PDF documents."
-  (:require [dev.jaide.hiccup-pdf.emoji :as emoji]
-            [dev.jaide.hiccup-pdf.images :as images]))
+  (:require
+   [clojure.string :as s]
+   [dev.jaide.hiccup-pdf.emoji :as emoji]
+   [dev.jaide.hiccup-pdf.images :as images]))
 
 (defn segment-text
   "Takes text string and returns vector of segment maps with type and content.
-  
+
   Segments text into consecutive chunks of pure text or single emoji.
   Each segment includes its original position in the source text.
-  
+
   Args:
     text-content: String to segment
-    
+
   Returns:
     Vector of segment maps: [{:type :text/:emoji :content \"...\" :start-idx N :end-idx N}]
-    
+
   Example:
     (segment-text \"Hello 💡 world\") =>
     [{:type :text :content \"Hello \" :start-idx 0 :end-idx 6}
-     {:type :emoji :content \"💡\" :start-idx 6 :end-idx 8}  
+     {:type :emoji :content \"💡\" :start-idx 6 :end-idx 8}
      {:type :text :content \" world\" :start-idx 8 :end-idx 14}]"
   [text-content]
   (if (empty? text-content)
@@ -37,9 +39,9 @@
           (if (empty? emoji-list)
             ;; No more emoji - add remaining text if any
             (if (< current-pos (count text-content))
-              (conj segments {:type :text 
+              (conj segments {:type :text
                               :content (.substring text-content current-pos)
-                              :start-idx current-pos 
+                              :start-idx current-pos
                               :end-idx (count text-content)})
               segments)
             ;; Process next emoji
@@ -49,35 +51,35 @@
                   remaining-emoji (rest emoji-list)]
               (if (< current-pos emoji-start)
                 ;; Add text segment before emoji
-                (let [text-segment {:type :text 
+                (let [text-segment {:type :text
                                     :content (.substring text-content current-pos emoji-start)
-                                    :start-idx current-pos 
+                                    :start-idx current-pos
                                     :end-idx emoji-start}
-                      emoji-segment {:type :emoji 
+                      emoji-segment {:type :emoji
                                      :content (:char emoji-info)
-                                     :start-idx emoji-start 
+                                     :start-idx emoji-start
                                      :end-idx emoji-end}]
                   (recur emoji-end remaining-emoji (conj segments text-segment emoji-segment)))
                 ;; No text before emoji - just add emoji
-                (let [emoji-segment {:type :emoji 
+                (let [emoji-segment {:type :emoji
                                      :content (:char emoji-info)
-                                     :start-idx emoji-start 
+                                     :start-idx emoji-start
                                      :end-idx emoji-end}]
                   (recur emoji-end remaining-emoji (conj segments emoji-segment)))))))))))
 
 (defn prepare-mixed-content
   "Processes segments and adds rendering metadata like widths and positions.
-  
+
   Takes segments from segment-text and enhances them with rendering information
   needed for PDF generation, such as calculated widths and positioning data.
-  
+
   Args:
     segments: Vector of segment maps from segment-text
     options: Optional map with rendering options
       :font-size - Font size for width calculations (default 12)
       :base-x - Starting x position (default 0)
       :base-y - Starting y position (default 0)
-    
+
   Returns:
     Vector of enhanced segment maps with additional metadata:
     {:type :text/:emoji :content \"...\" :start-idx N :end-idx N
@@ -104,10 +106,10 @@
                                           :y base-y
                                           :width estimated-width
                                           :height font-size)]
-              (recur remaining 
+              (recur remaining
                      (+ current-x estimated-width)
                      (conj enhanced-segments enhanced-segment)))
-            
+
             :emoji
             ;; Emoji width equals font size (square aspect ratio)
             (let [enhanced-segment (assoc segment
@@ -121,26 +123,26 @@
 
 (defn validate-segments
   "Ensures segmentation is complete and non-overlapping.
-  
+
   Validates that segments cover the entire input text without gaps or overlaps.
   Returns validation result with any errors found.
-  
+
   Args:
     segments: Vector of segment maps
     original-text: Original text string that was segmented
-    
+
   Returns:
     Map with validation results:
     {:valid? boolean :errors [error-strings] :coverage {:expected N :actual N}}"
   [segments original-text]
   (let [total-length (count original-text)
         errors []
-        
+
         ;; Check for gaps and overlaps
         sorted-segments (sort-by :start-idx segments)
-        
+
         ;; Validate coverage
-        coverage-errors 
+        coverage-errors
         (loop [segs sorted-segments
                expected-pos 0
                errs []]
@@ -156,48 +158,48 @@
               (cond
                 ;; Gap before this segment
                 (< expected-pos start-idx)
-                (recur remaining start-idx 
+                (recur remaining start-idx
                        (conj errs (str "Gap from position " expected-pos " to " start-idx)))
-                
+
                 ;; Overlap with previous segment
                 (> expected-pos start-idx)
                 (recur remaining end-idx
                        (conj errs (str "Overlap: segment starts at " start-idx " but expected " expected-pos)))
-                
+
                 ;; Normal case - segment fits perfectly
                 :else
                 (recur remaining end-idx errs)))))
-        
+
         ;; Validate content reconstruction
         reconstructed-text (apply str (map :content segments))
         content-errors (if (= original-text reconstructed-text)
                          []
-                         [(str "Content mismatch: original length " (count original-text) 
+                         [(str "Content mismatch: original length " (count original-text)
                                ", reconstructed length " (count reconstructed-text))])
-        
+
         all-errors (concat coverage-errors content-errors)]
-    
+
     {:valid? (empty? all-errors)
      :errors all-errors
-     :coverage {:expected total-length 
-                :actual (if (empty? sorted-segments) 
-                          0 
+     :coverage {:expected total-length
+                :actual (if (empty? sorted-segments)
+                          0
                           (:end-idx (last sorted-segments)))}}))
 
 ;; Mixed Content PDF Operator Generation
 
 (defn render-text-segment
   "Generates PDF text operators for text segments.
-  
+
   Creates proper PDF text operators (BT/ET blocks) for text content
   with font specification, positioning, and text rendering.
-  
+
   Args:
     segment: Map with :content, :x, :y from prepare-mixed-content
     font-name: Font name (e.g., \"Arial\", \"Times-Roman\")
     font-size: Font size in points
     color: Optional color string (e.g., \"black\", \"#FF0000\")
-    
+
   Returns:
     String with PDF text operators"
   [segment font-name font-size & [color]]
@@ -206,9 +208,9 @@
         y (:y segment)
         ;; Escape special characters in PDF text
         escaped-content (-> content
-                           (clojure.string/replace #"\\" "\\\\")
-                           (clojure.string/replace #"\(" "\\(")
-                           (clojure.string/replace #"\)" "\\)"))
+                            (clojure.string/replace #"\\" "\\\\")
+                            (clojure.string/replace #"\(" "\\(")
+                            (clojure.string/replace #"\)" "\\)"))
         ;; Color setup if specified
         color-ops (if color
                     (case color
@@ -227,16 +229,16 @@
 
 (defn render-image-segment
   "Generates PDF image operators for emoji segments.
-  
+
   Creates proper PDF image operators (q/cm/Do/Q blocks) for emoji images
   with scaling, positioning, and baseline alignment.
-  
+
   Args:
     segment: Map with :content, :x, :y from prepare-mixed-content
     font-size: Font size for scaling calculations
     xobject-ref: XObject reference name (e.g., \"Em1\")
     baseline-offset: Optional baseline adjustment ratio (default 0.2)
-    
+
   Returns:
     String with PDF image operators"
   [segment font-size xobject-ref & [baseline-offset]]
@@ -256,10 +258,10 @@
 
 (defn calculate-segment-positions
   "Computes x,y positions for each segment with proper spacing.
-  
+
   Calculates precise positioning for mixed content segments, accounting for
   text metrics and image dimensions for proper alignment.
-  
+
   Args:
     segments: Vector of segment maps from segment-text
     base-x: Starting x position
@@ -269,7 +271,7 @@
       :char-width-ratio - Character width ratio (default 0.6)
       :image-spacing - Additional spacing around images (default 0)
       :text-spacing - Additional spacing between text segments (default 0)
-      
+
   Returns:
     Vector of segments with updated :x, :y, :width, :height"
   [segments base-x base-y font-size & [options]]
@@ -290,29 +292,29 @@
                   char-count (count content)
                   text-width (* char-count (* font-size char-width-ratio))
                   positioned-segment (assoc segment
-                                           :x current-x
-                                           :y base-y
-                                           :width text-width
-                                           :height font-size)
+                                            :x current-x
+                                            :y base-y
+                                            :width text-width
+                                            :height font-size)
                   next-x (+ current-x text-width text-spacing)]
               (recur rest-segments next-x (conj positioned-segments positioned-segment)))
-            
+
             :emoji
             (let [image-width font-size  ; Square aspect ratio
                   positioned-segment (assoc segment
-                                           :x current-x
-                                           :y base-y
-                                           :width image-width
-                                           :height font-size)
+                                            :x current-x
+                                            :y base-y
+                                            :width image-width
+                                            :height font-size)
                   next-x (+ current-x image-width image-spacing)]
-              (recur rest-segments next-x (conj positioned-segments positioned-segment))))))))
+              (recur rest-segments next-x (conj positioned-segments positioned-segment)))))))))
 
 (defn render-mixed-segments
   "Combines text and image segments into complete PDF operator string.
-  
+
   Processes all segments and generates the complete PDF content stream
   operators for mixed text and emoji content.
-  
+
   Args:
     segments: Vector of positioned segment maps
     font-name: Font name for text segments
@@ -323,7 +325,7 @@
       :baseline-offset - Image baseline adjustment (default 0.2)
       :fallback-strategy - Emoji fallback strategy (default :hex-string)
       :xobject-refs - Map from emoji characters to XObject references
-      
+
   Returns:
     String with complete PDF operators for mixed content"
   [segments font-name font-size image-cache & [options]]
@@ -335,14 +337,14 @@
     (loop [remaining-segments segments
            operators []]
       (if (empty? remaining-segments)
-        (clojure.string/join "" operators)
+        (s/join "" operators)
         (let [segment (first remaining-segments)
               rest-segments (rest remaining-segments)]
           (case (:type segment)
             :text
             (let [text-ops (render-text-segment segment font-name font-size color)]
               (recur rest-segments (conj operators text-ops)))
-            
+
             :emoji
             (let [emoji-char (:content segment)
                   xobject-ref (get xobject-refs emoji-char)]
@@ -351,25 +353,25 @@
                 (let [image-ops (render-image-segment segment font-size xobject-ref baseline-offset)]
                   (recur rest-segments (conj operators image-ops)))
                 ;; Fallback to text rendering
-                (let [fallback-result (images/emoji-image-with-fallback image-cache emoji-char 
-                                                                         {:fallback-strategy fallback-strategy})
+                (let [fallback-result (images/emoji-image-with-fallback image-cache emoji-char
+                                                                        {:fallback-strategy fallback-strategy})
                       fallback-content (case (:type fallback-result)
-                                        :hex-string (:content fallback-result)
-                                        :placeholder (:content fallback-result)
-                                        :skip ""
-                                        emoji-char)  ; Default fallback
+                                         :hex-string (:content fallback-result)
+                                         :placeholder (:content fallback-result)
+                                         :skip ""
+                                         emoji-char)  ; Default fallback
                       text-segment (assoc segment :content fallback-content :type :text)
                       text-ops (if (not-empty fallback-content)
                                  (render-text-segment text-segment font-name font-size color)
                                  "")]
-                  (recur rest-segments (conj operators text-ops)))))))))
+                  (recur rest-segments (conj operators text-ops)))))))))))
 
 (defn process-mixed-content
   "Main function for processing mixed text and emoji content into PDF operators.
-  
+
   Combines all the mixed content processing steps into a single function
   that handles segmentation, positioning, and PDF operator generation.
-  
+
   Args:
     text-content: String with mixed text and emoji
     base-x: Starting x position
@@ -378,7 +380,7 @@
     font-size: Font size for both text and images
     image-cache: Image cache atom for emoji loading
     options: Optional map with all rendering options
-    
+
   Returns:
     Map with processing results:
     {:operators string :segments vector :success boolean :errors [strings]}"
@@ -386,29 +388,29 @@
   (try
     (let [;; Step 1: Segment text into text/emoji parts
           segments (segment-text text-content)
-          
+
           ;; Step 2: Validate segmentation
           validation (validate-segments segments text-content)
-          
+
           ;; Continue if validation passes
           result (if (:valid? validation)
                    (let [;; Step 3: Calculate positions
                          positioned-segments (calculate-segment-positions segments base-x base-y font-size options)
-                         
+
                          ;; Step 4: Generate PDF operators
                          operators (render-mixed-segments positioned-segments font-name font-size image-cache options)]
                      {:operators operators
                       :segments positioned-segments
                       :success true
                       :errors []})
-                   
+
                    ;; Validation failed
                    {:operators ""
                     :segments []
                     :success false
                     :errors (:errors validation)})]
       result)
-    
+
     (catch js/Error e
       {:operators ""
        :segments []
@@ -417,14 +419,14 @@
 
 (defn create-xobject-reference-map
   "Creates a mapping from emoji characters to XObject references.
-  
+
   Scans text content for unique emoji characters and generates XObject
   references for each one, suitable for use in PDF resource dictionaries.
-  
+
   Args:
     text-content: String with mixed text and emoji
     starting-ref-number: Optional starting reference number (default 1)
-    
+
   Returns:
     Map from emoji character to XObject reference name
     e.g., {\"💡\" \"Em1\", \"🎯\" \"Em2\"}"
@@ -433,21 +435,21 @@
         segments (segment-text text-content)
         emoji-chars (distinct (map :content (filter #(= :emoji (:type %)) segments)))]
     (into {} (map-indexed (fn [idx emoji-char]
-                           [emoji-char (str "Em" (+ start-num idx))])
-                         emoji-chars))))
+                            [emoji-char (str "Em" (+ start-num idx))])
+                          emoji-chars))))
 
 (defn extract-unique-emoji
   "Extracts unique emoji characters from text content.
-  
+
   Scans text and returns a set of unique emoji characters found,
   useful for pre-loading images and generating resource dictionaries.
-  
+
   Args:
     text-content: String with mixed text and emoji
-    
+
   Returns:
     Set of unique emoji character strings"
   [text-content]
   (let [segments (segment-text text-content)
         emoji-segments (filter #(= :emoji (:type %)) segments)]
-    (set (map :content emoji-segments)))))
+    (set (map :content emoji-segments))))
