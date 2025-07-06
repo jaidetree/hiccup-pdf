@@ -1,6 +1,7 @@
 (ns dev.jaide.hiccup-pdf.emoji-test
   "Tests for Unicode emoji processing functions"
   (:require [cljs.test :refer [deftest is testing]]
+            [clojure.string :as str]
             [dev.jaide.hiccup-pdf.emoji :as emoji]))
 
 (deftest test-surrogate-pair?

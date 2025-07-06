@@ -1,6 +1,7 @@
 (ns dev.jaide.hiccup-pdf.configuration-test
   "Tests for emoji configuration system"
   (:require [cljs.test :refer [deftest is testing]]
+            [clojure.string :as str]
             [dev.jaide.hiccup-pdf.emoji :as emoji]))
 
 (deftest test-default-emoji-config

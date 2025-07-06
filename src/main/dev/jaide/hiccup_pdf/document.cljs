@@ -82,7 +82,7 @@
   ([web-y page-height]
    (web-to-pdf-y web-y page-height [0 0 0 0]))
   ([web-y page-height margins]
-   (let [[top-margin _ bottom-margin _] margins]
+   (let [[_top-margin _ _bottom-margin _] margins]
      ;; In web coordinates: y=0 is at top, increases downward
      ;; In PDF coordinates: y=0 is at bottom, increases upward
      ;; With margins: content area is between top-margin and (page-height - bottom-margin)
@@ -183,12 +183,27 @@
         ;; Transform coordinates from web-style to PDF-style
         transformed-content (transform-coordinates-for-page page-content page-height page-margins)
 
-        ;; Generate content stream - use basic implementation for now
-        ;; TODO: Replace with proper element->pdf-ops integration
-        content-stream (str/join "\n"
-                                 (map (fn [element]
-                                        (str "% Element: " (pr-str element)))
-                                      transformed-content))]
+        ;; Generate content stream using actual PDF operators with emoji support
+        content-stream (if (:enable-emoji-images opts)
+                         ;; Use emoji-enabled processing
+                         (let [;; Create image cache and XObject references for this page's emoji
+                               image-cache (:image-cache opts)
+                               xobject-refs (when (and image-cache (seq page-emoji))
+                                              (text-proc/create-xobject-reference-map 
+                                               (str/join " " (map str page-emoji))))
+                               ;; Generate PDF operators with emoji image support
+                               element-ops (map (fn [element]
+                                                  ;; Dynamically call hiccup->pdf-ops from core namespace
+                                                  ((resolve 'dev.jaide.hiccup-pdf.core/hiccup->pdf-ops)
+                                                   element (merge opts {:xobject-refs xobject-refs})))
+                                                transformed-content)]
+                           (str/join "\n" element-ops))
+                         ;; Use standard processing without emoji images
+                         (let [element-ops (map (fn [element]
+                                                  ;; Dynamically call hiccup->pdf-ops from core namespace
+                                                  ((resolve 'dev.jaide.hiccup-pdf.core/hiccup->pdf-ops) element opts))
+                                                transformed-content)]
+                           (str/join "\n" element-ops)))]
 
     {:width page-width
      :height page-height
@@ -238,7 +253,7 @@
   (letfn [(extract-emoji [element]
             (if-not (vector? element)
               #{}
-              (let [[tag attributes & children] element]
+              (let [[tag _attributes & children] element]
                 (cond-> #{}
                   ;; Extract emoji from text element content
                   (= tag :text)

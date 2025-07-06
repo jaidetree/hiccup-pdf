@@ -1,6 +1,7 @@
 (ns dev.jaide.hiccup-pdf.api-integration-test
   "Tests for API integration with emoji image support"
   (:require [cljs.test :refer [deftest is testing]]
+            [clojure.string :as str]
             [dev.jaide.hiccup-pdf.core :as core]
             [dev.jaide.hiccup-pdf.images :as images]))
 
