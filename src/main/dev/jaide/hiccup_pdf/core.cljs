@@ -452,7 +452,7 @@
               (throw (js/Error. (str "Failed to generate PDF XObject: " (:error xobject-result))))))
 
           ;; Image loading failed - throw error
-          (throw (js/Error. (str "Failed to load image: " (:error image-result))))))
+          (throw (js/Error. (str (:error image-result))))))
 
       ;; No cache provided - throw error (cache is required for image processing)
       (throw (js/Error. "Image cache is required for image element processing")))))
