@@ -4,8 +4,7 @@
             [clojure.string :as str]
             [clojure.edn :as edn]
             ["fs" :as fs]
-            ["path" :as path]
-            ["child_process" :as cp]))
+            ["path" :as path]))
 
 (def fixtures-dir "src/test/tests/examples/fixtures")
 (def output-dir "target/examples")

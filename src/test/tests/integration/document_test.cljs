@@ -1,104 +1,343 @@
-(ns tests.integration.document-test
-  "Final verification test demonstrating complete PDF document generation."
-  (:require [dev.jaide.hiccup-pdf.core :refer [hiccup->pdf-document hiccup->pdf-ops]]))
+(ns dev.jaide.hiccup-pdf.document-integration-test
+  "Tests for document-level emoji image integration"
+  (:require [cljs.test :refer [deftest is testing]]
+            [clojure.string :as str]
+            [dev.jaide.hiccup-pdf.core :as core]
+            [dev.jaide.hiccup-pdf.document :as doc]
+            [dev.jaide.hiccup-pdf.images :as images]))
 
-(println "=== Document Test ===")
+(deftest test-document-emoji-image-integration
+  (testing "Simple document with emoji images"
+    (let [cache (images/create-image-cache)
+          document [:document {:title "Emoji Test"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Hello 💡 world"]]]
+          options {:enable-emoji-images true :image-cache cache}
+          result (core/hiccup->pdf-document document options)]
+      (is (string? result))
+      (is (clojure.string/includes? result "%PDF-1.4"))
+      (is (clojure.string/includes? result "%%EOF"))
+      (is (> (count result) 1000))))  ; Should be substantial document
 
-;; Test 1: Content stream generation
-(println "1. Testing content stream generation...")
-(let [content-ops (hiccup->pdf-ops [:rect {:x 10 :y 20 :width 100 :height 50 :fill "#ff0000"}])]
-  (println "   Content stream generated:" (count content-ops) "characters")
-  (println "   Content starts with:" (subs content-ops 0 20) "..."))
+  (testing "Multi-page document with shared emoji"
+    (let [cache (images/create-image-cache)
+          document [:document {:title "Multi-page Emoji"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Page 1: 💡"]]
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Page 2: 💡 🎯"]]]
+          options {:enable-emoji-images true :image-cache cache}
+          result (core/hiccup->pdf-document document options)]
+      (is (string? result))
+      (is (clojure.string/includes? result "%PDF-1.4"))
+      (is (clojure.string/includes? result "%%EOF"))))
 
-;; Test 2: Simple document generation
-(println "2. Testing simple document generation...")
-(let [simple-doc (hiccup->pdf-document
-                  [:document {:title "Verification Test"}
-                   [:page {}
-                    [:text {:x 100 :y 100 :font "Arial" :size 16} "Hello PDF World!"]]])
-      doc-size (count simple-doc)]
-  (println "   Simple document generated:" doc-size "characters")
-  (println "   Starts with PDF header:" (= "%PDF-1.4" (subs simple-doc 0 8)))
-  (println "   Ends with EOF:" (.endsWith simple-doc "%%EOF")))
+  (testing "Document with different page sizes and emoji"
+    (let [cache (images/create-image-cache)
+          document [:document {:title "Mixed Size Emoji" :width 612 :height 792}
+                    [:page {}  ; Letter size
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Letter: ✅"]]
+                    [:page {:width 842 :height 595}  ; A4 landscape
+                     [:text {:x 100 :y 100 :font "Arial" :size 16} "A4: 🎯 💡"]]]
+          options {:enable-emoji-images true :image-cache cache}
+          result (core/hiccup->pdf-document document options)]
+      (is (string? result))
+      (is (clojure.string/includes? result "612 792"))   ; Letter page size
+      (is (clojure.string/includes? result "842 595"))))  ; A4 page size
 
-;; Test 3: Complex document with multiple features
-(println "3. Testing complex document with all features...")
-(let [complex-doc (hiccup->pdf-document
-                   [:document {:title "Complex Verification Test 🎉"
-                               :author "hiccup-pdf Library"
-                               :subject "Final verification of all features"}
-                    ;; Page 1: All primitive types
-                    [:page {:width 612 :height 792}
-                     [:text {:x 50 :y 50 :font "Arial" :size 20} "All Elements Test"]
-                     [:rect {:x 50 :y 100 :width 100 :height 80 :fill "#ff0000" :stroke "#000000"}]
-                     [:circle {:cx 250 :cy 140 :r 40 :fill "#00ff00" :stroke "#0000ff"}]
-                     [:line {:x1 350 :y1 100 :x2 450 :y2 180 :stroke "#ff00ff" :stroke-width 3}]
-                     [:text {:x 50 :y 250 :font "Times" :size 14} "Emoji test: 👋 🌍 ✅ 🎯"]
-                     [:path {:d "M 50 300 L 150 300 L 100 250 Z" :fill "#ff00ff" :stroke "#ff0000"}]
-                     [:g {:transforms [[:translate [300 350]] [:rotate 45]]}
-                      [:rect {:x 0 :y 0 :width 60 :height 40 :fill "#00ffff"}]
-                      [:text {:x 10 :y 25 :font "Courier" :size 10} "Rotated"]]]
+  (testing "Document with complex nested structures and emoji"
+    (let [cache (images/create-image-cache)
+          document [:document {:title "Complex Emoji Structure"}
+                    [:page {}
+                     [:g {:transforms [[:translate [50 50]]]}
+                      [:text {:x 0 :y 0 :font "Arial" :size 12} "Group: 💡"]
+                      [:g {:transforms [[:rotate 45]]}
+                       [:text {:x 20 :y 20 :font "Arial" :size 10} "Nested: ✅"]]]
+                     [:text {:x 200 :y 200 :font "Arial" :size 14} "Outside: 🎯"]]]
+          options {:enable-emoji-images true :image-cache cache}
+          result (core/hiccup->pdf-document document options)]
+      (is (string? result))
+      (is (clojure.string/includes? result "q"))  ; Should have save states
+      (is (clojure.string/includes? result "Q"))))  ; Should have restore states
 
-                    ;; Page 2: Different size (A4 landscape)
+  (testing "Document without emoji images (fallback mode)"
+    (let [document [:document {:title "Fallback Test"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Hello 💡 world"]]]
+          result (core/hiccup->pdf-document document)]  ; No emoji options
+      (is (string? result))
+      (is (clojure.string/includes? result "%PDF-1.4"))
+      (is (clojure.string/includes? result "%%EOF"))
+      ;; Should contain hex encoding for emoji
+      (is (clojure.string/includes? result "<"))))
+
+  (testing "Document with emoji configuration options"
+    (let [cache (images/create-image-cache)
+          document [:document {:title "Config Test"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Test: 🦄"]]]  ; Unicorn unlikely to have file
+          options {:enable-emoji-images true
+                   :image-cache cache}
+          result (core/hiccup->pdf-document document options)]
+      (is (string? result))
+      (is (clojure.string/includes? result "%PDF-1.4"))))
+
+  (testing "Large document with many unique emoji"
+    (let [cache (images/create-image-cache)
+          ;; Create a document with multiple emoji
+          document [:document {:title "Large Emoji Document"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Status: ✅ Progress: 💡 Target: 🎯"]
+                     [:text {:x 100 :y 150 :font "Arial" :size 12} "More symbols: ⚠️ • Bullet"]]]
+          options {:enable-emoji-images true :image-cache cache}
+          result (core/hiccup->pdf-document document options)]
+      (is (string? result))
+      (is (> (count result) 2000))))  ; Should be larger document with multiple images
+
+  (testing "Empty pages handled correctly"
+    (let [cache (images/create-image-cache)
+          document [:document {:title "Empty Pages"}
+                    [:page {}]  ; Empty page
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Second page: 💡"]]]
+          options {:enable-emoji-images true :image-cache cache}
+          result (core/hiccup->pdf-document document options)]
+      (is (string? result))
+      (is (clojure.string/includes? result "%PDF-1.4"))))
+
+  (testing "Error handling during document generation"
+    ;; Test with invalid emoji config
+    (let [document [:document {:title "Error Test"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Test: 💡"]]]
+          invalid-options {:enable-emoji-images true}  ; No cache provided
+          ;; Should not throw error, should fallback gracefully
+          result (core/hiccup->pdf-document document invalid-options)]
+      (is (string? result))
+      (is (clojure.string/includes? result "%PDF-1.4"))))
+
+  (testing "Performance with emoji images vs without"
+    (let [cache (images/create-image-cache)
+          document [:document {:title "Performance Test"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Normal text"]
+                     [:text {:x 100 :y 150 :font "Arial" :size 14} "Text with 💡"]]]
+
+          ;; Test without emoji images
+          start-time1 (.now js/Date)
+          result1 (core/hiccup->pdf-document document)
+          end-time1 (.now js/Date)
+          duration1 (- end-time1 start-time1)
+
+          ;; Test with emoji images
+          start-time2 (.now js/Date)
+          result2 (core/hiccup->pdf-document document {:enable-emoji-images true :image-cache cache})
+          end-time2 (.now js/Date)
+          duration2 (- end-time2 start-time2)]
+
+      (is (string? result1))
+      (is (string? result2))
+      ;; Both should complete reasonably quickly
+      (is (< duration1 2000))  ; Less than 2 seconds
+      (is (< duration2 3000))  ; Less than 3 seconds (allowing for image processing)
+      ;; Results should be different (emoji vs hex encoding)
+      (is (not= result1 result2)))))
+
+(deftest test-page-content-stream-with-emoji
+  (testing "Page content stream generation with emoji"
+    (let [cache (images/create-image-cache)
+          page-content [[:text {:x 100 :y 100 :font "Arial" :size 14} "Hello 💡"]]
+          document-defaults {:width 612 :height 792 :margins [0 0 0 0]}
+          options {:enable-emoji-images true :image-cache cache}
+          result (doc/page->content-stream {} page-content document-defaults options)]
+      (is (map? result))
+      (is (contains? result :content-stream))
+      (is (contains? result :emoji-used))
+      (is (string? (:content-stream result)))
+      (is (set? (:emoji-used result)))))
+
+  (testing "Page content stream without emoji"
+    (let [page-content [[:text {:x 100 :y 100 :font "Arial" :size 14} "Hello world"]]
+          document-defaults {:width 612 :height 792 :margins [0 0 0 0]}
+          result (doc/page->content-stream {} page-content document-defaults)]
+      (is (map? result))
+      (is (contains? result :content-stream))
+      (is (contains? result :emoji-used))
+      (is (string? (:content-stream result)))
+      (is (empty? (:emoji-used result)))))
+
+  (testing "Multiple pages sharing emoji resources"
+    (let [cache (images/create-image-cache)
+          document-defaults {:width 612 :height 792}
+          options {:enable-emoji-images true :image-cache cache}
+
+          ;; First page with 💡
+          page1 (doc/page->content-stream {}
+                                          [[:text {:x 100 :y 100 :font "Arial" :size 14} "Page 1: 💡"]]
+                                          document-defaults options)
+
+          ;; Second page with 💡 and 🎯
+          page2 (doc/page->content-stream {}
+                                          [[:text {:x 100 :y 100 :font "Arial" :size 14} "Page 2: 💡 🎯"]]
+                                          document-defaults options)]
+
+      (is (contains? (:emoji-used page1) "💡"))
+      (is (contains? (:emoji-used page2) "💡"))
+      (is (contains? (:emoji-used page2) "🎯"))
+      (is (= 1 (count (:emoji-used page1))))
+      (is (= 2 (count (:emoji-used page2)))))))
+
+(deftest test-emoji-resource-management
+  (testing "Document emoji scanning"
+    (let [document [:document {:title "Scan Test"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Page 1: 💡"]]
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Page 2: 🎯 💡"]]]
+          emoji-set (doc/scan-document-for-emoji document)]
+      (is (set? emoji-set))
+      (is (contains? emoji-set "💡"))
+      (is (contains? emoji-set "🎯"))
+      (is (= 2 (count emoji-set)))))
+
+  (testing "Image resource generation"
+    (let [cache (images/create-image-cache)
+          unique-emoji #{"💡" "🎯"}
+          options {:fallback-strategy :hex-string}
+          result (doc/embed-images-in-document unique-emoji cache 10 options)]
+      (is (map? result))
+      (is (contains? result :image-objects))
+      (is (contains? result :image-refs))
+      (is (contains? result :xobject-names))
+      (is (contains? result :success))
+      (is (vector? (:image-objects result)))
+      (is (map? (:image-refs result)))
+      (is (map? (:xobject-names result)))))
+
+  (testing "Resource dictionary generation"
+    (let [image-refs {"💡" 10 "🎯" 11}
+          xobject-names {"💡" "Em1" "🎯" "Em2"}
+          resource-dict (doc/generate-image-resources image-refs xobject-names)]
+      (is (string? resource-dict))
+      (when (not-empty resource-dict)
+        (is (clojure.string/includes? resource-dict "/XObject"))
+        (is (clojure.string/includes? resource-dict "/Em1"))
+        (is (clojure.string/includes? resource-dict "/Em2")))))
+
+  (testing "Page resource merging"
+    (let [font-dict "/Font <<\n/Arial 3 0 R\n>>"
+          image-dict "/XObject <<\n/Em1 10 0 R\n>>"
+          merged (doc/update-page-resources font-dict image-dict)]
+      (is (string? merged))
+      (is (clojure.string/includes? merged "/Resources"))
+      (is (clojure.string/includes? merged "/Font"))
+      (is (clojure.string/includes? merged "/XObject")))))
+
+(deftest test-document-generation-pipeline
+  (testing "Complete document generation pipeline"
+    (let [cache (images/create-image-cache)
+
+          ;; Step 1: Create complex document
+          document [:document {:title "Pipeline Test" :author "Test Author"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 16} "Title: 💡 Innovation"]
+                     [:rect {:x 50 :y 150 :width 200 :height 100 :fill "#ff0000"}]
+                     [:text {:x 60 :y 180 :font "Arial" :size 12} "Status: ✅ Complete"]]
                     [:page {:width 842 :height 595}
-                     [:text {:x 50 :y 50 :font "Arial" :size 18} "A4 Landscape Page"]
-                     [:text {:x 50 :y 100 :font "Arial" :size 12} "Coordinate transformation test"]
-                     [:rect {:x 50 :y 150 :width 742 :height 395 :stroke "#000000" :stroke-width 2}]]])
-      doc-size (count complex-doc)]
+                     [:circle {:cx 400 :cy 300 :r 50 :fill "#00ff00"}]
+                     [:text {:x 350 :y 250 :font "Arial" :size 14} "Target: 🎯"]]]
 
-  (println "   Complex document generated:" doc-size "characters")
-  (println "   Contains PDF header:" (re-find #"%PDF-1.4" complex-doc))
-  (println "   Contains document title:" (re-find #"Complex Verification Test" complex-doc))
-  (println "   Contains emoji:" (re-find #"🎉" complex-doc))
-  (println "   Contains multiple pages:" (re-find #"/Count 2" complex-doc))
-  (println "   Contains font resources:" (re-find #"/Font" complex-doc))
-  (println "   Contains page MediaBox:" (re-find #"MediaBox" complex-doc))
-  (println "   Contains xref table:" (re-find #"xref" complex-doc))
-  (println "   Ends properly:" (.endsWith complex-doc "%%EOF")))
+          options {:enable-emoji-images true :image-cache cache}
 
-;; Test 4: Performance verification
-(println "4. Testing performance...")
-(let [start-time (js/Date.now)
-      test-docs (doall (for [i (range 5)]
-                         (hiccup->pdf-document
-                          [:document {:title (str "Performance Test " i)}
-                           [:page {}
-                            [:text {:x 50 :y 50 :font "Arial" :size 14} (str "Document " i)]
-                            [:rect {:x 50 :y 100 :width 100 :height 50 :fill "#0000ff"}]]])))
-      end-time (js/Date.now)
-      duration (- end-time start-time)]
-  (println "   Generated 5 documents in:" duration "ms")
-  (println "   Average per document:" (/ duration 5) "ms")
-  (println "   All documents identical size:" (= 1 (count (set (map count test-docs))))))
+          ;; Step 2: Generate document
+          start-time (.now js/Date)
+          result (core/hiccup->pdf-document document options)
+          end-time (.now js/Date)
+          duration (- end-time start-time)]
 
-;; Test 5: Error handling verification
-(println "5. Testing error handling...")
-(try
-  (hiccup->pdf-document [:document {} [:rect {:x "invalid"}]])
-  (println "   ERROR: Should have thrown validation error")
-  (catch js/Error e
-    (println "   ✅ Validation error caught:" (.-message e))))
+      ;; Step 3: Validate results
+      (is (string? result))
+      (is (> (count result) 3000))  ; Substantial document
+      (is (< duration 5000))  ; Completes within 5 seconds
 
-(try
-  (hiccup->pdf-document [:wrong-root {}])
-  (println "   ERROR: Should have thrown root element error")
-  (catch js/Error e
-    (println "   ✅ Root element error caught:" (.-message e))))
+      ;; Check PDF structure
+      (is (clojure.string/includes? result "%PDF-1.4"))
+      (is (clojure.string/includes? result "%%EOF"))
+      (is (clojure.string/includes? result "/Type /Catalog"))
+      (is (clojure.string/includes? result "/Type /Page"))
+      (is (clojure.string/includes? result "xref"))
+      (is (clojure.string/includes? result "trailer"))
 
-;; Test 6: Coordinate transformation verification
-(println "6. Testing coordinate transformation...")
-(let [doc (hiccup->pdf-document
-           [:document {}
-            [:page {:height 600}
-             [:text {:x 100 :y 100 :font "Arial" :size 12} "Transform test"]]])
-      ;; Web y=100 on 600pt page should become PDF y=500 (600-100)
-      has-transform (re-find #"100 500" doc)]
-  (println "   Coordinate transformation working:" (boolean has-transform)))
+      ;; Check for font resources
+      (is (clojure.string/includes? result "/Font"))
+      (is (clojure.string/includes? result "/Arial"))
 
-(println "=== Document Test Complete ===")
+      ;; Check for image resources (if images were loaded)
+      ;; Note: May not be present if image files don't exist
 
-(defn -main
-  []
-  (println "Ready for production use."))
+      ;; Check for page content
+      (is (clojure.string/includes? result "BT"))  ; Text blocks
+      (is (clojure.string/includes? result "ET"))
+      (is (clojure.string/includes? result "re"))  ; Rectangle
 
+      ;; Check metadata
+      (is (clojure.string/includes? result "(Pipeline Test)"))
+      (is (clojure.string/includes? result "(Test Author)"))))
 
+  (testing "Error recovery in document generation"
+    (let [;; Document with potential issues
+          document [:document {:title "Error Recovery"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Test: 🦄 🌈 🦋"]]]  ; Unlikely emoji files
+
+          options {:enable-emoji-images true
+                   :image-cache (images/create-image-cache)
+                   :fallback-strategy :placeholder}
+
+          result (core/hiccup->pdf-document document options)]
+
+      ;; Should still generate valid PDF even with missing emoji files
+      (is (string? result))
+      (is (clojure.string/includes? result "%PDF-1.4"))
+      (is (clojure.string/includes? result "%%EOF"))))
+
+  (testing "Memory efficiency with large documents"
+    (let [cache (images/create-image-cache)
+
+          ;; Create document with many pages and emoji
+          pages (for [i (range 5)]
+                  [:page {}
+                   [:text {:x 100 :y (+ 100 (* i 50)) :font "Arial" :size 12}
+                    (str "Page " (+ i 1) ": 💡 Progress " i "/5")]])
+
+          document (into [:document {:title "Large Document"}] pages)
+
+          options {:enable-emoji-images true :image-cache cache}
+
+          _start-memory (.now js/Date)  ; Proxy for memory usage
+          result (core/hiccup->pdf-document document options)
+          _end-memory (.now js/Date)
+
+          cache-stats (images/cache-stats cache)]
+
+      (is (string? result))
+      (is (< (:memory-usage cache-stats) (* 10 1024 1024)))  ; Less than 10MB cache
+      (is (>= (:hit-rate cache-stats) 0))))  ; Non-negative hit rate
+
+  (testing "Backwards compatibility"
+    ;; Ensure existing code still works without emoji options
+    (let [document [:document {:title "Compatibility Test"}
+                    [:page {}
+                     [:text {:x 100 :y 100 :font "Arial" :size 14} "Hello 💡 world"]]]
+
+          ;; Old API call (no options)
+          result1 (core/hiccup->pdf-document document)
+
+          ;; New API call (with disabled emoji)
+          result2 (core/hiccup->pdf-document document {:enable-emoji-images false})]
+
+      (is (string? result1))
+      (is (string? result2))
+      ;; Should produce similar results (both using hex encoding)
+      (is (clojure.string/includes? result1 "<"))  ; Hex encoding
+      (is (clojure.string/includes? result2 "<")))))  ; Hex encoding

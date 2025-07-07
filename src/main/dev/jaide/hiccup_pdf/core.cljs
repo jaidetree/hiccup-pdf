@@ -305,16 +305,16 @@
   (let [validated-attrs (v/validate-text-attributes attributes)
         {:keys [x y font size fill]} validated-attrs
         text-content (or content "")
-        opts (or options {})]
+        opts (or options {})
 
-    ;; Simple text processing (emoji render as Unicode)
-    (let [fill-color-op (if fill (str (color->pdf-color fill) " rg\n") "0 0 0 rg\n") ; Default to black
-          font-op (str "/" font " " size " Tf\n")
-          position-op (str x " " y " Td\n")
-          ;; Encode text content for PDF - handle Unicode properly
-          encoded-content (encode-pdf-text text-content opts)
-          text-op (str encoded-content " Tj\n")]
-      (str "BT\n" fill-color-op font-op position-op text-op "ET"))))
+        ;; Simple text processing (emoji render as Unicode)
+        fill-color-op (if fill (str (color->pdf-color fill) " rg\n") "0 0 0 rg\n") ; Default to black
+        font-op (str "/" font " " size " Tf\n")
+        position-op (str x " " y " Td\n")
+        ;; Encode text content for PDF - handle Unicode properly
+        encoded-content (encode-pdf-text text-content opts)
+        text-op (str encoded-content " Tj\n")]
+    (str "BT\n" fill-color-op font-op position-op text-op "ET")))
 
 (defn- transform->matrix
   "Converts a single transform operation to a PDF transformation matrix.
@@ -406,14 +406,14 @@
 
 (defn- image->pdf-ops
   "Converts an image hiccup vector to PDF operators.
-  
+
   Loads images using the caching system, generates proper PDF XObject references,
   and creates transformation matrices for positioning and scaling.
-  
+
   Args:
     attributes: Map containing :src, :width, :height, :x, :y
     options: Optional map with configuration including image cache
-  
+
   Returns:
     String of PDF operators for image drawing using XObject references"
   [attributes & [options]]
@@ -421,7 +421,7 @@
         {:keys [src width height x y]} validated-attrs
         opts (or options {})
         image-cache (get opts :image-cache)]
-    
+
     (if image-cache
       ;; Use caching system to load image
       (let [image-result (images/load-image-cached image-cache src)]
@@ -431,17 +431,17 @@
                 xobject-ref (images/create-resource-reference)
                 ;; Generate PDF XObject
                 xobject-result (images/generate-image-xobject image-result xobject-ref)
-                
+
                 ;; Calculate scaling to fit requested dimensions
                 actual-width (:width image-result)
                 actual-height (:height image-result)
                 scale-x (/ width actual-width)
                 scale-y (/ height actual-height)
-                
+
                 ;; Generate PDF operators for drawing the image
                 transform-matrix (str scale-x " 0 0 " scale-y " " x " " y " cm\n")
                 draw-op (str "/" xobject-ref " Do\n")]
-            
+
             (if (:success xobject-result)
               ;; XObject generation successful - return PDF operators
               (str (:save-state pdf-operators)
@@ -450,31 +450,31 @@
                    (:restore-state pdf-operators))
               ;; XObject generation failed - return empty (or could throw error)
               (throw (js/Error. (str "Failed to generate PDF XObject: " (:error xobject-result))))))
-          
+
           ;; Image loading failed - throw error
           (throw (js/Error. (str "Failed to load image: " (:error image-result))))))
-      
+
       ;; No cache provided - throw error (cache is required for image processing)
       (throw (js/Error. "Image cache is required for image element processing")))))
 
 (defn- emoji->pdf-ops
   "Converts an emoji hiccup vector to PDF operators by transforming to image element.
-  
+
   Transforms :emoji elements to :image elements and delegates to image rendering.
-  Resolves shortcode to file path, converts :size to :width and :height, and 
+  Resolves shortcode to file path, converts :size to :width and :height, and
   preserves :x and :y coordinates.
-  
+
   Args:
     attributes: Map containing :code, :size, :x, :y
     options: Optional map with configuration including image cache
-  
+
   Returns:
     String of PDF operators for emoji rendering as image"
   [attributes & [options]]
   (let [validated-attrs (v/validate-emoji-attributes attributes)
         {:keys [code size x y]} validated-attrs
         opts (or options {})]
-    
+
     ;; Resolve shortcode to file path
     (if-let [image-path (images/resolve-shortcode-to-path code)]
       ;; Successfully resolved shortcode - transform to image element
@@ -485,7 +485,7 @@
                               :y y}]
         ;; Delegate to image rendering
         (image->pdf-ops image-attributes opts))
-      
+
       ;; Shortcode resolution failed - throw error
       (throw (js/Error. (str "Failed to resolve emoji shortcode: " code))))))
 
@@ -594,7 +594,6 @@
    (hiccup->pdf-ops hiccup-vector nil))
   ([hiccup-vector options]
    (element->pdf-ops hiccup-vector options)))
-
 
 (defn hiccup->pdf-document
   "Generates complete PDF documents with pages from hiccup structure.
