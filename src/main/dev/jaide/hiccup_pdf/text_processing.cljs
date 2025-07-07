@@ -100,7 +100,7 @@
             :text
             ;; Estimate text width (rough approximation: 0.6 * font-size per character)
             (let [char-count (count (:content segment))
-                  estimated-width (* char-count (* font-size 0.6))
+                  estimated-width (* char-count font-size 0.6)
                   enhanced-segment (assoc segment
                                           :x current-x
                                           :y base-y
@@ -290,7 +290,7 @@
             :text
             (let [content (:content segment)
                   char-count (count content)
-                  text-width (* char-count (* font-size char-width-ratio))
+                  text-width (* char-count font-size char-width-ratio)
                   positioned-segment (assoc segment
                                             :x current-x
                                             :y base-y

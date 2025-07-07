@@ -1,7 +1,8 @@
 (ns dev.jaide.hiccup-pdf.validation
   "Validation namespace for hiccup-pdf library using valhalla."
   (:require [dev.jaide.valhalla.core :as v]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [dev.jaide.hiccup-pdf.images :as images]))
 
 (defn validation-error
   "Creates a descriptive validation error with context.
@@ -75,7 +76,7 @@
   Throws:
     Validation error if element type is not supported"
   [element-type]
-  (let [supported-types #{:rect :circle :line :text :path :g :image :document :page}
+  (let [supported-types #{:rect :circle :line :text :path :g :image :emoji :document :page}
         schema (v/enum supported-types)]
     (v/parse schema element-type)))
 
@@ -255,6 +256,32 @@
                                           (v/assert #(not (str/blank? %))))
                                    :width (v/chain (v/number) (v/assert #(pos? %)))
                                    :height (v/chain (v/number) (v/assert #(pos? %)))
+                                   :x (v/number)
+                                   :y (v/number)})]
+    (v/parse required-schema attributes)
+    attributes))
+
+(defn validate-emoji-attributes
+  "Validates that attributes contains required emoji attributes.
+  
+  Args:
+    attributes: The attributes map to validate
+    
+  Returns:
+    The validated attributes map if valid
+    
+  Throws:
+    Validation error if required attributes are missing or invalid"
+  [attributes]
+  (let [required-schema (v/record {:code (v/chain 
+                                          (v/keyword)
+                                          (v/assert #(images/validate-shortcode %)
+                                                    (fn [shortcode]
+                                                      (let [available (images/list-available-shortcodes)]
+                                                        (str "Invalid shortcode " shortcode ". Available shortcodes: " 
+                                                             (clojure.string/join ", " (map name (take 10 available)))
+                                                             (when (> (count available) 10) " ... and more"))))))
+                                   :size (v/chain (v/number) (v/assert #(pos? %)))
                                    :x (v/number)
                                    :y (v/number)})]
     (v/parse required-schema attributes)

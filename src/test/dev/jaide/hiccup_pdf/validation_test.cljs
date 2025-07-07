@@ -13,6 +13,7 @@
                                            validate-transforms
                                            validate-color
                                            validate-image-attributes
+                                           validate-emoji-attributes
                                            validate-document-attributes
                                            validate-page-attributes]]))
 
@@ -47,7 +48,10 @@
         "Should validate group element type")
     
     (is (= :image (validate-element-type :image))
-        "Should validate image element type")))
+        "Should validate image element type")
+    
+    (is (= :emoji (validate-element-type :emoji))
+        "Should validate emoji element type")))
 
 (deftest validate-attributes-test
   (testing "Valid attributes"
@@ -365,6 +369,71 @@
     (is (= {:src "test.PNG" :width 72 :height 72 :x 0 :y 0}
            (validate-image-attributes {:src "test.PNG" :width 72 :height 72 :x 0 :y 0}))
         "Should validate uppercase file extensions")))
+
+(deftest validate-emoji-attributes-test
+  (testing "Valid emoji attributes"
+    (is (= {:code :smile :size 14 :x 10 :y 20}
+           (validate-emoji-attributes {:code :smile :size 14 :x 10 :y 20}))
+        "Should validate complete emoji attributes")
+    
+    (is (= {:code :heart :size 12 :x 0 :y 0}
+           (validate-emoji-attributes {:code :heart :size 12 :x 0 :y 0}))
+        "Should validate emoji with zero coordinates")
+    
+    (is (= {:code :lightbulb :size 1 :x -10 :y -5}
+           (validate-emoji-attributes {:code :lightbulb :size 1 :x -10 :y -5}))
+        "Should validate minimal size and negative coordinates"))
+  
+  (testing "Invalid emoji attributes - missing required"
+    (is (thrown? js/Error (validate-emoji-attributes {}))
+        "Should throw error for missing all attributes")
+    
+    (is (thrown? js/Error (validate-emoji-attributes {:code :smile :size 14 :x 10}))
+        "Should throw error for missing y coordinate")
+    
+    (is (thrown? js/Error (validate-emoji-attributes {:code :smile :size 14 :y 20}))
+        "Should throw error for missing x coordinate")
+    
+    (is (thrown? js/Error (validate-emoji-attributes {:code :smile :x 10 :y 20}))
+        "Should throw error for missing size")
+    
+    (is (thrown? js/Error (validate-emoji-attributes {:size 14 :x 10 :y 20}))
+        "Should throw error for missing code"))
+  
+  (testing "Invalid emoji attributes - invalid types"
+    (is (thrown? js/Error (validate-emoji-attributes {:code "smile" :size 14 :x 10 :y 20}))
+        "Should throw error for non-keyword code")
+    
+    (is (thrown? js/Error (validate-emoji-attributes {:code :smile :size "14" :x 10 :y 20}))
+        "Should throw error for non-numeric size")
+    
+    (is (thrown? js/Error (validate-emoji-attributes {:code :smile :size 14 :x "10" :y 20}))
+        "Should throw error for non-numeric x")
+    
+    (is (thrown? js/Error (validate-emoji-attributes {:code :smile :size 14 :x 10 :y "20"}))
+        "Should throw error for non-numeric y"))
+  
+  (testing "Invalid emoji attributes - invalid values"
+    (is (thrown? js/Error (validate-emoji-attributes {:code :nonexistent-shortcode :size 14 :x 10 :y 20}))
+        "Should throw error for invalid shortcode")
+    
+    (is (thrown? js/Error (validate-emoji-attributes {:code :fake-emoji :size 14 :x 10 :y 20}))
+        "Should throw error for fake shortcode")
+    
+    (is (thrown? js/Error (validate-emoji-attributes {:code :smile :size 0 :x 10 :y 20}))
+        "Should throw error for zero size")
+    
+    (is (thrown? js/Error (validate-emoji-attributes {:code :smile :size -5 :x 10 :y 20}))
+        "Should throw error for negative size"))
+  
+  (testing "Edge cases"
+    (is (= {:code :smile :size 0.1 :x 10.5 :y 20.7}
+           (validate-emoji-attributes {:code :smile :size 0.1 :x 10.5 :y 20.7}))
+        "Should validate fractional size and coordinates")
+    
+    (is (= {:code :heart :size 1000 :x -100 :y -200}
+           (validate-emoji-attributes {:code :heart :size 1000 :x -100 :y -200}))
+        "Should validate large size and negative coordinates")))
 
 (deftest validate-transform-test
   (testing "Valid transform operations"
