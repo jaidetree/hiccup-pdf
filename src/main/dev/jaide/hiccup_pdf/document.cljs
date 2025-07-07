@@ -186,7 +186,7 @@
         content-stream (if (:enable-emoji-images opts)
                          ;; Use emoji-enabled processing
                          (let [;; Create image cache and XObject references for this page's emoji
-                               image-cache (:image-cache opts)
+                               _image-cache (:image-cache opts)
                                xobject-refs {}
                                ;; Generate PDF operators with emoji image support
                                element-ops (map (fn [element]

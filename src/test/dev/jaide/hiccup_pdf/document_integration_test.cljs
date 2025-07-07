@@ -73,16 +73,11 @@
   
   (testing "Document with emoji configuration options"
     (let [cache (images/create-image-cache)
-          emoji-config (emoji/create-emoji-config 
-                        {:enable-emoji-images true
-                         :fallback-strategy :placeholder
-                         :cache-size 25})
           document [:document {:title "Config Test"}
                     [:page {}
                      [:text {:x 100 :y 100 :font "Arial" :size 14} "Test: 🦄"]]]  ; Unicorn unlikely to have file
           options {:enable-emoji-images true 
-                   :image-cache cache 
-                   :emoji-config emoji-config}
+                   :image-cache cache}
           result (core/hiccup->pdf-document document options)]
       (is (string? result))
       (is (clojure.string/includes? result "%PDF-1.4"))))
@@ -319,9 +314,9 @@
           
           options {:enable-emoji-images true :image-cache cache}
           
-          start-memory (.now js/Date)  ; Proxy for memory usage
+          _start-memory (.now js/Date)  ; Proxy for memory usage
           result (core/hiccup->pdf-document document options)
-          end-memory (.now js/Date)
+          _end-memory (.now js/Date)
           
           cache-stats (images/cache-stats cache)]
       

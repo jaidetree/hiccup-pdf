@@ -261,11 +261,10 @@
   (testing "Rectangle coordinate transformation"
     (let [page-height 792
           margins [0 0 0 0]
-          rect-element [:rect {:x 100 :y 50 :width 200 :height 100}]]
-
-      (let [transformed (transform-element-coordinates rect-element page-height margins)]
-        (is (= [:rect {:x 100 :y 642 :width 200 :height 100}] transformed)
-            "Should transform rectangle Y coordinate"))))
+          rect-element [:rect {:x 100 :y 50 :width 200 :height 100}]
+          transformed (transform-element-coordinates rect-element page-height margins)]
+      (is (= [:rect {:x 100 :y 642 :width 200 :height 100}] transformed)
+          "Should transform rectangle Y coordinate")))
 
   (testing "Circle coordinate transformation"
     (let [page-height 792

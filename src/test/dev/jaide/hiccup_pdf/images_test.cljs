@@ -3,6 +3,7 @@
   
   Simplified test suite covering critical functionality only."
   (:require [cljs.test :refer [deftest is testing]]
+            [clojure.string]
             [dev.jaide.hiccup-pdf.images :as images]))
 
 (deftest test-emoji-file-operations
@@ -120,7 +121,7 @@
           start-time (.now js/Date)]
       
       ;; Perform multiple operations
-      (dotimes [i 5]
+      (dotimes [_i 5]
         (images/load-image-cached cache "test-image.png")
         (images/resolve-shortcode-to-path ":lightbulb:")
         (images/create-resource-reference))

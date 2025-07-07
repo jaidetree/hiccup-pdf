@@ -280,7 +280,7 @@
 
   Returns:
     String representing PDF text object with proper Unicode encoding"
-  [text-content & [options]]
+  [text-content & [_options]]
   (if (empty? text-content)
     "()"
     (encode-pdf-text-legacy text-content)))
@@ -305,8 +305,7 @@
   (let [validated-attrs (v/validate-text-attributes attributes)
         {:keys [x y font size fill]} validated-attrs
         text-content (or content "")
-        opts (or options {})
-        enable-emoji-images? (get opts :enable-emoji-images false)]
+        opts (or options {})]
 
     ;; Simple text processing (emoji render as Unicode)
     (let [fill-color-op (if fill (str (color->pdf-color fill) " rg\n") "0 0 0 rg\n") ; Default to black

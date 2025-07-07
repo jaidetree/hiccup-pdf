@@ -116,76 +116,9 @@
       (is (string? result))
       (is (not-empty result)))))
 
-(deftest test-process-text-with-emoji-images
-  (testing "Basic mixed content processing"
-    (let [cache (images/create-image-cache)
-          xobject-refs {"💡" "Em1" "✅" "Em2"}
-          result (core/process-text-with-emoji-images "Status: ✅ Progress: 💡"
-                                                      100 200 "Arial" 14
-                                                      {:image-cache cache
-                                                       :xobject-refs xobject-refs})]
-      (is (:success result))
-      (is (string? (:operators result)))
-      (is (vector? (:segments result)))
-      (is (> (count (:segments result)) 1))))  ; Should have multiple segments
-  
-  (testing "Text without emoji"
-    (let [cache (images/create-image-cache)
-          result (core/process-text-with-emoji-images "Just plain text"
-                                                      100 200 "Arial" 14
-                                                      {:image-cache cache})]
-      (is (:success result))
-      (is (string? (:operators result)))
-      (is (= 1 (count (:segments result))))))  ; Single text segment
-  
-  (testing "No cache provided fallback"
-    (let [result (core/process-text-with-emoji-images "Hello 💡 world"
-                                                      100 200 "Arial" 14)]
-      (is (:success result))
-      (is (string? (:operators result)))
-      (is (clojure.string/includes? (:operators result) "BT"))
-      (is (clojure.string/includes? (:operators result) "ET"))))
-  
-  (testing "Custom color option"
-    (let [cache (images/create-image-cache)
-          result (core/process-text-with-emoji-images "Blue text"
-                                                      100 200 "Arial" 14
-                                                      {:image-cache cache
-                                                       :color "blue"})]
-      (is (:success result))
-      (is (string? (:operators result)))))
-  
-  (testing "Error handling"
-    ;; Test with malformed input
-    (let [cache (images/create-image-cache)
-          result (core/process-text-with-emoji-images ""  ; Empty text
-                                                      100 200 "Arial" 14
-                                                      {:image-cache cache})]
-      (is (:success result))  ; Should handle empty text gracefully
-      (is (empty? (:segments result)))))
-  
-  (testing "Multiple emoji and fallback strategies"
-    (let [cache (images/create-image-cache)
-          strategies [:hex-string :placeholder :skip]]
-      (doseq [strategy strategies]
-        (let [result (core/process-text-with-emoji-images "Multiple 🦄 emoji 🌈 test"
-                                                          100 200 "Arial" 14
-                                                          {:image-cache cache
-                                                           :fallback-strategy strategy})]
-          (is (:success result))
-          (is (string? (:operators result)))))))
-  
-  (testing "Font size and positioning"
-    (let [cache (images/create-image-cache)
-          result (core/process-text-with-emoji-images "Size test 💡"
-                                                      50 150 "Times-Roman" 24
-                                                      {:image-cache cache})]
-      (is (:success result))
-      (is (string? (:operators result)))
-      ;; Check that font size and position are used
-      (let [ops (:operators result)]
-        (is (clojure.string/includes? ops "Times-Roman"))
-        (is (clojure.string/includes? ops "24"))))))
+;; Legacy function removed in emoji system refactoring - all tests commented out
+#_(deftest test-process-text-with-emoji-images
+    "Legacy emoji processing function tests - disabled after refactoring")
 
 (deftest test-api-performance-and-regression
   (testing "Performance with emoji images disabled"
@@ -221,13 +154,13 @@
   
   (testing "Memory usage stays reasonable"
     (let [cache (images/create-image-cache)
-          ;; Process text with emoji repeatedly
+          ;; Process text with emoji repeatedly using standard API
           results (doall (for [i (range 20)]
-                          (core/process-text-with-emoji-images (str "Test " i " 💡 " i)
-                                                               (* i 10) (* i 10) "Arial" 12
-                                                               {:image-cache cache})))
+                          (core/hiccup->pdf-ops [:text {:x (* i 10) :y (* i 10) :font "Arial" :size 12} 
+                                                 (str "Test " i " 💡 " i)]
+                                                {:image-cache cache})))
           cache-stats (images/cache-stats cache)]
-      (is (every? :success results))
+      (is (every? string? results))
       (is (< (:memory-usage cache-stats) (* 5 1024 1024)))  ; Less than 5MB
       (is (>= (:hit-rate cache-stats) 0))))  ; Hit rate should be non-negative
   
@@ -256,14 +189,12 @@
                                          :image-cache cache 
                                          :xobject-refs xobject-refs})
           
-          ;; Method 2: Using process-text-with-emoji-images  
-          result2 (core/process-text-with-emoji-images text 100 200 "Arial" 14
-                                                       {:image-cache cache 
-                                                        :xobject-refs xobject-refs})]
+          ;; Method 2: Legacy function removed - use standard text processing
+          result2 (core/hiccup->pdf-ops [:text {:x 100 :y 200 :font "Arial" :size 14} text]
+                                        {:image-cache cache})]
       
       (is (string? result1))
-      (is (:success result2))
-      (is (string? (:operators result2)))
+      (is (string? result2))
       ;; Results should be similar (both handle the emoji)
       (is (not-empty result1))
-      (is (not-empty (:operators result2))))))
+      (is (not-empty result2)))))
