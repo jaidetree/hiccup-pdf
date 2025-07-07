@@ -451,6 +451,46 @@
         ;; Failed to load from file system
         file-result))))
 
+(defn load-image-cached
+  "Combines file loading with caching for arbitrary image files.
+  
+  This function integrates the Step 2 load-image-file function with the 
+  Step 3 caching system. It attempts to load from cache first, falls back
+  to file system if not cached, and automatically caches newly loaded images.
+  
+  Args:
+    cache: Atom containing cache state
+    file-path: String file path to image file
+    
+  Returns:
+    Map with image data:
+    {:buffer Buffer :width N :height N :success boolean :file-path string}
+    or {:success false :error string} on failure"
+  [cache file-path]
+  ;; First try cache using file-path as key
+  (if-let [cached-data (cache-get cache file-path)]
+    ;; Cache hit - add success flag and file-path since cache-get doesn't include them
+    (assoc cached-data 
+           :success true 
+           :file-path file-path)
+    
+    ;; Cache miss - load from file system using Step 2 function
+    (let [buffer (load-image-file file-path)]
+      (if buffer
+        (let [dimensions (get-png-dimensions buffer)
+              image-data {:buffer buffer
+                          :width (:width dimensions)
+                          :height (:height dimensions)
+                          :success true
+                          :file-path file-path}]
+          ;; Successfully loaded - add to cache
+          (cache-put cache file-path image-data)
+          image-data)
+        ;; Failed to load from file system
+        {:success false
+         :error (str "Failed to load image file: " file-path)
+         :file-path file-path}))))
+
 ;; Error Handling and Fallback Strategies
 
 (def ^:private fallback-strategies

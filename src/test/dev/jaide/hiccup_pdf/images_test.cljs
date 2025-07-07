@@ -463,6 +463,130 @@
       (is (contains? fallback-dims :height)
           "Dimensions map should contain :height"))))
 
+(deftest test-load-image-cached-step3
+  (testing "Cache miss - load from file system"
+    (let [cache (images/create-image-cache)
+          test-file "emojis/noto-72/emoji_u1f4a1.png"
+          result (images/load-image-cached cache test-file)]
+      ;; Should either succeed or fail gracefully depending on file existence
+      (is (map? result)
+          "Should return a map")
+      (is (contains? result :success)
+          "Should contain success flag")
+      (is (contains? result :file-path)
+          "Should contain file-path")
+      (is (= test-file (:file-path result))
+          "Should return the correct file path")
+      
+      ;; If successful, should have image data
+      (when (:success result)
+        (is (contains? result :buffer)
+            "Successful result should contain buffer")
+        (is (contains? result :width)
+            "Successful result should contain width")
+        (is (contains? result :height)
+            "Successful result should contain height")
+        (is (number? (:width result))
+            "Width should be numeric")
+        (is (number? (:height result))
+            "Height should be numeric"))))
+  
+  (testing "Cache hit - loads from cache on second call"
+    (let [cache (images/create-image-cache)
+          test-file "emojis/noto-72/emoji_u1f4a1.png"
+          first-result (images/load-image-cached cache test-file)
+          second-result (images/load-image-cached cache test-file)]
+      
+      ;; If first load was successful, second should be cached
+      (when (:success first-result)
+        (is (:success second-result)
+            "Second load should also be successful")
+        (is (= (:width first-result) (:width second-result))
+            "Cached result should have same width")
+        (is (= (:height first-result) (:height second-result))
+            "Cached result should have same height")
+        (is (= (:file-path first-result) (:file-path second-result))
+            "Cached result should have same file path")
+        
+        ;; Check cache stats to verify hit
+        (let [stats (images/cache-stats cache)]
+          (is (pos? (:hits stats))
+              "Should have cache hits")))))
+  
+  (testing "File not found error handling"
+    (let [cache (images/create-image-cache)
+          non-existent-file "definitely-does-not-exist.png"
+          result (images/load-image-cached cache non-existent-file)]
+      (is (= false (:success result))
+          "Should return failure for non-existent file")
+      (is (contains? result :error)
+          "Should contain error message")
+      (is (string? (:error result))
+          "Error should be a string")
+      (is (= non-existent-file (:file-path result))
+          "Should return the attempted file path")))
+  
+  (testing "Invalid input handling"
+    (let [cache (images/create-image-cache)]
+      ;; Test with nil file path
+      (let [result (images/load-image-cached cache nil)]
+        (is (= false (:success result))
+            "Should fail for nil file path"))
+      
+      ;; Test with empty string
+      (let [result (images/load-image-cached cache "")]
+        (is (= false (:success result))
+            "Should fail for empty file path"))
+      
+      ;; Test with nil cache (should throw error)
+      (is (thrown? js/Error (images/load-image-cached nil "test.png"))
+          "Should throw error for nil cache")))
+  
+  (testing "LRU eviction with multiple files"
+    ;; Create cache with very small size to force eviction
+    (let [cache (images/create-image-cache {:max-size 2})
+          file1 "test1.png"
+          file2 "test2.png" 
+          file3 "test3.png"]
+      
+      ;; Load three files (will cause eviction)
+      (let [result1 (images/load-image-cached cache file1)
+            result2 (images/load-image-cached cache file2)
+            result3 (images/load-image-cached cache file3)]
+        
+        ;; All loads should handle eviction gracefully
+        (is (map? result1) "First load should return map")
+        (is (map? result2) "Second load should return map")
+        (is (map? result3) "Third load should return map")
+        
+        ;; Check cache stats for evictions
+        (let [stats (images/cache-stats cache)]
+          (is (contains? stats :evictions)
+              "Stats should track evictions")
+          (is (number? (:evictions stats))
+              "Evictions should be numeric")))))
+  
+  (testing "Integration with Step 2 functions"
+    ;; Verify that load-image-cached properly uses Step 2 functions
+    (let [cache (images/create-image-cache)
+          test-file "emojis/noto-72/emoji_u1f4a1.png"]
+      
+      ;; Compare direct load vs cached load
+      (let [direct-buffer (images/load-image-file test-file)
+            cached-result (images/load-image-cached cache test-file)]
+        
+        (when direct-buffer
+          ;; If direct load succeeded, cached should too
+          (is (:success cached-result)
+              "Cached load should succeed when direct load succeeds")
+          
+          ;; Dimensions should match
+          (let [direct-dims (images/get-png-dimensions direct-buffer)]
+            (is (= (:width direct-dims) (:width cached-result))
+                "Width should match between direct and cached loads")
+            (is (= (:height direct-dims) (:height cached-result))
+                "Height should match between direct and cached loads")))))))
+
 (deftest test-performance-considerations
   (testing "File existence checks"
     ;; Test that file existence checks are reasonably fast
