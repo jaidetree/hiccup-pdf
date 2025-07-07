@@ -28,6 +28,8 @@ Make sure and separate each prompt section. Use markdown. Each prompt should be 
     - Make sure the tests pass, and the program builds/runs
     - Commit the changes to your repository with a clear commit message.
     - Update **@prompt_plan.md** to mark this prompt as completed.
-3. Run tests with `npm test`. As part of confirming tests run `clj-kondo --lint src` and fix lint errors. If after 3 attempts you can't fix a lint errors, prompt for me to fix it and continue.
+3. Run tests with `npm test`
+    3.1. As part of confirming tests run `clj-kondo --lint src` and fix lint errors. 
+    3.2. If after 3 attempts you can't fix a lint errors, prompt for me to fix it and continue.
 4. After you finish each prompt, pause and wait for user review or feedback.
 5. Repeat with the next unfinished prompt as directed by the user.
