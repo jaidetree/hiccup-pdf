@@ -238,27 +238,31 @@
 (defn collect-page-images
   "Scans page content for emoji images and returns collection.
   
-  Recursively scans hiccup page content for :text elements and extracts
-  unique emoji characters that would need image resources.
+  Recursively scans hiccup page content for :emoji elements and extracts
+  unique emoji file paths that would need image resources.
   
   Args:
     page-content: Vector of hiccup elements
     
   Returns:
-    Set of emoji character strings found in text content"
+    Set of emoji file path strings found in emoji elements"
   [page-content]
   (letfn [(extract-emoji [element]
             (if-not (vector? element)
               #{}
-              (let [[tag _attributes & children] element]
+              (let [[tag attributes & children] element
+                    emoji-path (when (= tag :emoji)
+                                 (images/resolve-shortcode-to-path (:code attributes)))
+                    child-emoji (when (seq children)
+                                  (mapcat extract-emoji children))]
                 (cond-> #{}
-                  ;; Extract emoji from text element content
-                  (= tag :text)
-                  (into #{})
+                  ;; Add emoji file path if found
+                  emoji-path
+                  (conj emoji-path)
                   
-                  ;; Recursively process children
-                  (seq children)
-                  (into (mapcat extract-emoji children))))))]
+                  ;; Add children emoji
+                  (seq child-emoji)
+                  (into child-emoji)))))]
     (into #{} (mapcat extract-emoji page-content))))
 
 (defn generate-image-resources
@@ -325,7 +329,7 @@
   and updates object numbering and references.
   
   Args:
-    unique-emoji: Set of unique emoji characters in document
+    unique-file-paths: Set of unique emoji file paths in document
     image-cache: Image cache atom for loading emoji images
     starting-object-number: Starting object number for image objects
     options: Map with emoji configuration options
@@ -333,16 +337,16 @@
   Returns:
     Map with image processing results:
     {:image-objects [pdf-object-strings]
-     :image-refs {emoji-char object-number}
-     :xobject-names {emoji-char xobject-name}
+     :image-refs {file-path object-number}
+     :xobject-names {file-path xobject-name}
      :next-object-number number
      :success boolean
      :errors [error-strings]}"
-  [unique-emoji image-cache starting-object-number & [options]]
+  [unique-file-paths image-cache starting-object-number & [options]]
   (let [opts (merge {:fallback-strategy :hex-string :logging? false} options)]
     (try
-      (if (empty? unique-emoji)
-        ;; No emoji to process
+      (if (empty? unique-file-paths)
+        ;; No images to process
         {:image-objects []
          :image-refs {}
          :xobject-names {}
@@ -350,58 +354,58 @@
          :success true
          :errors []}
         
-        ;; Process each unique emoji
-        (let [emoji-list (vec unique-emoji)
-              xobject-names (into {} (map-indexed (fn [idx emoji-char]
-                                                    [emoji-char (str "Em" (+ idx 1))])
-                                                  emoji-list))
+        ;; Process each unique file path
+        (let [file-path-list (vec unique-file-paths)
+              xobject-names (into {} (map-indexed (fn [idx file-path]
+                                                    [file-path (str "Em" (+ idx 1))])
+                                                  file-path-list))
               
               ;; Load images and generate XObjects
-              results (loop [remaining-emoji emoji-list
+              results (loop [remaining-paths file-path-list
                            current-obj-num starting-object-number
                            image-objects []
                            image-refs {}
                            errors []]
                         
-                        (if (empty? remaining-emoji)
+                        (if (empty? remaining-paths)
                           {:image-objects image-objects
                            :image-refs image-refs  
                            :next-object-number current-obj-num
                            :errors errors}
                           
-                          (let [emoji-char (first remaining-emoji)
-                                rest-emoji (rest remaining-emoji)
-                                xobj-name (get xobject-names emoji-char)
+                          (let [file-path (first remaining-paths)
+                                rest-paths (rest remaining-paths)
+                                xobj-name (get xobject-names file-path)
                                 
-                                ;; Attempt to load image
-                                image-result (images/emoji-image-with-fallback 
-                                              image-cache emoji-char opts)]
+                                ;; Attempt to load image using file path
+                                image-result (images/load-image-cached 
+                                              image-cache file-path)]
                             
-                            (if (and (:success image-result) (= :image (:type image-result)))
+                            (if (:success image-result)
                               ;; Successfully loaded image - generate XObject
                               (let [xobj-result (images/generate-image-xobject image-result xobj-name current-obj-num)]
                                 (if (:success xobj-result)
                                   ;; XObject generated successfully
-                                  (recur rest-emoji
+                                  (recur rest-paths
                                          (inc current-obj-num)
                                          (conj image-objects (:pdf-object xobj-result))
-                                         (assoc image-refs emoji-char current-obj-num)
+                                         (assoc image-refs file-path current-obj-num)
                                          errors)
                                   ;; XObject generation failed
-                                  (recur rest-emoji
+                                  (recur rest-paths
                                          current-obj-num
                                          image-objects
                                          image-refs
-                                         (conj errors (str "XObject generation failed for " emoji-char ": " (:error xobj-result))))))
+                                         (conj errors (str "XObject generation failed for " file-path ": " (:error xobj-result))))))
                               
-                              ;; Image loading failed or fallback used - skip XObject generation
-                              (recur rest-emoji
+                              ;; Image loading failed - skip XObject generation
+                              (recur rest-paths
                                      current-obj-num
                                      image-objects
                                      image-refs
                                      (if (:success image-result)
                                        errors  ; Fallback used, not an error
-                                       (conj errors (str "Image loading failed for " emoji-char ": " (:error image-result)))))))))
+                                       (conj errors (str "Image loading failed for " file-path ": " (:error image-result)))))))))
               
               final-result (assoc results :xobject-names xobject-names :success true)]
           final-result))
