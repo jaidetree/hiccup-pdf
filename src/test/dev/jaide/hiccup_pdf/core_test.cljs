@@ -1,7 +1,8 @@
 (ns dev.jaide.hiccup-pdf.core-test
   (:require [cljs.test :refer [deftest is testing]]
             [clojure.string :as str]
-            [dev.jaide.hiccup-pdf.core :refer [hiccup->pdf-ops]]))
+            [dev.jaide.hiccup-pdf.core :refer [hiccup->pdf-ops]]
+            [dev.jaide.hiccup-pdf.images :as images]))
 
 (deftest smoke-test
   (testing "hiccup->pdf-ops function exists and can be called"
@@ -270,6 +271,117 @@
           "Should contain second line")
       (is (re-find #"h\n" result)
           "Should close path"))))
+
+(deftest image-element-test
+  (testing "Image element with cache"
+    ;; Create a mock cache for testing
+    (let [cache (images/create-image-cache)
+          ;; Test with a simple image element
+          image-element [:image {:src "test.png" :width 100 :height 50 :x 10 :y 20}]]
+      
+      ;; First test - should handle missing file gracefully
+      (is (thrown? js/Error 
+                   (hiccup->pdf-ops image-element {:image-cache cache}))
+          "Should throw error for missing image file")))
+  
+  (testing "Image element without cache"
+    ;; Test without providing cache - should throw error
+    (let [image-element [:image {:src "test.png" :width 100 :height 50 :x 10 :y 20}]]
+      (is (thrown? js/Error 
+                   (hiccup->pdf-ops image-element))
+          "Should throw error when no cache provided")))
+  
+  (testing "Image element validation"
+    ;; Test with invalid attributes - should throw validation error
+    (let [cache (images/create-image-cache)]
+      (is (thrown? js/Error 
+                   (hiccup->pdf-ops [:image {}] {:image-cache cache}))
+          "Should throw validation error for missing attributes")
+      
+      (is (thrown? js/Error 
+                   (hiccup->pdf-ops [:image {:src "test.png" :width 100 :height 50}] {:image-cache cache}))
+          "Should throw validation error for missing x,y coordinates"))))
+
+(deftest image-element-mocked-test
+  (testing "Image element with mocked successful loading"
+    ;; Create a cache and pre-populate it with mock image data
+    (let [cache (images/create-image-cache)
+          test-src "test.png"
+          ;; Create mock PNG buffer (minimal valid PNG header)
+          mock-buffer (.from js/Buffer #js [0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
+                                            0x00 0x00 0x00 0x0D 0x49 0x48 0x44 0x52
+                                            0x00 0x00 0x00 0x48 ; Width: 72
+                                            0x00 0x00 0x00 0x48 ; Height: 72
+                                            0x08 0x02 0x00 0x00 0x00])
+          mock-image-data {:buffer mock-buffer
+                           :width 72
+                           :height 72
+                           :success true
+                           :file-path test-src}]
+      
+      ;; Pre-populate cache with mock data
+      (images/cache-put cache test-src mock-image-data)
+      
+      ;; Now test image element processing
+      (let [image-element [:image {:src test-src :width 100 :height 50 :x 10 :y 20}]
+            result (hiccup->pdf-ops image-element {:image-cache cache})]
+        
+        (is (string? result)
+            "Should generate string output for image")
+        (is (str/includes? result "q")
+            "Should contain save state operator")
+        (is (str/includes? result "Q")
+            "Should contain restore state operator")
+        (is (str/includes? result "cm")
+            "Should contain transformation matrix")
+        (is (str/includes? result "Do")
+            "Should contain XObject draw operator")
+        
+        ;; Check transformation matrix calculations
+        ;; Scale factors: width 100/72, height 50/72
+        (let [scale-x (/ 100 72)
+              scale-y (/ 50 72)]
+          (is (str/includes? result (str scale-x))
+              "Should contain correct X scale factor")
+          (is (str/includes? result (str scale-y))
+              "Should contain correct Y scale factor")
+          (is (str/includes? result "10 20")
+              "Should contain correct position")))))
+  
+  (testing "Image element scaling calculations"
+    ;; Test different scaling scenarios
+    (let [cache (images/create-image-cache)
+          test-src "test2.png"
+          mock-buffer (.from js/Buffer #js [0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
+                                            0x00 0x00 0x00 0x0D 0x49 0x48 0x44 0x52
+                                            0x00 0x00 0x00 0x64 ; Width: 100
+                                            0x00 0x00 0x00 0x32 ; Height: 50
+                                            0x08 0x02 0x00 0x00 0x00])
+          mock-image-data {:buffer mock-buffer
+                           :width 100
+                           :height 50
+                           :success true
+                           :file-path test-src}]
+      
+      (images/cache-put cache test-src mock-image-data)
+      
+      ;; Test 1:1 scaling (no scaling needed)
+      (let [result (hiccup->pdf-ops [:image {:src test-src :width 100 :height 50 :x 0 :y 0}] 
+                                    {:image-cache cache})]
+        (is (str/includes? result "1 0 0 1 0 0 cm")
+            "Should use identity matrix for 1:1 scaling"))
+      
+      ;; Test 2x scaling
+      (let [result (hiccup->pdf-ops [:image {:src test-src :width 200 :height 100 :x 50 :y 25}] 
+                                    {:image-cache cache})]
+        (is (str/includes? result "2 0 0 2 50 25 cm")
+            "Should use 2x scaling matrix"))
+      
+      ;; Test fractional scaling
+      (let [result (hiccup->pdf-ops [:image {:src test-src :width 50 :height 25 :x 10 :y 5}] 
+                                    {:image-cache cache})]
+        (is (str/includes? result "0.5 0 0 0.5 10 5 cm")
+            "Should use 0.5x scaling matrix")))))
 
 (deftest text-element-test
   (testing "Text element transformation"

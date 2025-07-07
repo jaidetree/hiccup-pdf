@@ -479,6 +479,59 @@
         child-ops (apply str (map #(element->pdf-ops % options) content))]
     (str (:save-state pdf-operators) transform-op child-ops (:restore-state pdf-operators))))
 
+(defn- image->pdf-ops
+  "Converts an image hiccup vector to PDF operators.
+  
+  Loads images using the caching system, generates proper PDF XObject references,
+  and creates transformation matrices for positioning and scaling.
+  
+  Args:
+    attributes: Map containing :src, :width, :height, :x, :y
+    options: Optional map with configuration including image cache
+  
+  Returns:
+    String of PDF operators for image drawing using XObject references"
+  [attributes & [options]]
+  (let [validated-attrs (v/validate-image-attributes attributes)
+        {:keys [src width height x y]} validated-attrs
+        opts (or options {})
+        image-cache (get opts :image-cache)]
+    
+    (if image-cache
+      ;; Use caching system to load image
+      (let [image-result (images/load-image-cached image-cache src)]
+        (if (:success image-result)
+          ;; Successfully loaded image - generate PDF operators
+          (let [;; Create unique XObject reference name
+                xobject-ref (images/create-resource-reference)
+                ;; Generate PDF XObject
+                xobject-result (images/generate-image-xobject image-result xobject-ref)
+                
+                ;; Calculate scaling to fit requested dimensions
+                actual-width (:width image-result)
+                actual-height (:height image-result)
+                scale-x (/ width actual-width)
+                scale-y (/ height actual-height)
+                
+                ;; Generate PDF operators for drawing the image
+                transform-matrix (str scale-x " 0 0 " scale-y " " x " " y " cm\n")
+                draw-op (str "/" xobject-ref " Do\n")]
+            
+            (if (:success xobject-result)
+              ;; XObject generation successful - return PDF operators
+              (str (:save-state pdf-operators)
+                   transform-matrix
+                   draw-op
+                   (:restore-state pdf-operators))
+              ;; XObject generation failed - return empty (or could throw error)
+              (throw (js/Error. (str "Failed to generate PDF XObject: " (:error xobject-result))))))
+          
+          ;; Image loading failed - throw error
+          (throw (js/Error. (str "Failed to load image: " (:error image-result))))))
+      
+      ;; No cache provided - throw error (cache is required for image processing)
+      (throw (js/Error. "Image cache is required for image element processing")))))
+
 (defn- element->pdf-ops
   "Converts a hiccup element to PDF operators.
 
@@ -498,7 +551,7 @@
       :circle (circle->pdf-ops attributes)
       :path (path->pdf-ops attributes)
       :text (text->pdf-ops attributes (first content) options)
-      :image (throw (js/Error. "Image element not yet implemented - will be added in step 4"))
+      :image (image->pdf-ops attributes options)
       :g (group->pdf-ops attributes content options)
       (throw (js/Error. (str "Element type " tag " not yet implemented"))))))
 
