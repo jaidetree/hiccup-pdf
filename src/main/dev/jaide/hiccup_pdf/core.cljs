@@ -532,6 +532,38 @@
       ;; No cache provided - throw error (cache is required for image processing)
       (throw (js/Error. "Image cache is required for image element processing")))))
 
+(defn- emoji->pdf-ops
+  "Converts an emoji hiccup vector to PDF operators by transforming to image element.
+  
+  Transforms :emoji elements to :image elements and delegates to image rendering.
+  Resolves shortcode to file path, converts :size to :width and :height, and 
+  preserves :x and :y coordinates.
+  
+  Args:
+    attributes: Map containing :code, :size, :x, :y
+    options: Optional map with configuration including image cache
+  
+  Returns:
+    String of PDF operators for emoji rendering as image"
+  [attributes & [options]]
+  (let [validated-attrs (v/validate-emoji-attributes attributes)
+        {:keys [code size x y]} validated-attrs
+        opts (or options {})]
+    
+    ;; Resolve shortcode to file path
+    (if-let [image-path (images/resolve-shortcode-to-path code)]
+      ;; Successfully resolved shortcode - transform to image element
+      (let [image-attributes {:src image-path
+                              :width size
+                              :height size  ; Square aspect ratio for emoji
+                              :x x
+                              :y y}]
+        ;; Delegate to image rendering
+        (image->pdf-ops image-attributes opts))
+      
+      ;; Shortcode resolution failed - throw error
+      (throw (js/Error. (str "Failed to resolve emoji shortcode: " code))))))
+
 (defn- element->pdf-ops
   "Converts a hiccup element to PDF operators.
 
@@ -552,6 +584,7 @@
       :path (path->pdf-ops attributes)
       :text (text->pdf-ops attributes (first content) options)
       :image (image->pdf-ops attributes options)
+      :emoji (emoji->pdf-ops attributes options)
       :g (group->pdf-ops attributes content options)
       (throw (js/Error. (str "Element type " tag " not yet implemented"))))))
 

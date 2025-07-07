@@ -1443,3 +1443,165 @@
           "Should contain grid lines")
       (is (>= (count (re-seq #"c\n" result)) 20)
           "Should contain data point circles (4 curves per circle)"))))
+
+(deftest emoji-element-test
+  (testing "Emoji element transformation to image element"
+    ;; Test with valid emoji shortcode
+    (let [cache (images/create-image-cache)]
+      (is (string? (hiccup->pdf-ops [:emoji {:code :smile :size 24 :x 100 :y 200}] 
+                                    {:image-cache cache}))
+          "Should generate PDF operators for emoji element with valid shortcode"))
+    
+    ;; Test emoji coordinates and size transformation
+    (let [cache (images/create-image-cache)
+          result (hiccup->pdf-ops [:emoji {:code :heart :size 32 :x 50 :y 75}] 
+                                  {:image-cache cache})]
+      (is (string? result)
+          "Should handle emoji with specific coordinates and size")
+      (is (re-find #"q\n" result)
+          "Should contain save state operator")
+      (is (re-find #"Do\n" result)
+          "Should contain XObject draw operator")
+      (is (re-find #"Q$" result)
+          "Should end with restore state operator")))
+
+  (testing "Emoji element with various shortcodes"
+    (let [cache (images/create-image-cache)]
+      ;; Test different valid shortcodes
+      (is (string? (hiccup->pdf-ops [:emoji {:code :lightbulb :size 16 :x 10 :y 20}] 
+                                    {:image-cache cache}))
+          "Should handle lightbulb emoji")
+      
+      (is (string? (hiccup->pdf-ops [:emoji {:code :fire :size 20 :x 30 :y 40}] 
+                                    {:image-cache cache}))
+          "Should handle fire emoji")
+      
+      (is (string? (hiccup->pdf-ops [:emoji {:code :star :size 18 :x 50 :y 60}] 
+                                    {:image-cache cache}))
+          "Should handle star emoji")))
+
+  (testing "Emoji element coordinate preservation"
+    (let [cache (images/create-image-cache)
+          ;; Test specific coordinates
+          result1 (hiccup->pdf-ops [:emoji {:code :smile :size 24 :x 100 :y 200}] 
+                                   {:image-cache cache})
+          result2 (hiccup->pdf-ops [:emoji {:code :heart :size 32 :x 0 :y 0}] 
+                                   {:image-cache cache})
+          result3 (hiccup->pdf-ops [:emoji {:code :star :size 16 :x -10 :y -5}] 
+                                   {:image-cache cache})]
+      
+      (is (every? string? [result1 result2 result3])
+          "Should handle various coordinate values")
+      
+      ;; Each result should be a proper PDF operator sequence
+      (is (every? #(and (re-find #"q\n" %) (re-find #"Q$" %)) [result1 result2 result3])
+          "Should properly save and restore graphics state")))
+
+  (testing "Emoji element size to width/height conversion"
+    (let [cache (images/create-image-cache)]
+      ;; Test that emoji size becomes both width and height (square aspect ratio)
+      (is (string? (hiccup->pdf-ops [:emoji {:code :smile :size 1 :x 0 :y 0}] 
+                                    {:image-cache cache}))
+          "Should handle minimum size")
+      
+      (is (string? (hiccup->pdf-ops [:emoji {:code :heart :size 100 :x 0 :y 0}] 
+                                    {:image-cache cache}))
+          "Should handle large size")
+      
+      (is (string? (hiccup->pdf-ops [:emoji {:code :star :size 12.5 :x 0 :y 0}] 
+                                    {:image-cache cache}))
+          "Should handle fractional size"))))
+
+(deftest emoji-element-error-test
+  (testing "Emoji element error scenarios"
+    ;; Test missing image cache
+    (is (thrown-with-msg? js/Error #"Image cache is required"
+                          (hiccup->pdf-ops [:emoji {:code :smile :size 24 :x 100 :y 200}]))
+        "Should throw error when image cache is missing")
+    
+    ;; Test invalid shortcode
+    (let [cache (images/create-image-cache)]
+      (is (thrown-with-msg? js/Error #"ValidationError"
+                            (hiccup->pdf-ops [:emoji {:code :nonexistent-emoji :size 24 :x 100 :y 200}] 
+                                             {:image-cache cache}))
+          "Should throw error for invalid shortcode"))
+    
+    ;; Test validation errors are properly propagated
+    (let [cache (images/create-image-cache)]
+      ;; Missing required attributes should be caught by validation
+      (is (thrown? js/Error (hiccup->pdf-ops [:emoji {:code :smile :x 100 :y 200}] 
+                                             {:image-cache cache}))
+          "Should throw error for missing size")
+      
+      (is (thrown? js/Error (hiccup->pdf-ops [:emoji {:size 24 :x 100 :y 200}] 
+                                             {:image-cache cache}))
+          "Should throw error for missing code")
+      
+      (is (thrown? js/Error (hiccup->pdf-ops [:emoji {:code :smile :size 24 :y 200}] 
+                                             {:image-cache cache}))
+          "Should throw error for missing x coordinate")
+      
+      (is (thrown? js/Error (hiccup->pdf-ops [:emoji {:code :smile :size 24 :x 100}] 
+                                             {:image-cache cache}))
+          "Should throw error for missing y coordinate")))
+
+  (testing "Emoji element type validation errors"
+    (let [cache (images/create-image-cache)]
+      ;; Test invalid attribute types
+      (is (thrown? js/Error (hiccup->pdf-ops [:emoji {:code "smile" :size 24 :x 100 :y 200}] 
+                                             {:image-cache cache}))
+          "Should throw error for non-keyword code")
+      
+      (is (thrown? js/Error (hiccup->pdf-ops [:emoji {:code :smile :size "24" :x 100 :y 200}] 
+                                             {:image-cache cache}))
+          "Should throw error for non-numeric size")
+      
+      (is (thrown? js/Error (hiccup->pdf-ops [:emoji {:code :smile :size 0 :x 100 :y 200}] 
+                                             {:image-cache cache}))
+          "Should throw error for zero size")
+      
+      (is (thrown? js/Error (hiccup->pdf-ops [:emoji {:code :smile :size -10 :x 100 :y 200}] 
+                                             {:image-cache cache}))
+          "Should throw error for negative size"))))
+
+(deftest emoji-element-integration-test
+  (testing "Emoji elements with other element types"
+    (let [cache (images/create-image-cache)]
+      ;; Test emoji mixed with other elements
+      (is (string? (hiccup->pdf-ops [:g {}
+                                     [:rect {:x 0 :y 0 :width 100 :height 50 :fill "#ff0000"}]
+                                     [:emoji {:code :smile :size 24 :x 10 :y 10}]
+                                     [:text {:x 50 :y 30 :font "Arial" :size 12} "Hello"]]
+                                    {:image-cache cache}))
+          "Should handle emoji mixed with other elements in groups")))
+
+  (testing "Emoji elements with transforms"
+    (let [cache (images/create-image-cache)]
+      ;; Test emoji inside transformed groups
+      (is (string? (hiccup->pdf-ops [:g {:transforms [[:translate [50 50]] [:scale [2 2]]]}
+                                     [:emoji {:code :heart :size 16 :x 0 :y 0}]]
+                                    {:image-cache cache}))
+          "Should handle emoji inside transformed groups")
+      
+      (is (string? (hiccup->pdf-ops [:g {:transforms [[:rotate 45]]}
+                                     [:emoji {:code :star :size 20 :x 25 :y 25}]]
+                                    {:image-cache cache}))
+          "Should handle emoji with rotation transforms")))
+
+  (testing "Multiple emoji elements"
+    (let [cache (images/create-image-cache)]
+      ;; Test multiple emoji in same document
+      (is (string? (hiccup->pdf-ops [:g {}
+                                     [:emoji {:code :smile :size 16 :x 10 :y 10}]
+                                     [:emoji {:code :heart :size 18 :x 30 :y 10}]
+                                     [:emoji {:code :star :size 20 :x 50 :y 10}]]
+                                    {:image-cache cache}))
+          "Should handle multiple emoji elements")
+      
+      ;; Test same emoji multiple times
+      (is (string? (hiccup->pdf-ops [:g {}
+                                     [:emoji {:code :lightbulb :size 16 :x 10 :y 10}]
+                                     [:emoji {:code :lightbulb :size 24 :x 50 :y 50}]
+                                     [:emoji {:code :lightbulb :size 32 :x 100 :y 100}]]
+                                    {:image-cache cache}))
+          "Should handle same emoji with different sizes and positions"))))
