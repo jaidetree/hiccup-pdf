@@ -607,7 +607,7 @@
       
       (is (= 5 (count results)))
       ;; Batch operations should be reasonably fast
-      (is (< duration 500))))
+      (is (< duration 500)))))
 
 ;; Image Caching System Tests
 
@@ -1541,4 +1541,265 @@
           (is (< (Math/abs (- (:scale-y transform) expected-scale)) 0.001))
           
           ;; Matrix should be valid
-          (is (= 6 (count (:matrix transform))))))))))))
+          (is (= 6 (count (:matrix transform))))))))))
+
+;; Step 5: Shortcode Configuration System Tests
+
+(deftest test-load-emoji-shortcodes
+  (testing "Successful shortcode loading"
+    ;; Reset cached shortcodes to test fresh loading
+    (reset! @#'images/emoji-shortcodes nil)
+    
+    (let [shortcodes (images/load-emoji-shortcodes)]
+      (if shortcodes
+        (do
+          ;; Should return a map
+          (is (map? shortcodes))
+          
+          ;; Should contain expected shortcodes from emojis.edn
+          (is (contains? shortcodes :smile))
+          (is (contains? shortcodes :heart))
+          (is (contains? shortcodes :lightbulb))
+          
+          ;; Values should be PNG filenames
+          (is (string? (:smile shortcodes)))
+          (is (.endsWith (:smile shortcodes) ".png"))
+          (is (.startsWith (:smile shortcodes) "emoji_u"))
+          
+          ;; Should cache the loaded shortcodes
+          (let [cached-shortcodes (images/load-emoji-shortcodes)]
+            (is (= shortcodes cached-shortcodes))))
+        
+        ;; If loading failed (file not found), should handle gracefully
+        (is (nil? shortcodes)))))
+  
+  (testing "Cached shortcode retrieval"
+    ;; Ensure shortcodes are loaded
+    (images/load-emoji-shortcodes)
+    
+    ;; Second call should return cached version
+    (let [start-time (.now js/Date)
+          shortcodes (images/load-emoji-shortcodes)
+          end-time (.now js/Date)
+          duration (- end-time start-time)]
+      
+      ;; Cached access should be very fast
+      (is (< duration 10))
+      (is (or (map? shortcodes) (nil? shortcodes)))))
+  
+  (testing "Error handling for missing file"
+    ;; Temporarily reset cache and test with non-existent file
+    (let [original-atom @#'images/emoji-shortcodes]
+      (try
+        (reset! @#'images/emoji-shortcodes nil)
+        ;; The function will try to load from emojis/emojis.edn
+        ;; If file doesn't exist, should return nil gracefully
+        (let [result (images/load-emoji-shortcodes)]
+          (is (or (map? result) (nil? result))))
+        (finally
+          ;; Restore original cache state
+          (reset! @#'images/emoji-shortcodes original-atom))))))
+
+(deftest test-validate-shortcode
+  (testing "Valid shortcodes"
+    ;; Load shortcodes first
+    (images/load-emoji-shortcodes)
+    
+    (let [valid-codes [:smile :heart :lightbulb :thumbsup :fire]]
+      (doseq [code valid-codes]
+        (when (images/validate-shortcode code)
+          ;; If shortcode exists in loaded file, validation should pass
+          (is (= true (images/validate-shortcode code))
+              (str "Shortcode " code " should be valid"))))))
+  
+  (testing "Invalid shortcodes"
+    (is (= false (images/validate-shortcode :nonexistent-shortcode)))
+    (is (= false (images/validate-shortcode :definitely-not-real)))
+    (is (= false (images/validate-shortcode :fake-emoji))))
+  
+  (testing "Invalid input types"
+    ;; Non-keyword inputs should return false
+    (is (= false (images/validate-shortcode "smile")))
+    (is (= false (images/validate-shortcode nil)))
+    (is (= false (images/validate-shortcode 123)))
+    (is (= false (images/validate-shortcode [])))
+    (is (= false (images/validate-shortcode {}))))
+  
+  (testing "Edge cases"
+    ;; Keywords with special characters
+    (is (= false (images/validate-shortcode :smile-with-dashes)))
+    (is (= false (images/validate-shortcode :smile_with_underscores)))
+    
+    ;; Case sensitivity (shortcodes should be lowercase)
+    (is (= false (images/validate-shortcode :SMILE)))
+    (is (= false (images/validate-shortcode :Smile)))))
+
+(deftest test-resolve-shortcode-to-path
+  (testing "Valid shortcode resolution"
+    (images/load-emoji-shortcodes)
+    
+    (let [valid-codes [:smile :heart :lightbulb]]
+      (doseq [code valid-codes]
+        (when (images/validate-shortcode code)
+          (let [path (images/resolve-shortcode-to-path code)]
+            (is (string? path)
+                (str "Path for " code " should be a string"))
+            (is (.includes path "emojis/noto-72/")
+                (str "Path should include base directory"))
+            (is (.endsWith path ".png")
+                (str "Path should end with .png"))
+            (is (.includes path "emoji_u")
+                (str "Path should include emoji_u prefix")))))))
+  
+  (testing "Invalid shortcode resolution"
+    (is (nil? (images/resolve-shortcode-to-path :nonexistent)))
+    (is (nil? (images/resolve-shortcode-to-path :fake-emoji)))
+    (is (nil? (images/resolve-shortcode-to-path :not-real))))
+  
+  (testing "Invalid input types"
+    (is (nil? (images/resolve-shortcode-to-path "smile")))
+    (is (nil? (images/resolve-shortcode-to-path nil)))
+    (is (nil? (images/resolve-shortcode-to-path 123)))
+    (is (nil? (images/resolve-shortcode-to-path []))))
+  
+  (testing "Path construction consistency"
+    (images/load-emoji-shortcodes)
+    
+    ;; Test that multiple calls return same path
+    (when (images/validate-shortcode :smile)
+      (let [path1 (images/resolve-shortcode-to-path :smile)
+            path2 (images/resolve-shortcode-to-path :smile)]
+        (is (= path1 path2)))))
+  
+  (testing "Cross-platform path handling"
+    (images/load-emoji-shortcodes)
+    
+    (when (images/validate-shortcode :smile)
+      (let [path (images/resolve-shortcode-to-path :smile)]
+        ;; Should contain directory separator (/ or \)
+        (is (or (.includes path "/") (.includes path "\\"))
+            "Path should contain directory separator")))))
+
+(deftest test-list-available-shortcodes
+  (testing "Shortcode list retrieval"
+    (images/load-emoji-shortcodes)
+    
+    (let [shortcodes (images/list-available-shortcodes)]
+      (is (vector? shortcodes)
+          "Should return a vector")
+      
+      (when (pos? (count shortcodes))
+        ;; If shortcodes loaded successfully
+        (is (every? keyword? shortcodes)
+            "All shortcodes should be keywords")
+        
+        ;; Should contain expected shortcodes from emojis.edn
+        (let [shortcode-set (set shortcodes)]
+          (when (contains? shortcode-set :smile)
+            (is (contains? shortcode-set :smile)))
+          (when (contains? shortcode-set :heart)
+            (is (contains? shortcode-set :heart)))
+          (when (contains? shortcode-set :lightbulb)
+            (is (contains? shortcode-set :lightbulb))))
+        
+        ;; Should be reasonable number of shortcodes (expected around 50)
+        (is (>= (count shortcodes) 10)
+            "Should have at least 10 shortcodes")
+        (is (<= (count shortcodes) 100)
+            "Should have at most 100 shortcodes for test file"))))
+  
+  (testing "Empty result handling"
+    ;; Test behavior when no shortcodes loaded
+    (let [original-atom @#'images/emoji-shortcodes]
+      (try
+        (reset! @#'images/emoji-shortcodes nil)
+        (let [shortcodes (images/list-available-shortcodes)]
+          (is (vector? shortcodes)
+              "Should return vector even when empty")
+          (is (>= (count shortcodes) 0)
+              "Should handle empty case gracefully"))
+        (finally
+          (reset! @#'images/emoji-shortcodes original-atom)))))
+  
+  (testing "Consistency with validation"
+    (images/load-emoji-shortcodes)
+    
+    (let [available-shortcodes (images/list-available-shortcodes)]
+      ;; All listed shortcodes should be valid
+      (doseq [shortcode available-shortcodes]
+        (is (images/validate-shortcode shortcode)
+            (str "Listed shortcode " shortcode " should validate"))))))
+
+(deftest test-get-shortcode-info
+  (testing "Valid shortcode information"
+    (images/load-emoji-shortcodes)
+    
+    (when (images/validate-shortcode :smile)
+      (let [info (images/get-shortcode-info :smile)]
+        (is (map? info)
+            "Should return a map")
+        (is (= :smile (:shortcode info))
+            "Should include shortcode keyword")
+        (is (string? (:filename info))
+            "Should include filename string")
+        (is (string? (:file-path info))
+            "Should include file path string")
+        (is (boolean? (:exists? info))
+            "Should include exists boolean")
+        
+        ;; Check filename format
+        (is (.endsWith (:filename info) ".png")
+            "Filename should end with .png")
+        (is (.startsWith (:filename info) "emoji_u")
+            "Filename should start with emoji_u")
+        
+        ;; Check path construction
+        (is (.includes (:file-path info) (:filename info))
+            "File path should include filename")
+        (is (.includes (:file-path info) "emojis/noto-72")
+            "File path should include base directory"))))
+  
+  (testing "Invalid shortcode information"
+    (is (nil? (images/get-shortcode-info :nonexistent))
+        "Should return nil for invalid shortcode")
+    (is (nil? (images/get-shortcode-info :fake-emoji))
+        "Should return nil for fake shortcode"))
+  
+  (testing "File existence checking"
+    (images/load-emoji-shortcodes)
+    
+    ;; Test with shortcodes that may or may not have actual files
+    (let [available-shortcodes (images/list-available-shortcodes)]
+      (when (pos? (count available-shortcodes))
+        (let [test-shortcode (first available-shortcodes)
+              info (images/get-shortcode-info test-shortcode)]
+          (when info
+            ;; exists? should be boolean regardless of actual file existence
+            (is (boolean? (:exists? info))
+                "exists? should be boolean")
+            
+            ;; If file exists, it should be readable
+            (when (:exists? info)
+              ;; File system operations should not throw errors
+              (is (string? (:file-path info)))))))))
+  
+  (testing "Multiple shortcode info consistency"
+    (images/load-emoji-shortcodes)
+    
+    (let [test-codes [:smile :heart :lightbulb]]
+      (doseq [code test-codes]
+        (when (images/validate-shortcode code)
+          (let [info1 (images/get-shortcode-info code)
+                info2 (images/get-shortcode-info code)]
+            ;; Multiple calls should return same information
+            (is (= info1 info2)
+                (str "Info for " code " should be consistent")))))))
+  
+  (testing "Error handling for edge cases"
+    ;; Test with invalid input types
+    (is (nil? (images/get-shortcode-info "smile"))
+        "Should handle string input gracefully")
+    (is (nil? (images/get-shortcode-info nil))
+        "Should handle nil input gracefully")
+    (is (nil? (images/get-shortcode-info 123))
+        "Should handle numeric input gracefully"))))

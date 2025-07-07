@@ -6,6 +6,7 @@
   (:require ["node:fs" :as fs]
             ["node:path" :as path]
             [clojure.string :as str]
+            [cljs.reader]
             [dev.jaide.hiccup-pdf.emoji :as emoji]))
 
 (def ^:private emoji-base-directory
@@ -791,6 +792,126 @@
            :compatibility :na
            :pdf-size-impact :na
            :description "Stops processing, for debugging only"}})
+
+;; Step 5: Shortcode Configuration System
+
+(def ^:private emoji-shortcodes
+  "Atom containing loaded emoji shortcode mappings"
+  (atom nil))
+
+(defn load-emoji-shortcodes
+  "Reads and parses the EDN file containing emoji shortcode mappings.
+  
+  Loads shortcode mappings from emojis/emojis.edn file and caches them
+  in memory for efficient lookup. Handles file I/O errors gracefully.
+  
+  Returns:
+    Map from shortcode keywords to PNG filenames, or nil on error
+    
+  Example:
+    (load-emoji-shortcodes)
+    => {:smile \"emoji_u1f600.png\" :heart \"emoji_u2764.png\" ...}"
+  []
+  (try
+    (if @emoji-shortcodes
+      ;; Already loaded - return cached version
+      @emoji-shortcodes
+      ;; Load from file
+      (let [edn-file-path "emojis/emojis.edn"
+            edn-content (.readFileSync fs edn-file-path "utf8")
+            parsed-shortcodes (cljs.reader/read-string edn-content)]
+        ;; Cache the loaded shortcodes
+        (reset! emoji-shortcodes parsed-shortcodes)
+        parsed-shortcodes))
+    (catch js/Error e
+      (println (str "ERROR: Failed to load emoji shortcodes: " (.-message e)))
+      nil)))
+
+(defn validate-shortcode
+  "Checks if a shortcode exists in the loaded mappings.
+  
+  Validates that the given shortcode keyword exists in the emoji shortcode
+  mappings. Automatically loads shortcodes if not already loaded.
+  
+  Args:
+    shortcode-keyword: Keyword representing the shortcode (e.g., :smile)
+    
+  Returns:
+    Boolean true if shortcode exists, false otherwise
+    
+  Example:
+    (validate-shortcode :smile) => true
+    (validate-shortcode :nonexistent) => false"
+  [shortcode-keyword]
+  (when (keyword? shortcode-keyword)
+    (let [shortcodes (or @emoji-shortcodes (load-emoji-shortcodes))]
+      (and shortcodes (contains? shortcodes shortcode-keyword)))))
+
+(defn resolve-shortcode-to-path
+  "Converts shortcode keywords to full image file paths.
+  
+  Takes a shortcode keyword and resolves it to the complete file path
+  for the corresponding PNG image. Automatically loads shortcodes if
+  not already loaded.
+  
+  Args:
+    shortcode-keyword: Keyword representing the shortcode (e.g., :smile)
+    
+  Returns:
+    String containing full file path, or nil if shortcode not found
+    
+  Example:
+    (resolve-shortcode-to-path :smile)
+    => \"emojis/noto-72/emoji_u1f600.png\""
+  [shortcode-keyword]
+  (when (keyword? shortcode-keyword)
+    (let [shortcodes (or @emoji-shortcodes (load-emoji-shortcodes))]
+      (when-let [filename (get shortcodes shortcode-keyword)]
+        (path/join emoji-base-directory filename)))))
+
+(defn list-available-shortcodes
+  "Returns list of all available emoji shortcodes.
+  
+  Provides complete list of loaded shortcode keywords for validation
+  and user feedback. Automatically loads shortcodes if not already loaded.
+  
+  Returns:
+    Vector of shortcode keywords, or empty vector if loading failed
+    
+  Example:
+    (list-available-shortcodes)
+    => [:smile :joy :heart_eyes :wink :thinking ...]"
+  []
+  (let [shortcodes (or @emoji-shortcodes (load-emoji-shortcodes))]
+    (if shortcodes
+      (vec (keys shortcodes))
+      [])))
+
+(defn get-shortcode-info
+  "Returns detailed information about a specific shortcode.
+  
+  Provides comprehensive information about a shortcode including
+  filename mapping, file existence, and metadata.
+  
+  Args:
+    shortcode-keyword: Keyword representing the shortcode
+    
+  Returns:
+    Map with shortcode information:
+    {:shortcode keyword :filename string :file-path string :exists? boolean}
+    or nil if shortcode not found"
+  [shortcode-keyword]
+  (when (validate-shortcode shortcode-keyword)
+    (let [shortcodes @emoji-shortcodes
+          filename (get shortcodes shortcode-keyword)
+          file-path (path/join emoji-base-directory filename)
+          exists? (try
+                    (.existsSync fs file-path)
+                    (catch js/Error _ false))]
+      {:shortcode shortcode-keyword
+       :filename filename
+       :file-path file-path
+       :exists? exists?})))
 
 ;; PDF Image Object Generation
 

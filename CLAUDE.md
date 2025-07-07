@@ -148,3 +148,9 @@ When testing, you need to prompt me to confirm before changing input to make
 the test simpler. For example, if there are unicode characters in a hiccup
 document but they do not render correctly in a PDF that is a bug. Do not change
 those to ASCII characters.
+
+## Fixing syntax errors
+
+If a syntax error was introduced run `clj-kondo --lint src` to get details about
+which file has the syntax error. If uncertain about where the syntax error is
+introduced in the file, prompt me to fix and continue your previous task.
