@@ -269,49 +269,44 @@
   (testing "Circle coordinate transformation"
     (let [page-height 792
           margins [0 0 0 0]
-          circle-element [:circle {:cx 150 :cy 100 :r 50}]]
-
-      (let [transformed (transform-element-coordinates circle-element page-height margins)]
-        (is (= [:circle {:cx 150 :cy 692 :r 50}] transformed)
-            "Should transform circle CY coordinate"))))
+          circle-element [:circle {:cx 150 :cy 100 :r 50}]
+          transformed (transform-element-coordinates circle-element page-height margins)]
+      (is (= [:circle {:cx 150 :cy 692 :r 50}] transformed)
+          "Should transform circle CY coordinate")))
 
   (testing "Line coordinate transformation"
     (let [page-height 792
           margins [0 0 0 0]
-          line-element [:line {:x1 10 :y1 20 :x2 100 :y2 80}]]
-
-      (let [transformed (transform-element-coordinates line-element page-height margins)]
-        (is (= [:line {:x1 10 :y1 772 :x2 100 :y2 712}] transformed)
-            "Should transform both line Y coordinates"))))
+          line-element [:line {:x1 10 :y1 20 :x2 100 :y2 80}]
+          transformed (transform-element-coordinates line-element page-height margins)]
+      (is (= [:line {:x1 10 :y1 772 :x2 100 :y2 712}] transformed)
+          "Should transform both line Y coordinates")))
 
   (testing "Text coordinate transformation"
     (let [page-height 792
           margins [0 0 0 0]
-          text-element [:text {:x 50 :y 100 :font "Arial" :size 12} "Hello"]]
-
-      (let [transformed (transform-element-coordinates text-element page-height margins)]
-        (is (= [:text {:x 50 :y 692 :font "Arial" :size 12} "Hello"] transformed)
-            "Should transform text Y coordinate and preserve content"))))
+          text-element [:text {:x 50 :y 100 :font "Arial" :size 12} "Hello"]
+          transformed (transform-element-coordinates text-element page-height margins)]
+      (is (= [:text {:x 50 :y 692 :font "Arial" :size 12} "Hello"] transformed)
+          "Should transform text Y coordinate and preserve content")))
 
   (testing "Group coordinate transformation with translate"
     (let [page-height 792
           margins [0 0 0 0]
           group-element [:g {:transforms [[:translate [50 100]]]}
-                         [:rect {:x 10 :y 20 :width 50 :height 30}]]]
-
-      (let [transformed (transform-element-coordinates group-element page-height margins)]
-        (is (= [:g {:transforms [[:translate [50 692]]]}
-                [:rect {:x 10 :y 742 :width 50 :height 30}]] transformed)
-            "Should transform group translate Y and child element Y coordinates"))))
+                         [:rect {:x 10 :y 20 :width 50 :height 30}]]
+          transformed (transform-element-coordinates group-element page-height margins)]
+      (is (= [:g {:transforms [[:translate [50 692]]]}
+              [:rect {:x 10 :y 742 :width 50 :height 30}]] transformed)
+          "Should transform group translate Y and child element Y coordinates")))
 
   (testing "Group coordinate transformation with multiple transforms"
     (let [page-height 792
           margins [0 0 0 0]
-          group-element [:g {:transforms [[:translate [10 20]] [:rotate 45] [:scale [2 2]]]}]]
-
-      (let [transformed (transform-element-coordinates group-element page-height margins)]
-        (is (= [:g {:transforms [[:translate [10 772]] [:rotate 45] [:scale [2 2]]]}] transformed)
-            "Should only transform translate Y coordinate, leaving other transforms unchanged"))))
+          group-element [:g {:transforms [[:translate [10 20]] [:rotate 45] [:scale [2 2]]]}]
+          transformed (transform-element-coordinates group-element page-height margins)]
+      (is (= [:g {:transforms [[:translate [10 772]] [:rotate 45] [:scale [2 2]]]}] transformed)
+          "Should only transform translate Y coordinate, leaving other transforms unchanged")))
 
   (testing "Elements without coordinates"
     (let [page-height 792
@@ -340,18 +335,17 @@
           nested-element [:g {}
                           [:rect {:x 50 :y 100 :width 100 :height 50}]
                           [:g {:transforms [[:translate [25 75]]]}
-                           [:circle {:cx 75 :cy 125 :r 25}]]]]
-
-      (let [transformed (transform-element-coordinates nested-element page-height margins)]
-        ;; Content height = 792 - 20 - 30 = 742
-        ;; web y=100 -> PDF y = 30 + (742 - (100 - 20)) = 30 + 662 = 692
-        ;; web y=75 -> PDF y = 30 + (742 - (75 - 20)) = 30 + 687 = 717
-        ;; web y=125 -> PDF y = 30 + (742 - (125 - 20)) = 30 + 637 = 667
-        (is (= [:g {}
-                [:rect {:x 50 :y 642 :width 100 :height 50}]
-                [:g {:transforms [[:translate [25 717]]]}
-                 [:circle {:cx 75 :cy 667 :r 25}]]] transformed)
-            "Should recursively transform all nested elements with margins"))))
+                           [:circle {:cx 75 :cy 125 :r 25}]]]
+          transformed (transform-element-coordinates nested-element page-height margins)]
+      ;; Content height = 792 - 20 - 30 = 742
+      ;; web y=100 -> PDF y = 30 + (742 - (100 - 20)) = 30 + 662 = 692
+      ;; web y=75 -> PDF y = 30 + (742 - (75 - 20)) = 30 + 687 = 717
+      ;; web y=125 -> PDF y = 30 + (742 - (125 - 20)) = 30 + 637 = 667
+      (is (= [:g {}
+              [:rect {:x 50 :y 642 :width 100 :height 50}]
+              [:g {:transforms [[:translate [25 717]]]}
+               [:circle {:cx 75 :cy 667 :r 25}]]] transformed)
+          "Should recursively transform all nested elements with margins")))
 
   (testing "Elements with missing coordinates"
     (let [page-height 792
@@ -375,13 +369,13 @@
           margins [0 0 0 0]
           page-content [[:rect {:x 10 :y 20 :width 100 :height 50}]
                         [:circle {:cx 200 :cy 100 :r 30}]
-                        [:text {:x 50 :y 150 :font "Arial" :size 14} "Test"]]]
+                        [:text {:x 50 :y 150 :font "Arial" :size 14} "Test"]]
 
-      (let [transformed (transform-coordinates-for-page page-content page-height margins)]
-        (is (= [[:rect {:x 10 :y 722 :width 100 :height 50}]
-                [:circle {:cx 200 :cy 692 :r 30}]
-                [:text {:x 50 :y 642 :font "Arial" :size 14} "Test"]] transformed)
-            "Should transform all elements in page content"))))
+          transformed (transform-coordinates-for-page page-content page-height margins)]
+      (is (= [[:rect {:x 10 :y 722 :width 100 :height 50}]
+              [:circle {:cx 200 :cy 692 :r 30}]
+              [:text {:x 50 :y 642 :font "Arial" :size 14} "Test"]] transformed)
+          "Should transform all elements in page content")))
 
   (testing "Complex page with groups and nested elements"
     (let [page-height 600  ; Smaller page for easier calculation
@@ -390,21 +384,21 @@
                          [:rect {:x 10 :y 20 :width 50 :height 30}]
                          [:g {}
                           [:circle {:cx 100 :cy 80 :r 20}]]]
-                        [:line {:x1 200 :y1 150 :x2 300 :y2 200}]]]
+                        [:line {:x1 200 :y1 150 :x2 300 :y2 200}]]
 
-      (let [transformed (transform-coordinates-for-page page-content page-height margins)]
+          transformed (transform-coordinates-for-page page-content page-height margins)]
         ;; Content height = 600 - 50 - 50 = 500
         ;; Group translate y=100 -> PDF y = 50 + (500 - (100 - 50)) = 50 + 450 = 500
         ;; Rect y=20 -> PDF y = 50 + (500 - (20 - 50)) = 50 + 530 = 580
         ;; Circle cy=80 -> PDF y = 50 + (500 - (80 - 50)) = 50 + 470 = 520
         ;; Line y1=150 -> PDF y = 50 + (500 - (150 - 50)) = 50 + 400 = 450
         ;; Line y2=200 -> PDF y = 50 + (500 - (200 - 50)) = 50 + 350 = 400
-        (is (= [[:g {:transforms [[:translate [0 500]]]}
-                 [:rect {:x 10 :y 550 :width 50 :height 30}]
-                 [:g {}
-                  [:circle {:cx 100 :cy 520 :r 20}]]]
-                [:line {:x1 200 :y1 450 :x2 300 :y2 400}]] transformed)
-            "Should handle complex nested structures with margins"))))
+      (is (= [[:g {:transforms [[:translate [0 500]]]}
+               [:rect {:x 10 :y 550 :width 50 :height 30}]
+               [:g {}
+                [:circle {:cx 100 :cy 520 :r 20}]]]
+              [:line {:x1 200 :y1 450 :x2 300 :y2 400}]] transformed)
+          "Should handle complex nested structures with margins")))
 
   (testing "Edge cases and boundary conditions"
     (let [page-height 792
@@ -711,8 +705,7 @@
           ;; Generate objects for multi-page document
           page1-obj (generate-page-object 4 page1-data 6 3 {"Arial" 2})
           page2-obj (generate-page-object 5 page2-data 6 7 {"Times" 8})
-          pages-obj (generate-pages-object 6 [4 5])
-          catalog-obj (generate-catalog-object 1 6)]
+          pages-obj (generate-pages-object 6 [4 5])]
 
       ;; Test different page dimensions
       (is (re-find #"/MediaBox \[0 0 612 792\]" page1-obj) "Should handle letter size")
@@ -1087,8 +1080,8 @@
           pdf (hiccup->pdf-document hiccup-doc)
           start-time (js/Date.now)
           ;; Simulate multiple document generations
-          pdfs (doall (for [i (range 10)]
-                        (hiccup->pdf-document hiccup-doc)))
+          pdfs (dotimes [_i 10]
+                 (hiccup->pdf-document hiccup-doc))
           end-time (js/Date.now)
           duration (- end-time start-time)]
 

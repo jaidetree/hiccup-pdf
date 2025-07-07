@@ -1,7 +1,7 @@
-(ns dev.jaide.hiccup-pdf.emoji-integration-test
+(ns tests.integration.emoji-test
   "Comprehensive integration tests for the complete emoji and image pipeline.
-  
-  Tests the full workflow from emoji shortcodes through image caching to PDF 
+
+  Tests the full workflow from emoji shortcodes through image caching to PDF
   operator generation, ensuring all components work together correctly."
   (:require [cljs.test :refer [deftest is testing]]
             [dev.jaide.hiccup-pdf.core :refer [hiccup->pdf-ops]]
@@ -10,9 +10,9 @@
 (deftest single-emoji-integration-test
   (testing "Single emoji elements with complete pipeline"
     (let [cache (images/create-image-cache)]
-      
+
       ;; Test basic emoji rendering
-      (let [result (hiccup->pdf-ops [:emoji {:code :smile :size 24 :x 100 :y 200}] 
+      (let [result (hiccup->pdf-ops [:emoji {:code :smile :size 24 :x 100 :y 200}]
                                     {:image-cache cache})]
         (is (string? result)
             "Should generate PDF operators for single emoji")
@@ -24,21 +24,21 @@
             "Should contain XObject draw command")
         (is (re-find #"Q$" result)
             "Should end with graphics state restore"))
-      
+
       ;; Test emoji with different sizes
-      (let [small-emoji (hiccup->pdf-ops [:emoji {:code :heart :size 12 :x 0 :y 0}] 
+      (let [small-emoji (hiccup->pdf-ops [:emoji {:code :heart :size 12 :x 0 :y 0}]
                                          {:image-cache cache})
-            large-emoji (hiccup->pdf-ops [:emoji {:code :heart :size 48 :x 0 :y 0}] 
+            large-emoji (hiccup->pdf-ops [:emoji {:code :heart :size 48 :x 0 :y 0}]
                                          {:image-cache cache})]
         (is (and (string? small-emoji) (string? large-emoji))
             "Should handle different emoji sizes")
         (is (not= small-emoji large-emoji)
             "Different sizes should produce different PDF operators"))
-      
+
       ;; Test emoji positioning
-      (let [top-left (hiccup->pdf-ops [:emoji {:code :star :size 16 :x 0 :y 0}] 
+      (let [top-left (hiccup->pdf-ops [:emoji {:code :star :size 16 :x 0 :y 0}]
                                       {:image-cache cache})
-            bottom-right (hiccup->pdf-ops [:emoji {:code :star :size 16 :x 100 :y 200}] 
+            bottom-right (hiccup->pdf-ops [:emoji {:code :star :size 16 :x 100 :y 200}]
                                           {:image-cache cache})]
         (is (and (string? top-left) (string? bottom-right))
             "Should handle different emoji positions")
@@ -47,18 +47,18 @@
 
   (testing "Single emoji with caching verification"
     (let [cache (images/create-image-cache)]
-      
+
       ;; First access should be a cache miss
-      (let [result1 (hiccup->pdf-ops [:emoji {:code :lightbulb :size 20 :x 50 :y 50}] 
+      (let [result1 (hiccup->pdf-ops [:emoji {:code :lightbulb :size 20 :x 50 :y 50}]
                                      {:image-cache cache})
             cache-stats1 (:stats @cache)]
         (is (string? result1)
             "Should successfully render emoji on first access")
         (is (= 1 (:misses cache-stats1))
             "Should record cache miss on first access"))
-      
+
       ;; Second access should be a cache hit
-      (let [result2 (hiccup->pdf-ops [:emoji {:code :lightbulb :size 24 :x 60 :y 60}] 
+      (let [result2 (hiccup->pdf-ops [:emoji {:code :lightbulb :size 24 :x 60 :y 60}]
                                      {:image-cache cache})
             cache-stats2 (:stats @cache)]
         (is (string? result2)
@@ -76,21 +76,21 @@
                            [:emoji {:code :lightbulb :size 22 :x 70 :y 10}]
                            [:emoji {:code :fire :size 24 :x 90 :y 10}]]
           result (hiccup->pdf-ops multi-emoji-doc {:image-cache cache})]
-      
+
       (is (string? result)
           "Should generate PDF operators for multiple emoji")
-      
+
       ;; Verify group structure
       (is (re-find #"q\n" result)
           "Should start with group save state")
       (is (re-find #"Q$" result)
           "Should end with group restore state")
-      
+
       ;; Count XObject references (should have 5 emoji)
       (let [xobject-count (count (re-seq #"Do\n" result))]
         (is (= 5 xobject-count)
             "Should contain 5 XObject draw commands for 5 emoji"))
-      
+
       ;; Verify cache usage
       (let [cache-stats (:stats @cache)]
         (is (<= (:misses cache-stats) 5)
@@ -105,10 +105,10 @@
                               [:emoji {:code :smile :size 20 :x 40 :y 40}]
                               [:emoji {:code :smile :size 24 :x 70 :y 70}]]
           result (hiccup->pdf-ops repeated-emoji-doc {:image-cache cache})]
-      
+
       (is (string? result)
           "Should generate PDF operators for repeated emoji")
-      
+
       ;; Should have 3 XObject draws but only 1 cache miss
       (let [xobject-count (count (re-seq #"Do\n" result))
             cache-stats (:stats @cache)]
@@ -135,10 +135,10 @@
                      ;; Decorative emoji
                      [:emoji {:code :star :size 12 :x 180 :y 10}]]
           result (hiccup->pdf-ops mixed-doc {:image-cache cache})]
-      
+
       (is (string? result)
           "Should generate PDF operators for mixed elements")
-      
+
       ;; Verify all element types are present
       (is (re-find #"re\n" result)
           "Should contain rectangle operators")
@@ -146,7 +146,7 @@
           "Should contain text operators")
       (is (re-find #"Do\n" result)
           "Should contain emoji XObject operators")
-      
+
       ;; Count different element types
       (let [rect-count (count (re-seq #"re\n" result))
             text-count (count (re-seq #"BT\n" result))
@@ -166,7 +166,7 @@
                        [:rect {:x 0 :y 0 :width 300 :height 50 :fill "#4a90e2"}]
                        [:emoji {:code :star :size 20 :x 10 :y 15}]
                        [:text {:x 40 :y 25 :font "Arial" :size 16 :fill "#ffffff"} "Premium Service"]]
-                      
+
                       ;; Content section with mixed elements
                       [:g {:transforms [[:translate [0 60]]]}
                        [:text {:x 10 :y 20 :font "Arial" :size 14} "Features:"]
@@ -174,7 +174,7 @@
                        [:text {:x 30 :y 40 :font "Arial" :size 12} "Fast delivery"]
                        [:emoji {:code :thumbsup :size 14 :x 10 :y 60}]
                        [:text {:x 30 :y 60 :font "Arial" :size 12} "24/7 support"]]
-                      
+
                       ;; Footer with emoji rating
                       [:g {:transforms [[:translate [0 140]]]}
                        [:emoji {:code :star :size 16 :x 10 :y 10}]
@@ -183,10 +183,10 @@
                        [:emoji {:code :star :size 16 :x 70 :y 10}]
                        [:emoji {:code :star :size 16 :x 90 :y 10}]]]
           result (hiccup->pdf-ops layout-doc {:image-cache cache})]
-      
+
       (is (string? result)
           "Should generate PDF operators for complex layout")
-      
+
       ;; Verify group structure with transforms
       (let [transform-count (count (re-seq #"cm\n" result))
             emoji-count (count (re-seq #"Do\n" result))]
@@ -205,10 +205,10 @@
                        [:g {:transforms [[:rotate 45]]}
                         [:emoji {:code :star :size 12 :x 40 :y 40}]]]]
           result (hiccup->pdf-ops nested-doc {:image-cache cache})]
-      
+
       (is (string? result)
           "Should generate PDF operators for nested groups")
-      
+
       ;; Verify nested structure
       (let [save-count (count (re-seq #"q\n" result))
             restore-count (count (re-seq #"Q" result))
@@ -232,10 +232,10 @@
                               [:g {:transforms [[:scale [0.8 0.8]]]}
                                [:emoji {:code :star :size 16 :x 0 :y 0}]]]]]]
           result (hiccup->pdf-ops deep-nested-doc {:image-cache cache})]
-      
+
       (is (string? result)
           "Should handle deeply nested groups with emoji")
-      
+
       ;; Verify all emoji are rendered despite deep nesting
       (let [emoji-count (count (re-seq #"Do\n" result))]
         (is (= 3 emoji-count)
@@ -249,7 +249,7 @@
                                             [:rect {:x 0 :y 0 :width 100 :height 50}]
                                             [:emoji {:code :smile :size 16 :x 10 :y 10}]]))
         "Should throw error for missing cache in complex document")
-    
+
     ;; Test partial validation errors in mixed documents
     (let [cache (images/create-image-cache)]
       (is (thrown? js/Error
@@ -260,17 +260,17 @@
           "Should catch validation errors in mixed documents")))
 
   (testing "Error recovery and isolation"
-    (let [cache (images/create-image-cache)]
-      ;; Verify that valid elements work even when followed by invalid ones
-      (let [valid-result (hiccup->pdf-ops [:rect {:x 0 :y 0 :width 100 :height 50}])]
-        (is (string? valid-result)
-            "Valid elements should work independently")
-        
-        ;; Verify emoji works in isolation
-        (let [emoji-result (hiccup->pdf-ops [:emoji {:code :smile :size 16 :x 10 :y 10}]
-                                            {:image-cache cache})]
-          (is (string? emoji-result)
-              "Valid emoji should work independently"))))))
+    ;; Verify that valid elements work even when followed by invalid ones
+    (let [cache (images/create-image-cache)
+          valid-result (hiccup->pdf-ops [:rect {:x 0 :y 0 :width 100 :height 50}])]
+      (is (string? valid-result)
+          "Valid elements should work independently")
+
+      ;; Verify emoji works in isolation
+      (let [emoji-result (hiccup->pdf-ops [:emoji {:code :smile :size 16 :x 10 :y 10}]
+                                          {:image-cache cache})]
+        (is (string? emoji-result)
+            "Valid emoji should work independently")))))
 
 (deftest performance-integration-test
   (testing "Performance with many emoji"
@@ -286,14 +286,14 @@
           result (hiccup->pdf-ops many-emoji-doc {:image-cache cache})
           end-time (.now js/Date)
           duration (- end-time start-time)]
-      
+
       (is (string? result)
           "Should generate PDF operators for many emoji")
-      
+
       ;; Performance check: should complete within reasonable time
       (is (< duration 1000)
           "Should complete many emoji rendering within 1 second")
-      
+
       ;; Verify cache efficiency
       (let [cache-stats (:stats @cache)
             cache-items (count (:items @cache))]
@@ -312,7 +312,7 @@
                                {:image-cache cache}))
           cache-stats (:stats @cache)
           cache-items (count (:items @cache))]
-      
+
       (is (= 1 (:misses cache-stats))
           "Should have only 1 cache miss for repeated emoji")
       (is (= 9 (:hits cache-stats))
@@ -329,10 +329,10 @@
           text-result (hiccup->pdf-ops [:text {:x 10 :y 20 :font "Arial" :size 12} "Hello"])
           path-result (hiccup->pdf-ops [:path {:d "M10,10 L20,20"}])
           group-result (hiccup->pdf-ops [:g {} [:rect {:x 0 :y 0 :width 50 :height 50}]])]
-      
+
       (is (every? string? [rect-result circle-result line-result text-result path-result group-result])
           "All existing element types should continue to work")
-      
+
       ;; Verify specific patterns for each element type
       (is (re-find #"re\n" rect-result)
           "Rectangle should contain rect operator")
@@ -355,10 +355,10 @@
                                          [:emoji {:code :smile :size 16 :x 200 :y 20}]
                                          [:text {:x 10 :y 80 :font "Arial" :size 12} "Mixed content"]]
                                         {:image-cache cache})]
-      
+
       (is (string? mixed-result)
           "Mixed existing and new elements should work together")
-      
+
       ;; Verify all element types are present
       (is (re-find #"re\n" mixed-result)
           "Should contain rectangle operators")
@@ -374,24 +374,24 @@
     (let [cache (images/create-image-cache)
           result (hiccup->pdf-ops [:emoji {:code :smile :size 24 :x 100 :y 200}]
                                   {:image-cache cache})]
-      
+
       (is (string? result)
           "Should generate string output")
-      
+
       ;; Verify PDF operator structure
       (is (re-find #"^q\n" result)
           "Should start with save state operator")
       (is (re-find #"Q$" result)
           "Should end with restore state operator")
-      
+
       ;; Verify transformation matrix format
       (is (re-find #"[\d\.-]+ 0 0 [\d\.-]+ [\d\.-]+ [\d\.-]+ cm\n" result)
           "Should contain properly formatted transformation matrix")
-      
+
       ;; Verify XObject reference format
       (is (re-find #"/[A-Za-z0-9]+ Do\n" result)
           "Should contain properly formatted XObject reference")
-      
+
       ;; Verify no syntax errors (balanced operators)
       (let [save-count (count (re-seq #"q\n" result))
             restore-count (count (re-seq #"Q" result))]
@@ -404,14 +404,13 @@
                                    [:emoji {:code :smile :size 16 :x 10 :y 10}]
                                    [:emoji {:code :heart :size 16 :x 30 :y 10}]]
                                   {:image-cache cache})]
-      
+
       (is (string? result)
           "Should generate string output for multiple emoji")
-      
+
       ;; Should contain multiple XObject references
       (let [xobject-refs (re-seq #"/[A-Za-z0-9]+ Do" result)]
         (is (= 2 (count xobject-refs))
-            "Should contain 2 XObject references")
+            "Should contain 2 XObject references")))))
         ;; Note: XObject names may be the same if using same image files,
         ;; but there should be 2 separate Do commands
-        ))))
