@@ -4,8 +4,7 @@
             [clojure.string :as str]
             [dev.jaide.hiccup-pdf.core :as core]
             [dev.jaide.hiccup-pdf.document :as doc]
-            [dev.jaide.hiccup-pdf.images :as images]
-            [dev.jaide.hiccup-pdf.emoji :as emoji]))
+            [dev.jaide.hiccup-pdf.images :as images]))
 
 (deftest test-document-emoji-image-integration
   (testing "Simple document with emoji images"

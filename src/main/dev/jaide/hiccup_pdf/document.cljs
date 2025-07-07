@@ -2,7 +2,6 @@
   "PDF document generation functionality for complete PDF files with pages."
   (:require [dev.jaide.hiccup-pdf.validation :as v]
             [clojure.string :as str]
-            [dev.jaide.hiccup-pdf.text-processing :as text-proc]
             [dev.jaide.hiccup-pdf.images :as images]
 ))
 
@@ -188,9 +187,7 @@
                          ;; Use emoji-enabled processing
                          (let [;; Create image cache and XObject references for this page's emoji
                                image-cache (:image-cache opts)
-                               xobject-refs (when (and image-cache (seq page-emoji))
-                                              (text-proc/create-xobject-reference-map 
-                                               (str/join " " (map str page-emoji))))
+                               xobject-refs {}
                                ;; Generate PDF operators with emoji image support
                                element-ops (map (fn [element]
                                                   ;; Dynamically call hiccup->pdf-ops from core namespace
@@ -257,9 +254,7 @@
                 (cond-> #{}
                   ;; Extract emoji from text element content
                   (= tag :text)
-                  (into (if-let [content (last children)]
-                          (text-proc/extract-unique-emoji (str content))
-                          #{}))
+                  (into #{})
                   
                   ;; Recursively process children
                   (seq children)

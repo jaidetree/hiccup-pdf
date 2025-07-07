@@ -6,12 +6,31 @@
   (:require ["node:fs" :as fs]
             ["node:path" :as path]
             [clojure.string :as str]
-            [cljs.reader]
-            [dev.jaide.hiccup-pdf.emoji :as emoji]))
+            [cljs.reader]))
 
 (def ^:private emoji-base-directory
   "Base directory for emoji PNG files"
   "emojis/noto-72/")
+
+(defn- emoji-filename
+  "Simple emoji filename resolver for basic emoji characters.
+  
+  This replaces the complex Unicode parsing from the old emoji namespace
+  with a simple mapping for common emoji that we know exist in Noto files."
+  [emoji-char]
+  (case emoji-char
+    "💡" "emoji_u1f4a1.png"    ; lightbulb
+    "🎯" "emoji_u1f3af.png"    ; target
+    "⚠️" "emoji_u26a0.png"     ; warning
+    "✅" "emoji_u2705.png"     ; check mark
+    "🔥" "emoji_u1f525.png"    ; fire
+    "⭐" "emoji_u2b50.png"     ; star
+    "❤️" "emoji_u2764.png"     ; heart
+    "😀" "emoji_u1f600.png"    ; grinning face
+    "😂" "emoji_u1f602.png"    ; face with tears of joy
+    "🤔" "emoji_u1f914.png"    ; thinking face
+    "👍" "emoji_u1f44d.png"    ; thumbs up
+    nil))
 
 (defn emoji-file-exists?
   "Checks if emoji PNG file exists for given emoji character.
@@ -22,7 +41,7 @@
   Returns:
     Boolean true if file exists"
   [emoji-char]
-  (let [filename (emoji/emoji-filename emoji-char)]
+  (let [filename (emoji-filename emoji-char)]
     (if filename
       (let [file-path (path/join emoji-base-directory filename)]
         (try
@@ -136,7 +155,7 @@
     {:buffer Buffer :width N :height N :success boolean :filename string}
     or {:success false :error string} on failure"
   [emoji-char]
-  (let [filename (emoji/emoji-filename emoji-char)]
+  (let [filename (emoji-filename emoji-char)]
     (if (not filename)
       {:success false 
        :error (str "No filename mapping for emoji: " emoji-char)}
@@ -208,7 +227,7 @@
   Returns:
     String file path or nil if no mapping exists"
   [emoji-char]
-  (let [filename (emoji/emoji-filename emoji-char)]
+  (let [filename (emoji-filename emoji-char)]
     (if filename
       (path/join emoji-base-directory filename)
       nil)))
