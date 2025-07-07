@@ -1,6 +1,7 @@
 (ns tests.examples.run
   "Test runner for hiccup-pdf document examples"
   (:require [dev.jaide.hiccup-pdf.core :refer [hiccup->pdf-document]]
+            [dev.jaide.hiccup-pdf.images :as images]
             [clojure.string :as str]
             [clojure.edn :as edn]
             ["fs" :as fs]
@@ -79,9 +80,11 @@
 
     (if hiccup-doc
       (try
-        ;; Generate PDF document
+        ;; Generate PDF document with image cache for emoji/image support
         (let [start-time (js/Date.now)
-              pdf-content (hiccup->pdf-document hiccup-doc)
+              image-cache (images/create-image-cache)
+              options {:enable-emoji-images true :image-cache image-cache}
+              pdf-content (hiccup->pdf-document hiccup-doc options)
               end-time (js/Date.now)
               duration (- end-time start-time)]
 

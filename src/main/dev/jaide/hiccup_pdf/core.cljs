@@ -17,12 +17,12 @@
 ;; Performance optimization: Common PDF operators as constants
 (def ^:private pdf-operators
   {:save-state "q\n"
-   :restore-state "Q"
-   :fill "f"
-   :stroke "S"
-   :fill-and-stroke "B"
+   :restore-state "Q\n"
+   :fill "f\n"
+   :stroke "S\n"
+   :fill-and-stroke "B\n"
    :text-begin "BT\n"
-   :text-end "ET"
+   :text-end "ET\n"
    :path-close "h\n"
    :move "m\n"
    :line "l\n"
@@ -72,10 +72,10 @@
         fill-color-op (if has-fill (str (color->pdf-color fill) " rg\n") "")
         stroke-color-op (if has-stroke (str (color->pdf-color stroke) " RG\n") "")
         draw-op (cond
-                  (and has-fill has-stroke) "B"
-                  has-fill "f"
-                  has-stroke "S"
-                  :else "f")] ; Default to fill if no styling specified
+                  (and has-fill has-stroke) (:fill-and-stroke pdf-operators)
+                  has-fill (:fill pdf-operators)
+                  has-stroke (:stroke pdf-operators)
+                  :else (:fill pdf-operators))] ; Default to fill if no styling specified
     (str stroke-width-op fill-color-op stroke-color-op rect-path draw-op)))
 
 (defn- line->pdf-ops
@@ -92,7 +92,7 @@
         stroke-width-op (if stroke-width (str stroke-width " w\n") "")
         stroke-color-op (if stroke (str (color->pdf-color stroke) " RG\n") "0 0 0 RG\n")
         line-path (str x1 " " y1 " m\n" x2 " " y2 " l\n")]
-    (str stroke-width-op stroke-color-op line-path "S")))
+    (str stroke-width-op stroke-color-op line-path (:stroke pdf-operators))))
 
 (defn- circle->pdf-ops
   "Converts a circle hiccup vector to PDF operators using Bézier curve approximation.
@@ -126,10 +126,10 @@
         fill-color-op (if has-fill (str (color->pdf-color fill) " rg\n") "")
         stroke-color-op (if has-stroke (str (color->pdf-color stroke) " RG\n") "")
         draw-op (cond
-                  (and has-fill has-stroke) "B"
-                  has-fill "f"
-                  has-stroke "S"
-                  :else "f")] ; Default to fill if no styling specified
+                  (and has-fill has-stroke) (:fill-and-stroke pdf-operators)
+                  has-fill (:fill pdf-operators)
+                  has-stroke (:stroke pdf-operators)
+                  :else (:fill pdf-operators))] ; Default to fill if no styling specified
     (str stroke-width-op fill-color-op stroke-color-op circle-path draw-op)))
 
 (defn- parse-path-data
@@ -197,10 +197,10 @@
         fill-color-op (if has-fill (str (color->pdf-color fill) " rg\n") "")
         stroke-color-op (if has-stroke (str (color->pdf-color stroke) " RG\n") "")
         draw-op (cond
-                  (and has-fill has-stroke) "B"
-                  has-fill "f"
-                  has-stroke "S"
-                  :else "f")] ; Default to fill if no styling specified
+                  (and has-fill has-stroke) (:fill-and-stroke pdf-operators)
+                  has-fill (:fill pdf-operators)
+                  has-stroke (:stroke pdf-operators)
+                  :else (:fill pdf-operators))] ; Default to fill if no styling specified
     (str stroke-width-op fill-color-op stroke-color-op path-data draw-op)))
 
 (defn- encode-pdf-text-legacy
@@ -314,7 +314,7 @@
         ;; Encode text content for PDF - handle Unicode properly
         encoded-content (encode-pdf-text text-content opts)
         text-op (str encoded-content " Tj\n")]
-    (str "BT\n" fill-color-op font-op position-op text-op "ET")))
+    (str (:text-begin pdf-operators) fill-color-op font-op position-op text-op (:text-end pdf-operators))))
 
 (defn- transform->matrix
   "Converts a single transform operation to a PDF transformation matrix.

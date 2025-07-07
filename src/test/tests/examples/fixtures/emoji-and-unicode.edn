@@ -1,19 +1,37 @@
-[:document {:title "Hello World"}
- [:page {:width 612 :height 792}
-  [:text {:x 50 :y 50 :font "Arial" :size 16} "Speaker Notes - Slide 1"]
-  [:text {:x 50 :y 100 :font "Arial" :size 12} "Introduction points:"]
-  [:text {:x 50 :y 130 :font "Arial" :size 11} "• Welcome audience and introduce topic"]
-  [:text {:x 50 :y 150 :font "Arial" :size 11} "• Brief overview of ML challenges in production"]
-  [:text {:x 50 :y 170 :font "Arial" :size 11} "• Agenda: models, monitoring, scaling, best practices"]
-  [:text {:x 50 :y 190 :font "Arial" :size 11} "• Personal experience: 5 years ML engineering"]
-
-  [:text {:x 50 :y 240 :font "Arial" :size 12} "Key statistics to mention:"]
-  [:text {:x 50 :y 270 :font "Arial" :size 11} "• 85% of ML models never make it to production"]
-  [:text {:x 50 :y 290 :font "Arial" :size 11} "• Average time from model to production: 8 months"]
-  [:text {:x 50 :y 310 :font "Arial" :size 11} "• 60% of companies struggle with model monitoring"]
-
-  [:rect {:x 50 :y 350 :width 500 :height 100 :fill "#fef3c7" :stroke "#ffa500"}]
-  [:text {:x 60 :y 370 :font "Arial" :size 11} "💡 Timing: 3 minutes"]
-  [:text {:x 60 :y 390 :font "Arial" :size 11} "🎯 Goal: Set context and engage audience"]
-  [:text {:x 60 :y 410 :font "Arial" :size 11} "⚠️  Don't: Get too technical in introduction"]
-  [:text {:x 60 :y 430 :font "Arial" :size 11} "✅ Do: Use relatable examples and ask questions"]]]
+[:document {:title "Emoji and Image Examples"}
+ [:page {}
+  ;; Text with embedded emojis
+  [:text {:x 50 :y 50 :font "Arial" :size 16} "Hello 🌍 World! 🎉"]
+  [:text {:x 50 :y 80 :font "Arial" :size 14} "Weather: ☀️ 🌧️ ❄️"]
+  [:text {:x 50 :y 110 :font "Arial" :size 14} "Faces: 😀 😢 😍 🤔"]
+  
+  ;; Emoji elements using shortcodes
+  [:emoji {:code :smile :size 24 :x 100 :y 200}]
+  [:emoji {:code :heart :size 12 :x 50 :y 240}]
+  [:emoji {:code :star :size 48 :x 300 :y 220}]
+  
+  ;; Emoji in layouts
+  [:g {}
+   [:emoji {:code :smile :size 16 :x 10 :y 300}]
+   [:text {:x 30 :y 305 :font "Arial" :size 12} "Task completed"]
+   [:emoji {:code :lightbulb :size 16 :x 10 :y 320}]
+   [:text {:x 30 :y 325 :font "Arial" :size 12} "High performance"]]
+  
+  ;; Status indicators with emoji
+  [:g {}
+   [:rect {:x 200 :y 280 :width 200 :height 100 :fill "#f9f9f9"}]
+   [:emoji {:code :star :size 20 :x 210 :y 300}]
+   [:text {:x 235 :y 305 :font "Arial" :size 14} "Premium Account"]
+   [:emoji {:code :lightbulb :size 16 :x 210 :y 325}]
+   [:text {:x 230 :y 330 :font "Arial" :size 12} "Secure"]
+   [:emoji {:code :heart :size 16 :x 210 :y 350}]
+   [:text {:x 230 :y 355 :font "Arial" :size 12} "Fast delivery"]]
+  
+  ;; Rating system
+  [:g {}
+   [:text {:x 50 :y 420 :font "Arial" :size 14} "Customer Rating:"]
+   [:emoji {:code :star :size 16 :x 50 :y 450}]
+   [:emoji {:code :star :size 16 :x 70 :y 450}]
+   [:emoji {:code :star :size 16 :x 90 :y 450}]
+   [:emoji {:code :star :size 16 :x 110 :y 450}]
+   [:emoji {:code :star :size 16 :x 130 :y 450}]]]]

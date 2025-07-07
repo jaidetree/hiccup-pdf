@@ -7,8 +7,11 @@
   [:text {:x 200 :y 200 :font "Arial" :size 36 :fill "#ffffff"} "Machine Learning"]
   [:text {:x 240 :y 250 :font "Arial" :size 36 :fill "#ffffff"} "in Production"]
   [:text {:x 300 :y 350 :font "Arial" :size 18 :fill "#ffffff"} "Dr. Jane Smith"]
-  [:text {:x 280 :y 380 :font "Arial" :size 14 :fill "#ffffff"} "Tech Conference 2024"]]
- 
+  [:text {:x 280 :y 380 :font "Arial" :size 14 :fill "#ffffff"} "Tech Conference 2024"]
+  ;; Add emoji for visual appeal
+  [:emoji {:code :star :size 32 :x 150 :y 200}]
+  [:emoji {:code :lightbulb :size 32 :x 580 :y 250}]]
+
  ;; Speaker notes for slide 1 (standard letter)
  [:page {:width 612 :height 792}
   [:text {:x 50 :y 50 :font "Arial" :size 16} "Speaker Notes - Slide 1"]
@@ -24,11 +27,16 @@
   [:text {:x 50 :y 310 :font "Arial" :size 11} "• 60% of companies struggle with model monitoring"]
   
   [:rect {:x 50 :y 350 :width 500 :height 100 :fill "#fef3c7" :stroke "#ffa500"}]
-  [:text {:x 60 :y 370 :font "Arial" :size 11} "💡 Timing: 3 minutes"]
-  [:text {:x 60 :y 390 :font "Arial" :size 11} "🎯 Goal: Set context and engage audience"]
-  [:text {:x 60 :y 410 :font "Arial" :size 11} "⚠️  Don't: Get too technical in introduction"]
-  [:text {:x 60 :y 430 :font "Arial" :size 11} "✅ Do: Use relatable examples and ask questions"]]
- 
+  ;; Use emoji elements instead of Unicode text
+  [:emoji {:code :lightbulb :size 11 :x 60 :y 370}]
+  [:text {:x 75 :y 375 :font "Arial" :size 11} "Timing: 3 minutes"]
+  [:emoji {:code :star :size 11 :x 60 :y 390}]
+  [:text {:x 75 :y 395 :font "Arial" :size 11} "Goal: Set context and engage audience"]
+  [:emoji {:code :heart :size 11 :x 60 :y 410}]
+  [:text {:x 75 :y 415 :font "Arial" :size 11} "Don't: Get too technical in introduction"]
+  [:emoji {:code :smile :size 11 :x 60 :y 430}]
+  [:text {:x 75 :y 435 :font "Arial" :size 11} "Do: Use relatable examples and ask questions"]]
+
  ;; Slide 2 - Content slide
  [:page {:width 792 :height 612}
   [:rect {:x 0 :y 0 :width 792 :height 612 :fill "#ffffff"}]
@@ -39,18 +47,21 @@
   [:text {:x 85 :y 155 :font "Arial" :size 14 :fill "#ffffff"} "1"]
   [:text {:x 150 :y 155 :font "Arial" :size 16} "Model Drift"]
   [:text {:x 150 :y 180 :font "Arial" :size 12} "Performance degrades over time"]
+  [:emoji {:code :heart :size 20 :x 400 :y 150}]
   
   ;; Challenge 2
   [:circle {:cx 100 :cy 250 :r 30 :fill "#ffa500"}]
   [:text {:x 85 :y 255 :font "Arial" :size 14 :fill "#ffffff"} "2"]
   [:text {:x 150 :y 255 :font "Arial" :size 16} "Data Pipeline Failures"]
   [:text {:x 150 :y 280 :font "Arial" :size 12} "Upstream data quality issues"]
+  [:emoji {:code :lightbulb :size 20 :x 400 :y 250}]
   
   ;; Challenge 3
   [:circle {:cx 100 :cy 350 :r 30 :fill "#0000ff"}]
   [:text {:x 85 :y 355 :font "Arial" :size 14 :fill "#ffffff"} "3"]
   [:text {:x 150 :y 355 :font "Arial" :size 16} "Scalability"]
   [:text {:x 150 :y 380 :font "Arial" :size 12} "Handling increasing load"]
+  [:emoji {:code :star :size 20 :x 400 :y 350}]
   
   ;; Visual element
   [:g {:transforms [[:translate [500 200]]]}
@@ -62,7 +73,7 @@
    [:text {:x 85 :y 95 :font "Arial" :size 10} "Validation"]
    [:rect {:x 20 :y 110 :width 160 :height 20 :fill "#ff0000"}]
    [:text {:x 80 :y 125 :font "Arial" :size 10} "Production"]]]
- 
+
  ;; Speaker notes for slide 2
  [:page {:width 612 :height 792}
   [:text {:x 50 :y 50 :font "Arial" :size 16} "Speaker Notes - Slide 2"]
