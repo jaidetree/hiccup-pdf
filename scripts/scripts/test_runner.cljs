@@ -6,7 +6,8 @@
    [dev.jaide.hiccup-pdf.document-test]
    [dev.jaide.hiccup-pdf.emoji-test]
    [dev.jaide.hiccup-pdf.text-processing-test]
-   [dev.jaide.hiccup-pdf.images-test]))
+   [dev.jaide.hiccup-pdf.images-test]
+   [dev.jaide.hiccup-pdf.emoji-integration-test]))
 
 (def tests
   '[dev.jaide.hiccup-pdf.core-test
@@ -14,7 +15,8 @@
     dev.jaide.hiccup-pdf.document-test
     dev.jaide.hiccup-pdf.emoji-test
     dev.jaide.hiccup-pdf.text-processing-test
-    dev.jaide.hiccup-pdf.images-test])
+    dev.jaide.hiccup-pdf.images-test
+    dev.jaide.hiccup-pdf.emoji-integration-test])
 
 (defn -main
   []
