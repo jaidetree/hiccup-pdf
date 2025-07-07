@@ -8,16 +8,17 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 1. [Basic Shapes](#basic-shapes)
 2. [Styling and Colors](#styling-and-colors)  
 3. [Text Rendering](#text-rendering)
-4. [Complex Paths](#complex-paths)
-5. [Groups and Transforms](#groups-and-transforms)
-6. [Real-World Content Examples](#real-world-content-examples)
+4. [Images and Emoji](#images-and-emoji)
+5. [Complex Paths](#complex-paths)
+6. [Groups and Transforms](#groups-and-transforms)
+7. [Real-World Content Examples](#real-world-content-examples)
 
 ### Document Generation
-7. [Document Structure](#document-structure)
-8. [Page Management](#page-management)
-9. [Business Documents](#business-documents)
-10. [Technical Documentation](#technical-documentation)
-11. [Multi-format Documents](#multi-format-documents)
+8. [Document Structure](#document-structure)
+9. [Page Management](#page-management)
+10. [Business Documents](#business-documents)
+11. [Technical Documentation](#technical-documentation)
+12. [Multi-format Documents](#multi-format-documents)
 
 ## Basic Shapes
 
@@ -143,6 +144,111 @@ This document provides comprehensive examples for using the hiccup-pdf library t
 (hiccup->pdf-ops [:text {:x 50 :y 75 :font "Times" :size 14} "Times font"])
 (hiccup->pdf-ops [:text {:x 50 :y 100 :font "Helvetica" :size 14} "Helvetica font"])
 ```
+
+## Images and Emoji
+
+The library supports PNG image rendering and emoji through shortcodes. Both require an image cache for performance.
+
+### Image Elements
+
+```clojure
+(require '[hiccup-pdf.images :as images])
+
+;; Create image cache
+(def cache (images/create-image-cache))
+
+;; Basic image with scaling
+(hiccup->pdf-ops [:image {:src "path/to/logo.png" :width 100 :height 75 :x 50 :y 100}]
+                 {:image-cache cache})
+
+;; Square icon image
+(hiccup->pdf-ops [:image {:src "icons/settings.png" :width 32 :height 32 :x 10 :y 10}]
+                 {:image-cache cache})
+
+;; Large scaled image
+(hiccup->pdf-ops [:image {:src "photos/background.png" :width 400 :height 200 :x 0 :y 0}]
+                 {:image-cache cache})
+```
+
+### Emoji Elements
+
+Emoji elements use shortcode keywords that map to PNG files. The library includes 60+ common emoji shortcodes.
+
+```clojure
+;; Basic emoji
+(hiccup->pdf-ops [:emoji {:code :smile :size 24 :x 100 :y 200}]
+                 {:image-cache cache})
+
+;; Different emoji sizes
+(hiccup->pdf-ops [:emoji {:code :heart :size 12 :x 50 :y 75}]   ; Small
+                 {:image-cache cache})
+(hiccup->pdf-ops [:emoji {:code :star :size 48 :x 300 :y 100}]  ; Large
+                 {:image-cache cache})
+
+;; Emoji in layouts
+(hiccup->pdf-ops [:g {}
+                  [:emoji {:code :thumbsup :size 16 :x 10 :y 40}]
+                  [:text {:x 30 :y 40 :font "Arial" :size 12} "Task completed"]
+                  [:emoji {:code :fire :size 16 :x 10 :y 60}]
+                  [:text {:x 30 :y 60 :font "Arial" :size 12} "High performance"]]
+                 {:image-cache cache})
+```
+
+### Available Emoji Shortcodes
+
+Popular shortcodes include:
+
+| Category | Shortcodes |
+|----------|-----------|
+| **Expressions** | `:smile`, `:joy`, `:heart_eyes`, `:wink`, `:thinking` |
+| **Gestures** | `:thumbsup`, `:thumbsdown`, `:ok_hand`, `:wave`, `:clap` |
+| **Nature** | `:sun`, `:moon`, `:star`, `:fire`, `:rainbow` |
+| **Objects** | `:lightbulb`, `:key`, `:gem`, `:crown`, `:trophy` |
+| **Activities** | `:soccer`, `:basketball`, `:guitar`, `:microphone` |
+
+### Practical Emoji Examples
+
+```clojure
+;; Status indicators
+(hiccup->pdf-ops [:g {}
+                  [:rect {:x 0 :y 0 :width 200 :height 100 :fill "#f9f9f9"}]
+                  [:emoji {:code :star :size 20 :x 10 :y 20}]
+                  [:text {:x 35 :y 25 :font "Arial" :size 14} "Premium Account"]
+                  [:emoji {:code :shield :size 16 :x 10 :y 50}]
+                  [:text {:x 30 :y 55 :font "Arial" :size 12} "Secure"]
+                  [:emoji {:code :zap :size 16 :x 10 :y 75}]
+                  [:text {:x 30 :y 80 :font "Arial" :size 12} "Fast delivery"]]
+                 {:image-cache cache})
+
+;; Rating system
+(hiccup->pdf-ops [:g {}
+                  [:text {:x 50 :y 30 :font "Arial" :size 14} "Customer Rating:"]
+                  [:emoji {:code :star :size 16 :x 50 :y 50}]
+                  [:emoji {:code :star :size 16 :x 70 :y 50}]
+                  [:emoji {:code :star :size 16 :x 90 :y 50}]
+                  [:emoji {:code :star :size 16 :x 110 :y 50}]
+                  [:emoji {:code :star :size 16 :x 130 :y 50}]]
+                 {:image-cache cache})
+
+;; Project status board
+(hiccup->pdf-ops [:g {}
+                  [:rect {:x 0 :y 0 :width 300 :height 150 :fill "#ffffff" :stroke "#dddddd"}]
+                  [:text {:x 10 :y 20 :font "Arial" :size 16} "Project Dashboard"]
+                  [:emoji {:code :checkmark :size 14 :x 10 :y 50}]
+                  [:text {:x 30 :y 55 :font "Arial" :size 12} "Design completed"]
+                  [:emoji {:code :gear :size 14 :x 10 :y 75}]
+                  [:text {:x 30 :y 80 :font "Arial" :size 12} "Development in progress"]
+                  [:emoji {:code :clock :size 14 :x 10 :y 100}]
+                  [:text {:x 30 :y 105 :font "Arial" :size 12} "Testing pending"]]
+                 {:image-cache cache})
+```
+
+### Performance Notes
+
+- Image cache improves performance by avoiding repeated file loads
+- Same emoji used multiple times = 1 cache miss + multiple cache hits
+- Cache statistics available via `(:stats @cache)`
+- Memory usage optimized with LRU eviction
 
 ## Complex Paths
 
