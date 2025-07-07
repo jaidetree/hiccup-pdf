@@ -75,7 +75,7 @@
   Throws:
     Validation error if element type is not supported"
   [element-type]
-  (let [supported-types #{:rect :circle :line :text :path :g :document :page}
+  (let [supported-types #{:rect :circle :line :text :path :g :image :document :page}
         schema (v/enum supported-types)]
     (v/parse schema element-type)))
 
@@ -236,6 +236,28 @@
         optional-schema (v/record {:fill (v/nilable color-validator)})]
     (v/parse required-schema attributes)
     (v/parse optional-schema attributes)
+    attributes))
+
+(defn validate-image-attributes
+  "Validates that attributes contains required image attributes.
+  
+  Args:
+    attributes: The attributes map to validate
+    
+  Returns:
+    The validated attributes map if valid
+    
+  Throws:
+    Validation error if required attributes are missing or invalid"
+  [attributes]
+  (let [required-schema (v/record {:src (v/chain 
+                                          (v/string)
+                                          (v/assert #(not (str/blank? %))))
+                                   :width (v/chain (v/number) (v/assert #(pos? %)))
+                                   :height (v/chain (v/number) (v/assert #(pos? %)))
+                                   :x (v/number)
+                                   :y (v/number)})]
+    (v/parse required-schema attributes)
     attributes))
 
 (defn validate-transform

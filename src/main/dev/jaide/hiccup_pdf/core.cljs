@@ -498,6 +498,7 @@
       :circle (circle->pdf-ops attributes)
       :path (path->pdf-ops attributes)
       :text (text->pdf-ops attributes (first content) options)
+      :image (throw (js/Error. "Image element not yet implemented - will be added in step 4"))
       :g (group->pdf-ops attributes content options)
       (throw (js/Error. (str "Element type " tag " not yet implemented"))))))
 

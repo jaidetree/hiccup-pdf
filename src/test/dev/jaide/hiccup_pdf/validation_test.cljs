@@ -12,6 +12,7 @@
                                            validate-transform
                                            validate-transforms
                                            validate-color
+                                           validate-image-attributes
                                            validate-document-attributes
                                            validate-page-attributes]]))
 
@@ -43,7 +44,10 @@
         "Should validate path element type")
     
     (is (= :g (validate-element-type :g))
-        "Should validate group element type")))
+        "Should validate group element type")
+    
+    (is (= :image (validate-element-type :image))
+        "Should validate image element type")))
 
 (deftest validate-attributes-test
   (testing "Valid attributes"
@@ -280,6 +284,87 @@
     
     (is (thrown? js/Error (validate-text-attributes {:x 10 :y 20 :font "Arial" :size 12 :fill "invalid"}))
         "Should throw error for invalid fill color")))
+
+(deftest validate-image-attributes-test
+  (testing "Valid image attributes"
+    (is (= {:src "path/to/image.png" :width 100 :height 50 :x 10 :y 20}
+           (validate-image-attributes {:src "path/to/image.png" :width 100 :height 50 :x 10 :y 20}))
+        "Should validate complete image attributes")
+    
+    (is (= {:src "emoji.png" :width 72 :height 72 :x 0 :y 0}
+           (validate-image-attributes {:src "emoji.png" :width 72 :height 72 :x 0 :y 0}))
+        "Should validate emoji image attributes")
+    
+    (is (= {:src "emojis/noto-72/emoji_u1f4a1.png" :width 1 :height 1 :x -10 :y -5}
+           (validate-image-attributes {:src "emojis/noto-72/emoji_u1f4a1.png" :width 1 :height 1 :x -10 :y -5}))
+        "Should validate minimal dimensions and negative coordinates"))
+  
+  (testing "Invalid image attributes - missing required"
+    (is (thrown? js/Error (validate-image-attributes {}))
+        "Should throw error for missing all attributes")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width 100 :height 50 :x 10}))
+        "Should throw error for missing y coordinate")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width 100 :height 50 :y 20}))
+        "Should throw error for missing x coordinate")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width 100 :x 10 :y 20}))
+        "Should throw error for missing height")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :height 50 :x 10 :y 20}))
+        "Should throw error for missing width")
+    
+    (is (thrown? js/Error (validate-image-attributes {:width 100 :height 50 :x 10 :y 20}))
+        "Should throw error for missing src"))
+  
+  (testing "Invalid image attributes - invalid types"
+    (is (thrown? js/Error (validate-image-attributes {:src 123 :width 100 :height 50 :x 10 :y 20}))
+        "Should throw error for non-string src")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width "100" :height 50 :x 10 :y 20}))
+        "Should throw error for non-numeric width")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width 100 :height "50" :x 10 :y 20}))
+        "Should throw error for non-numeric height")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width 100 :height 50 :x "10" :y 20}))
+        "Should throw error for non-numeric x")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width 100 :height 50 :x 10 :y "20"}))
+        "Should throw error for non-numeric y"))
+  
+  (testing "Invalid image attributes - invalid values"
+    (is (thrown? js/Error (validate-image-attributes {:src "" :width 100 :height 50 :x 10 :y 20}))
+        "Should throw error for empty src")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "   " :width 100 :height 50 :x 10 :y 20}))
+        "Should throw error for whitespace-only src")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width 0 :height 50 :x 10 :y 20}))
+        "Should throw error for zero width")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width -5 :height 50 :x 10 :y 20}))
+        "Should throw error for negative width")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width 100 :height 0 :x 10 :y 20}))
+        "Should throw error for zero height")
+    
+    (is (thrown? js/Error (validate-image-attributes {:src "test.png" :width 100 :height -10 :x 10 :y 20}))
+        "Should throw error for negative height"))
+  
+  (testing "Edge cases"
+    (is (= {:src "test.png" :width 0.1 :height 0.1 :x 10.5 :y 20.7}
+           (validate-image-attributes {:src "test.png" :width 0.1 :height 0.1 :x 10.5 :y 20.7}))
+        "Should validate fractional dimensions and coordinates")
+    
+    (is (= {:src "very/long/path/to/some/nested/directory/image.png" :width 1000 :height 800 :x -100 :y -200}
+           (validate-image-attributes {:src "very/long/path/to/some/nested/directory/image.png" :width 1000 :height 800 :x -100 :y -200}))
+        "Should validate long paths and large dimensions")
+    
+    (is (= {:src "test.PNG" :width 72 :height 72 :x 0 :y 0}
+           (validate-image-attributes {:src "test.PNG" :width 72 :height 72 :x 0 :y 0}))
+        "Should validate uppercase file extensions")))
 
 (deftest validate-transform-test
   (testing "Valid transform operations"
