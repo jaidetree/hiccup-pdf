@@ -76,6 +76,51 @@
           nil)))
     nil))
 
+;; Step 2: Basic Image Loading Infrastructure Functions
+
+(defn load-image-file
+  "Loads PNG file from arbitrary file path with proper error handling.
+  
+  This function takes a file path and returns a Node.js Buffer containing PNG data,
+  with proper error handling for missing files. Designed for Step 2 of emoji system
+  refactoring to support loading images from any path.
+  
+  Args:
+    file-path: String absolute or relative file path to PNG file
+    
+  Returns:
+    Node.js Buffer containing PNG data, or nil if file not found
+    
+  Example:
+    (load-image-file \"emojis/noto-72/emoji_u1f4a1.png\")
+    (load-image-file \"/absolute/path/to/image.png\")"
+  [file-path]
+  (if (and file-path (string? file-path) (not-empty file-path))
+    (try
+      (.readFileSync fs file-path)
+      (catch js/Error _
+        nil))
+    nil))
+
+(defn get-png-dimensions
+  "Extracts width/height from PNG file headers with Noto emoji fallback.
+  
+  Reads PNG header information to extract image dimensions. For Noto emoji files,
+  assumes 72x72 dimensions as fallback if header reading fails.
+  
+  Args:
+    buffer: Node.js Buffer containing PNG data
+    
+  Returns:
+    Map with :width and :height, or {:width 72 :height 72} fallback
+    
+  Example:
+    (get-png-dimensions png-buffer) => {:width 100 :height 50}
+    (get-png-dimensions nil) => {:width 72 :height 72}"
+  [buffer]
+  ;; Delegate to existing function which already has this exact logic
+  (get-image-dimensions buffer))
+
 (defn load-emoji-image
   "Main function that loads emoji image with comprehensive error handling.
   

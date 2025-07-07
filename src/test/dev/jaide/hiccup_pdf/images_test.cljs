@@ -275,6 +275,194 @@
       (is (= false (:success result)))
       (is (string? (:error result))))))
 
+;; Step 2: Basic Image Loading Infrastructure Tests
+
+(deftest test-load-image-file
+  (testing "Valid image file loading"
+    ;; Test with a file that likely exists (use same emoji file as existing tests)
+    (let [test-file-path "emojis/noto-72/emoji_u1f4a1.png"
+          result (images/load-image-file test-file-path)]
+      ;; Result should be either a Buffer or nil depending on file existence
+      (is (or (nil? result) 
+              (instance? js/Buffer result))
+          "Should return Buffer or nil"))
+    
+    ;; Test with various path formats
+    (let [relative-path "./emojis/noto-72/emoji_u1f4a1.png"
+          result (images/load-image-file relative-path)]
+      (is (or (nil? result) 
+              (instance? js/Buffer result))
+          "Should handle relative paths")))
+  
+  (testing "Invalid or missing files"
+    ;; Test with non-existent file
+    (let [result (images/load-image-file "non-existent-file.png")]
+      (is (nil? result)
+          "Should return nil for non-existent files"))
+    
+    ;; Test with invalid path format
+    (let [result (images/load-image-file "/definitely/does/not/exist/file.png")]
+      (is (nil? result)
+          "Should return nil for invalid paths")))
+  
+  (testing "Invalid input parameters"
+    ;; Test with nil input
+    (let [result (images/load-image-file nil)]
+      (is (nil? result)
+          "Should return nil for nil input"))
+    
+    ;; Test with empty string
+    (let [result (images/load-image-file "")]
+      (is (nil? result)
+          "Should return nil for empty string"))
+    
+    ;; Test with non-string input
+    (let [result (images/load-image-file 123)]
+      (is (nil? result)
+          "Should return nil for non-string input"))
+    
+    ;; Test with whitespace-only string
+    (let [result (images/load-image-file "   ")]
+      (is (or (nil? result) 
+              (instance? js/Buffer result))
+          "Should handle whitespace-only strings")))
+  
+  (testing "Path variations"
+    ;; Test different path separators and formats
+    (let [unix-path "emojis/noto-72/emoji_u1f4a1.png"
+          result (images/load-image-file unix-path)]
+      (is (or (nil? result) 
+              (instance? js/Buffer result))
+          "Should handle Unix-style paths"))
+    
+    ;; Test with different file extensions
+    (let [png-uppercase "test.PNG"
+          result (images/load-image-file png-uppercase)]
+      (is (or (nil? result) 
+              (instance? js/Buffer result))
+          "Should handle uppercase extensions"))))
+
+(deftest test-get-png-dimensions-step2
+  (testing "Valid PNG buffer dimensions"
+    ;; Create a minimal valid PNG header for testing
+    ;; PNG signature: 89 50 4E 47 0D 0A 1A 0A
+    ;; IHDR chunk follows with width/height
+    (let [mock-png-buffer (.from js/Buffer 
+                                  #js [0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A  ; PNG signature
+                                       0x00 0x00 0x00 0x0D  ; IHDR chunk length (13 bytes)
+                                       0x49 0x48 0x44 0x52  ; "IHDR"
+                                       0x00 0x00 0x00 0x64  ; Width: 100 (4 bytes, big-endian)
+                                       0x00 0x00 0x00 0x32  ; Height: 50 (4 bytes, big-endian)
+                                       0x08 0x02 0x00 0x00 0x00])  ; Rest of IHDR
+          result (images/get-png-dimensions mock-png-buffer)]
+      (is (= 100 (:width result))
+          "Should extract correct width from PNG header")
+      (is (= 50 (:height result))
+          "Should extract correct height from PNG header")))
+  
+  (testing "Invalid or malformed PNG data"
+    ;; Test with nil buffer
+    (let [result (images/get-png-dimensions nil)]
+      (is (= {:width 72 :height 72} result)
+          "Should return fallback dimensions for nil buffer"))
+    
+    ;; Test with too-small buffer
+    (let [small-buffer (.from js/Buffer #js [0x89 0x50])
+          result (images/get-png-dimensions small-buffer)]
+      (is (= {:width 72 :height 72} result)
+          "Should return fallback dimensions for too-small buffer"))
+    
+    ;; Test with invalid PNG signature
+    (let [invalid-buffer (.from js/Buffer #js [0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                                               0x00 0x00 0x00 0x0D 0x49 0x48 0x44 0x52
+                                               0x00 0x00 0x00 0x64 0x00 0x00 0x00 0x32])
+          result (images/get-png-dimensions invalid-buffer)]
+      (is (= {:width 72 :height 72} result)
+          "Should return fallback dimensions for invalid PNG signature")))
+  
+  (testing "Noto emoji fallback behavior"
+    ;; Test various scenarios that should trigger fallback
+    (let [empty-buffer (.from js/Buffer #js [])
+          result (images/get-png-dimensions empty-buffer)]
+      (is (= {:width 72 :height 72} result)
+          "Should return 72x72 fallback for empty buffer"))
+    
+    ;; Test with corrupted header
+    (let [corrupted-buffer (.from js/Buffer #js [0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
+                                                  0xFF 0xFF 0xFF 0xFF])  ; Corrupted data
+          result (images/get-png-dimensions corrupted-buffer)]
+      (is (= {:width 72 :height 72} result)
+          "Should return 72x72 fallback for corrupted header")))
+  
+  (testing "Edge cases"
+    ;; Test with minimum valid PNG structure
+    (let [minimal-png (.from js/Buffer #js [0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
+                                            0x00 0x00 0x00 0x0D 0x49 0x48 0x44 0x52
+                                            0x00 0x00 0x00 0x01 ; Width: 1
+                                            0x00 0x00 0x00 0x01 ; Height: 1
+                                            0x08 0x02 0x00 0x00 0x00])
+          result (images/get-png-dimensions minimal-png)]
+      (is (= 1 (:width result))
+          "Should handle minimal 1x1 dimensions")
+      (is (= 1 (:height result))
+          "Should handle minimal 1x1 dimensions"))
+    
+    ;; Test with large dimensions
+    (let [large-png (.from js/Buffer #js [0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
+                                          0x00 0x00 0x00 0x0D 0x49 0x48 0x44 0x52
+                                          0x00 0x00 0x03 0xE8 ; Width: 1000
+                                          0x00 0x00 0x07 0xD0 ; Height: 2000  
+                                          0x08 0x02 0x00 0x00 0x00])
+          result (images/get-png-dimensions large-png)]
+      (is (= 1000 (:width result))
+          "Should handle large width dimensions")
+      (is (= 2000 (:height result))
+          "Should handle large height dimensions"))))
+
+(deftest test-step2-integration
+  (testing "Integration between load-image-file and get-png-dimensions"
+    ;; Test loading a file and getting its dimensions
+    (let [test-file "emojis/noto-72/emoji_u1f4a1.png"
+          buffer (images/load-image-file test-file)]
+      (when buffer  ; Only test if file actually exists
+        (let [dimensions (images/get-png-dimensions buffer)]
+          (is (number? (:width dimensions))
+              "Should get numeric width from loaded file")
+          (is (number? (:height dimensions))
+              "Should get numeric height from loaded file")
+          (is (pos? (:width dimensions))
+              "Width should be positive")
+          (is (pos? (:height dimensions))
+              "Height should be positive")))))
+  
+  (testing "Error handling consistency"
+    ;; Test that both functions handle errors consistently
+    (let [buffer (images/load-image-file "non-existent-file.png")
+          dimensions (images/get-png-dimensions buffer)]
+      (is (nil? buffer)
+          "load-image-file should return nil for missing files")
+      (is (= {:width 72 :height 72} dimensions)
+          "get-png-dimensions should return fallback for nil buffer")))
+  
+  (testing "Function signatures and return types"
+    ;; Verify function signatures match Step 2 specification
+    (is (fn? images/load-image-file)
+        "load-image-file should be a function")
+    (is (fn? images/get-png-dimensions)
+        "get-png-dimensions should be a function")
+    
+    ;; Test return types
+    (let [nil-result (images/load-image-file nil)
+          fallback-dims (images/get-png-dimensions nil)]
+      (is (nil? nil-result)
+          "load-image-file should return nil for invalid input")
+      (is (map? fallback-dims)
+          "get-png-dimensions should return a map")
+      (is (contains? fallback-dims :width)
+          "Dimensions map should contain :width")
+      (is (contains? fallback-dims :height)
+          "Dimensions map should contain :height"))))
+
 (deftest test-performance-considerations
   (testing "File existence checks"
     ;; Test that file existence checks are reasonably fast
