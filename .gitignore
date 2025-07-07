@@ -4,7 +4,8 @@
 .lsp
 .nrepl-port
 .shadow-cljs
-emojis/
+emojis/*
+!emojis/emojis.edn
 build/
 target
 react-pdf/

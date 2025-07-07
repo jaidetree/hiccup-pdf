@@ -1,0 +1,78 @@
+;; Emoji Shortcode Configuration
+;; Maps shortcode keywords to PNG filenames following Noto naming convention
+;;
+;; Format: {:shortcode "filename.png"}
+;; Shortcodes are keywords that users can reference in :emoji elements
+;; Filenames follow the Noto emoji_u{hex_codepoint}.png convention
+
+{;; Expressions and Emotions
+ :smile          "emoji_u1f600.png"  ; 😀 grinning face
+ :joy            "emoji_u1f602.png"  ; 😂 face with tears of joy
+ :heart_eyes     "emoji_u1f60d.png"  ; 😍 smiling face with heart-eyes
+ :wink           "emoji_u1f609.png"  ; 😉 winking face
+ :thinking       "emoji_u1f914.png"  ; 🤔 thinking face
+ :thumbsup       "emoji_u1f44d.png"  ; 👍 thumbs up
+ :thumbsdown     "emoji_u1f44e.png"  ; 👎 thumbs down
+ :ok_hand        "emoji_u1f44c.png"  ; 👌 OK hand
+ :wave           "emoji_u1f44b.png"  ; 👋 waving hand
+ :clap           "emoji_u1f44f.png"  ; 👏 clapping hands
+
+ ;; Nature and Weather
+ :sun            "emoji_u2600.png"   ; ☀️ sun
+ :moon           "emoji_u1f319.png"  ; 🌙 crescent moon
+ :star           "emoji_u2b50.png"   ; ⭐ star
+ :cloud          "emoji_u2601.png"   ; ☁️ cloud
+ :rainbow        "emoji_u1f308.png"  ; 🌈 rainbow
+ :snowflake      "emoji_u2744.png"  ; ❄️ snowflake
+ :fire           "emoji_u1f525.png"  ; 🔥 fire
+ :tree           "emoji_u1f333.png"  ; 🌳 deciduous tree
+ :flower         "emoji_u1f337.png"  ; 🌷 tulip
+ :leaves         "emoji_u1f343.png"  ; 🍃 leaf fluttering in wind
+
+ ;; Activities and Objects
+ :lightbulb      "emoji_u1f4a1.png"  ; 💡 light bulb
+ :target         "emoji_u1f3af.png"  ; 🎯 direct hit
+ :checkmark      "emoji_u2705.png"   ; ✅ check mark button
+ :warning        "emoji_u26a0.png"   ; ⚠️ warning
+ :rocket         "emoji_u1f680.png"  ; 🚀 rocket
+ :computer       "emoji_u1f4bb.png"  ; 💻 laptop computer
+ :phone          "emoji_u1f4f1.png"  ; 📱 mobile phone
+ :email          "emoji_u1f4e7.png"  ; 📧 email
+ :calendar       "emoji_u1f4c5.png"  ; 📅 calendar
+ :clock          "emoji_u1f551.png"  ; 🕑 two o'clock
+
+ ;; Food and Drink
+ :apple          "emoji_u1f34e.png"  ; 🍎 red apple
+ :pizza          "emoji_u1f355.png"  ; 🍕 pizza
+ :coffee         "emoji_u2615.png"   ; ☕ hot beverage
+ :beer           "emoji_u1f37a.png"  ; 🍺 beer mug
+ :cake           "emoji_u1f382.png"  ; 🎂 birthday cake
+ :donut          "emoji_u1f369.png"  ; 🍩 doughnut
+ :burger         "emoji_u1f354.png"  ; 🍔 hamburger
+ :ice_cream      "emoji_u1f366.png"  ; 🍦 soft ice cream
+ :banana         "emoji_u1f34c.png"  ; 🍌 banana
+ :grape          "emoji_u1f347.png"  ; 🍇 grapes
+
+ ;; Transportation and Travel
+ :car            "emoji_u1f697.png"  ; 🚗 automobile
+ :plane          "emoji_u2708.png"   ; ✈️ airplane
+ :train          "emoji_u1f686.png"  ; 🚆 train
+ :bike           "emoji_u1f6b2.png"  ; 🚲 bicycle
+ :bus            "emoji_u1f68c.png"  ; 🚌 bus
+ :ship           "emoji_u1f6a2.png"  ; 🚢 ship
+ :taxi           "emoji_u1f695.png"  ; 🚕 taxi
+ :helicopter     "emoji_u1f681.png"  ; 🚁 helicopter
+ :metro          "emoji_u1f687.png"  ; 🚇 metro
+ :scooter        "emoji_u1f6f4.png"  ; 🛴 kick scooter
+
+ ;; Symbols and Miscellaneous
+ :heart          "emoji_u2764.png"   ; ❤️ red heart
+ :diamond        "emoji_u1f48e.png"  ; 💎 gem stone
+ :key            "emoji_u1f511.png"  ; 🔑 key
+ :lock           "emoji_u1f512.png"  ; 🔒 locked
+ :unlock         "emoji_u1f513.png"  ; 🔓 unlocked
+ :gift           "emoji_u1f381.png"  ; 🎁 wrapped gift
+ :trophy         "emoji_u1f3c6.png"  ; 🏆 trophy
+ :medal          "emoji_u1f3c5.png"  ; 🏅 sports medal
+ :flag           "emoji_u1f6a9.png"  ; 🚩 triangular flag
+ :bell           "emoji_u1f514.png"} ; 🔔 bell
