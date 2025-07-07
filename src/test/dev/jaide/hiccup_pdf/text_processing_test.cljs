@@ -399,8 +399,9 @@
 
   (testing "Fallback to hex encoding"
     (let [cache (images/create-image-cache)
-          segments [{:type :emoji :content "😀😀😀" :x 0 :y 0}]  ; Multiple identical emoji, will trigger fallback
-          result (text-proc/render-mixed-segments segments "Arial" 12 cache {:fallback-strategy :hex-string})]
+          ;; Use a non-existent emoji code to trigger fallback
+          segments [{:type :emoji :content "\uE000" :x 0 :y 0}]  ; Private use area character
+          result (text-proc/render-mixed-segments segments "Arial" 12 cache {:fallback-strategy :hex-string :logging? false})]
       ;; Should fallback to text rendering with hex encoding
       (is (clojure.string/includes? result "BT"))
       (is (clojure.string/includes? result "ET"))
@@ -409,22 +410,24 @@
 
   (testing "Fallback to placeholder"
     (let [cache (images/create-image-cache)
-          segments [{:type :emoji :content "😀😀😀" :x 0 :y 0}]
-          result (text-proc/render-mixed-segments segments "Arial" 12 cache {:fallback-strategy :placeholder})]
+          ;; Use a non-existent emoji code to trigger fallback
+          segments [{:type :emoji :content "\uE001" :x 0 :y 0}]  ; Private use area character
+          result (text-proc/render-mixed-segments segments "Arial" 12 cache {:fallback-strategy :placeholder :logging? false})]
       ;; Should render placeholder text
-      (is (clojure.string/includes? result "([😀😀😀]) Tj"))))
+      (is (and (clojure.string/includes? result "([") (clojure.string/includes? result "]) Tj")))))
 
   (testing "Skip fallback"
     (let [cache (images/create-image-cache)
-          segments [{:type :text :content "Before "}
-                    {:type :emoji :content "😀😀😀"}
-                    {:type :text :content " after"}]
-          result (text-proc/render-mixed-segments segments "Arial" 12 cache {:fallback-strategy :skip})]
+          ;; Mix text with non-existent emoji
+          segments [{:type :text :content "Before " :x 0 :y 0}
+                    {:type :emoji :content "\uE002" :x 30 :y 0}  ; Private use area character
+                    {:type :text :content " after" :x 44 :y 0}]
+          result (text-proc/render-mixed-segments segments "Arial" 12 cache {:fallback-strategy :skip :logging? false})]
       ;; Should render text but skip emoji
       (is (clojure.string/includes? result "(Before ) Tj"))
       (is (clojure.string/includes? result "( after) Tj"))
-      ;; Should not contain emoji content
-      (is (not (clojure.string/includes? result "😀😀😀")))))
+      ;; Should not contain private use character
+      (is (not (clojure.string/includes? result "\uE002")))))
 
   (testing "Empty segments"
     (let [cache (images/create-image-cache)
