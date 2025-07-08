@@ -19,6 +19,7 @@
           pkgs.clojure-lsp
           pkgs.nodejs_22
           pkgs.temurin-jre-bin-17
+          pkgs.xpdf
         ];
         shellHook = ''
           export PATH="node_modules/.bin":"$PATH";
