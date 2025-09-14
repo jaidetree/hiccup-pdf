@@ -24,16 +24,16 @@ Add hiccup-pdf to your ClojureScript project using deps.edn, bb.edn, nbb.edn, as
 
 ## Overview
 
-This library converts web-style hiccup markup into PDF content streams, providing a functional approach to PDF generation from structured data. It supports all major PDF drawing primitives including rectangles, circles, lines, text with emoji support, SVG-style paths, and grouped elements with transforms.
+This library converts web-style hiccup markup into PDF content streams, providing a functional approach to PDF generation from structured data. It supports all major PDF drawing primitives including rectangles, circles, lines, text, SVG-style paths, and grouped elements with transforms.
 
 ## Features
 
-- ✅ **Complete PDF Primitives**: Rectangles, circles, lines, text, paths, images, emoji, and groups
-- ✅ **Emoji Support**: 60+ emoji shortcodes with automatic PNG image rendering and caching
-- ✅ **Image Rendering**: PNG image support with scaling, positioning, and caching infrastructure
+- ✅ **Complete PDF Primitives**: Rectangles, circles, lines, text, paths, and groups
+<!-- - ✅ **Emoji Support**: 60+ emoji shortcodes with automatic PNG image rendering and caching -->
+<!-- - ✅ **Image Rendering**: PNG image support with scaling, positioning, and caching infrastructure -->
 - ✅ **Transform Support**: Translate, rotate, and scale operations with matrix composition
 - ✅ **Styling**: Fill colors, stroke colors, stroke widths with hex color support
-- ✅ **Text Rendering**: Font support with emoji compatibility and proper PDF text escaping
+- ✅ **Text Rendering**: Font support with proper PDF text escaping
 - ✅ **SVG Path Data**: Full support for SVG-style path commands (M, L, C, Z)
 - ✅ **Graphics State Management**: Proper PDF graphics state save/restore with nested groups
 - ✅ **Document Generation**: Complete PDF documents with metadata, multiple pages, and coordinate transformation
@@ -57,18 +57,18 @@ This library converts web-style hiccup markup into PDF content streams, providin
 (hiccup->pdf-ops [:circle {:cx 50 :cy 50 :r 25 :stroke "#0000ff" :stroke-width 2}])
 
 ;; Emoji elements with shortcodes
-(require '[hiccup-pdf.images :as images])
-(let [cache (images/create-image-cache)]
-  (hiccup->pdf-ops [:emoji {:code :smile :size 24 :x 100 :y 200}] {:image-cache cache}))
+;(require '[hiccup-pdf.images :as images])
+;(let [cache (images/create-image-cache)]
+;  (hiccup->pdf-ops [:emoji {:code :smile :size 24 :x 100 :y 200}] {:image-cache cache}))
 
-;; Complex layout with emoji and other elements
-(let [cache (images/create-image-cache)]
-  (hiccup->pdf-ops [:g {}
-                    [:rect {:x 0 :y 0 :width 200 :height 80 :fill "#f0f0f0"}]
-                    [:emoji {:code :star :size 20 :x 10 :y 15}]
-                    [:text {:x 40 :y 25 :font "Arial" :size 16} "Premium Service"]
-                    [:emoji {:code :thumbsup :size 16 :x 170 :y 20}]]
-                   {:image-cache cache}))
+;; Complex layout with text and other elements
+;(let [cache (images/create-image-cache)]
+;  (hiccup->pdf-ops [:g {}
+;                    [:rect {:x 0 :y 0 :width 200 :height 80 :fill "#f0f0f0"}]
+;                    [:emoji {:code :star :size 20 :x 10 :y 15}]
+;                    [:text {:x 40 :y 25 :font "Arial" :size 16} "Premium Service"]
+;                    [:emoji {:code :thumbsup :size 16 :x 170 :y 20}]]
+;                   {:image-cache cache}))
 
 ;; Complex group with transforms  
 (hiccup->pdf-ops [:g {:transforms [[:translate [50 50]] [:rotate 45]]}
@@ -90,17 +90,17 @@ This library converts web-style hiccup markup into PDF content streams, providin
     [:rect {:x 100 :y 200 :width 400 :height 200 :fill "#e6f3ff" :stroke "#0000ff"}]]])
 
 ;; Document with emoji elements
-(let [cache (images/create-image-cache)]
-  (hiccup->pdf-document
-    [:document {:title "Status Report" :author "Project Manager"}
-     [:page {}
-      [:emoji {:code :star :size 24 :x 50 :y 80}]
-      [:text {:x 80 :y 80 :font "Arial" :size 18} "Project Status"]
-      [:emoji {:code :thumbsup :size 16 :x 50 :y 120}]
-      [:text {:x 75 :y 120 :font "Arial" :size 12} "Tasks completed"]
-      [:emoji {:code :fire :size 16 :x 50 :y 150}]
-      [:text {:x 75 :y 150 :font "Arial" :size 12} "Performance optimized"]]]
-    {:image-cache cache}))
+;(let [cache (images/create-image-cache)]
+;  (hiccup->pdf-document
+;    [:document {:title "Status Report" :author "Project Manager"}
+;     [:page {}
+;      [:emoji {:code :star :size 24 :x 50 :y 80}]
+;      [:text {:x 80 :y 80 :font "Arial" :size 18} "Project Status"]
+;      [:emoji {:code :thumbsup :size 16 :x 50 :y 120}]
+;      [:text {:x 75 :y 120 :font "Arial" :size 12} "Tasks completed"]
+;      [:emoji {:code :fire :size 16 :x 50 :y 150}]
+;      [:text {:x 75 :y 150 :font "Arial" :size 12} "Performance optimized"]]]
+;    {:image-cache cache}))
 
 ;; Multi-page document with different layouts
 (hiccup->pdf-document
@@ -137,8 +137,8 @@ The library provides two main functions:
 | `:line`   | Line        | `:x1`, `:y1`, `:x2`, `:y2`      | `:stroke`, `:stroke-width`          |
 | `:text`   | Text        | `:x`, `:y`, `:font`, `:size`    | `:fill`                             |
 | `:path`   | SVG Path    | `:d`                            | `:fill`, `:stroke`, `:stroke-width` |
-| `:image`  | PNG Image   | `:src`, `:width`, `:height`, `:x`, `:y` | None (requires `:image-cache`)   |
-| `:emoji`  | Emoji       | `:code`, `:size`, `:x`, `:y`    | None (requires `:image-cache`)      |
+<!-- | `:image`  | PNG Image   | `:src`, `:width`, `:height`, `:x`, `:y` | None (requires `:image-cache`)   | -->
+<!-- | `:emoji`  | Emoji       | `:code`, `:size`, `:x`, `:y`    | None (requires `:image-cache`)      | -->
 | `:g`      | Group       | None                            | `:transforms`                       |
 
 ## Examples
