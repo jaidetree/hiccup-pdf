@@ -593,7 +593,7 @@
   ([hiccup-vector]
    (hiccup->pdf-ops hiccup-vector nil))
   ([hiccup-vector options]
-   (element->pdf-ops hiccup-vector options)))
+   (str/trim-newline (element->pdf-ops hiccup-vector options))))
 
 (defn hiccup->pdf-document
   "Generates complete PDF documents with pages from hiccup structure.
